@@ -1,0 +1,38 @@
+/* Clear the margin */
+.nomargin {
+  margin: 0em;
+}
+
+/* Disable the selection */
+.noselect {
+  -webkit-touch-callout: none;
+  /* iOS Safari */
+  -webkit-user-select: none;
+  /* Chrome/Safari/Opera */
+  -khtml-user-select: none;
+  /* Konqueror */
+  -moz-user-select: none;
+  /* Firefox */
+  -ms-user-select: none;
+  /* Internet Explorer/Edge*/
+  user-select: none;
+}
+
+/* Disable the drag event */
+.nodrag {
+  -webkit-user-drag: none;
+  -khtml-user-drag: none;
+  -moz-user-drag: none;
+  -o-user-drag: none;
+  user-drag: none;
+}
+
+/* Disable the scroll bar */
+.noscroll {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.noscroll::-webkit-scrollbar {
+  display: none;
+}
