@@ -133,6 +133,7 @@
 
 .xterm {
     cursor: text;
+    height: 100%;
 }
 
 .xterm.enable-mouse-events {
