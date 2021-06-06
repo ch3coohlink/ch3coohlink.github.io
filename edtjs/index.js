@@ -1,4 +1,7 @@
-const sandbox = () => {}
+const __sandbox__ = (__src__, __ctx__, _____ = []) => {
+  for (const k in __ctx__) { _____.push(k) }
+  eval(["const {", ..._____.map(v => v + ","),
+    "} = __ctx__;\n"].join(" ") + __src__) }
 
 (() => { const { log, dir, clear } = console
 const fori = (n, f, s = 0, d = 1) => { for(let i = s; i < n; i+=d) f(i) }
@@ -51,19 +54,22 @@ const get = (k, r = _) => ro(s => r = s.get(k)).then(() => r.result), clr = () =
 const set = (k, v) => rw(s => s.put(v, k)), del = k => rw(s => s.delete(k))
 return { get, set, del, clr, key, val } }
 
-const codebase = (o, k = "codebase") => ({
-  add: ([i, t]) => o[i] = t,
-  del: ([i, t]) => delete o[i],
-  get data() { return o },
-  save: s => s.set(k, o),
-  init: s => o = s.get(k) })
-const livecode = a => ({
-  add: (i, o) => a.splice(i, 0, o),
-  del: (i, n = 1) => a.splice(i, n),
-  mod: (i, o) => a[i] = o,
-  get data() { return a },
-  save: (s, b) => (s.set("live", a), forof(a, b.add)),
-  init: s => a = s.get("live") })
+const codebase = (o, d, k = "codebase") => {
+const add = ([i, t]) => o[i] = t
+const del = ([i]) => delete o[i]
+const save = () => d.set(k, o)
+const init = s => (d = s, o = d.get(k))
+return {add, del, save, init, get data() { return o }} }
+
+const livecode = (a, d, b) => {
+const add = (i, o) => a.splice(i, 0, o)
+const del = (i, n = 1) => a.splice(i, n)
+const mod = (i, o) => a[i] = o
+const mov = (x, y, t = a[x]) => (del(x), add(y > x ? y - 1 : y, t))
+const swp = (x, y, t = a[x]) => (a[x] = a[y], a[y] = t)
+const save = () => (d.set("live", a), forof(a, b.add))
+const init = (s, ib) => (d = s, b = ib, a = d.get("live"))
+return { add, del, mod, mov, swp, save, init, get data() { return a } } }
 
 const objcache = (b, l, bi, li) => {
 const init = () => (b = m(), l = m(), bi = m(), li = m())
@@ -78,26 +84,26 @@ const del = (d, di) => ([i], [ty, n, p] = di.get(i)) =>
     (d.get(ty).get(n).splice(p, 1), di.delete(i))
 const delb = del(b, bi), addb = add(delb, bi, bp)
 const dell = del(l, li), addl = add(dell, li, lp)
-return { addb, addl, delb, dell, init:(cb, lc) => (init(),
+return { addb, addl, delb, dell, init: (cb, lc) => (init(),
     forof(lc.data, addl), forin(cb.data, (v, k) => addb([k, v]))) }
 }, m = () => new Map
 
 const editors = (m = new Map) => {
-const init = () => {}
-const add = ([i, t]) => {  }
-const del = ([i, t]) => {  }
-const mod = () => {}
-return {} }
+const editor = (t) => {}
+const init = () => {  }
+const add = (i, [id, t]) => { m.set(id, editor(t)) }
+const del = (i, [id]) => { m.delete(id) }
+const mov = () => {}
+const swp = () => {}
+return { init } }
 
 clear(); (async () => {
-const cb = codebase(), lc = livecode()
+const cb = codebase(), lc = livecode(), eds = editors()
 const idb = store("storage"), oc = objcache()
-
 const o = { codebase: await idb.get("codebase") ?? {},
-  live: await idb.get("live") ?? [] }
+            live: await idb.get("live") ?? [] }
 const st = { set: idb.set, get: k => o[k] }
 
-cb.init(st), lc.init(st), oc.init(cb, lc)
-
-forin(oc, log)
+cb.init(st), lc.init(st, { add: a => { cb.add(a), oc.addb(a) }})
+oc.init(cb, lc), eds.init()
 })() })()
