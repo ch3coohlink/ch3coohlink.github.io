@@ -190,7 +190,7 @@ demos.push(() => {
   t.value = ``
 
   {
-    const text = `And here comes a problem, what if the histroy becomes too long
+    const text = `And here comes a problem, what if the history becomes too long
 and we can't find our old definition to modify?`
     dom("div", { parent: demo, text, style: { marginBottom: "1em" } })
   }
