@@ -162,12 +162,22 @@ demos.push(() => {
   const dlog = o => (...a) => {
     dom("div", { text: a.join(" "), parent: cdiv, ...o })
     cdiv.scrollTop = cdiv.scrollHeight
+  }, console = {
+    log: dlog({}), warn: dlog({ style: { color: "yellow" } }),
+    error: dlog({ style: { color: "red" } }), clear: () => cdiv.innerHTML = "",
   }
-  const console = {
-    log: dlog({}),
-    warn: dlog({ style: { color: "yellow" } }),
-    error: dlog({ style: { color: "red" } }),
-    clear: () => cdiv.innerHTML = "",
+
+  let history = [], pos = 0, edit_histroy = []
+  const val = (v = edit_histroy[pos]) => isudf(v) ? history[pos] : v
+  const eval = (i = val()) => {
+    try { exec({ ...shadow, $ })(i) } catch (e) { console.error(e) } finally {
+      ediv.innerHTML = "", forin($, (_, k) => dom("div", { text: k, parent: ediv }))
+      t.value = "", history.push(i), pos += 1, edit_histroy = []
+    }
+  }
+  const load = n => {
+    if (n < 0 || n > Math.max(history.length, edit_histroy.length) - 1) return
+    pos = n, t.value = val()
   }
 
   const $ = { console }, shadow = {}; for (const k in window) { shadow[k] = undefined }
@@ -176,18 +186,15 @@ demos.push(() => {
     parent: demo, style: [{ resize: "none", border: "0.5px solid black", borderRadius: 0 },
     { boxSizing: "border-box", height: h, width: `calc(100% - ${w * (1 + r)}px)` }],
     onkeydown: e => {
+      edit_histroy[pos] = t.value
       if (e.key == "Alt") { e.preventDefault() }
-      if (e.key == "Enter" && (e.ctrlKey || e.shiftKey || e.altKey)) {
-        e.preventDefault()
-        try { exec({ ...shadow, $ })(t.value) }
-        catch (e) { console.error(e) }
-        ediv.innerHTML = ""
-        forin($, (_, k) => dom("div", { text: k, parent: ediv }))
-      }
+      if (e.key == "ArrowUp" && e.ctrlKey) { load(pos - 1) }
+      if (e.key == "ArrowDown" && e.ctrlKey) { load(pos + 1) }
+      if (e.key == "Enter" && (e.ctrlKey || e.shiftKey || e.altKey))
+        (e.preventDefault(), eval())
     },
   })
-
-  t.value = ``
+  setTimeout(() => t.focus(), 0)
 
   {
     const text = `And here comes a problem, what if the history becomes too long
