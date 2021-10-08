@@ -87,7 +87,7 @@ demos.push(() => {
       }
     },
   })
-  t.value = `// Use shift + Enter to execute.
+  t.value = `// Use shift + Enter to execute. (alt + Enter, ctrl + Enter also works)
 console.log(1, "string", JSON.stringify({ a: 1 })) // only string are supported
 console.error(new Error("SOME ERROR"))
 // console.clear()`
@@ -98,8 +98,8 @@ demos.push(() => {
   dom("h3", { text: "DEMO 1: change the environment", parent: demo, id: "demo1" })
   const text = `Demo 1 adds a "$" variable on top of demo 0.
   "$" is just a plain js object, and will be reference to the same object
-  during all execution, so we can use it as a sort of global envrionment,
-  thus all the global variable visit has to be started with "$.", which is tedious,
+  during all execution, so we can use it as a sort of global envrionment.
+  Thus all the global variable visit has to be started with "$.", which is tedious,
   but I didn't find a better way to do this without using full js code transformation.`
   dom("div", { parent: demo, text, style: { marginBottom: "1em" } })
   const txt1 = `The middle window will show current name inside "$".`
@@ -153,52 +153,108 @@ demos.push(() => {
   the textarea will be automatically cleared, just like a repl. )`
   dom("div", { parent: demo, text, style: { marginBottom: "1em" } })
 
-  const h = 200, w = h * 16 / 9, r = 0.3
-  const csty = [
-    { overflow: "auto", display: "inline-block", height: h, width: w },
-    { boxSizing: "border-box", border: "0.5px solid black", borderRight: "none" }]
-  const cdiv = dom("div", { parent: demo, style: csty })
-  const ediv = dom("div", { parent: demo, style: [...csty, { height: h, width: w * r }] })
-  const dlog = o => (...a) => {
-    dom("div", { text: a.join(" "), parent: cdiv, ...o })
-    cdiv.scrollTop = cdiv.scrollHeight
-  }, log = dlog({}), warn = dlog({ style: { color: "yellow" } })
-  const error = dlog({ style: { color: "red" } }), clear = () => cdiv.innerHTML = ""
+  {
+    const h = 200, w = h * 16 / 9, r = 0.3
+    const csty = [
+      { overflow: "auto", display: "inline-block", height: h, width: w },
+      { boxSizing: "border-box", border: "0.5px solid black", borderRight: "none" }]
+    const cdiv = dom("div", { parent: demo, style: csty })
+    const ediv = dom("div", { parent: demo, style: [...csty, { height: h, width: w * r }] })
+    const dlog = o => (...a) => {
+      dom("div", { text: a.join(" "), parent: cdiv, ...o })
+      cdiv.scrollTop = cdiv.scrollHeight
+    }, log = dlog({}), warn = dlog({ style: { color: "yellow" } })
+    const error = dlog({ style: { color: "red" } }), clear = () => cdiv.innerHTML = ""
 
-  let history = [], pos = 0, edit_histroy = []
-  const val = (a = edit_histroy[pos], b = history[pos]) => isudf(a) ? isudf(b) ? "" : b : a
-  const eval = (i = val()) => {
-    if (!i) { return } try { exec({ ...shadow, $ })(i) } catch (e) { error(e) } finally {
-      ediv.innerHTML = "", forin($, (_, k) => dom("div", { text: k, parent: ediv }))
-      t.value = "", history.push(i), pos += 1, edit_histroy = []
+    const history = [`// You find the history!
+// And you can modify it to create more!
+// ================ Like delete this line and then eval ============================`,
+      "// Use ctrl + up to see the history."]
+    let pos = history.length - 1, edit_histroy = []
+    const val = (a = edit_histroy[pos], b = history[pos]) => isudf(a) ? isudf(b) ? "" : b : a
+    const load = n => { if (n >= 0 && n <= history.length) { pos = n, t.value = val() } }
+    const eval = (i = val()) => {
+      if (!i) { return } try { exec({ ...shadow, $ })(i) } catch (e) { error(e) } finally {
+        ediv.innerHTML = "", forin($, (_, k) => dom("div", { text: k, parent: ediv }))
+        t.value = "", history.push(i), pos = history.length, edit_histroy = []
+      }
     }
-  }
-  const load = n => {
-    if (n < 0 || n > history.length) { return }
-    pos = n, t.value = val()
-  }
 
-  const $ = { log, error, warn, clear }, shadow = {}
-  for (const k in window) { shadow[k] = undefined }
-  const t = dom("textarea", {
-    label: "code", placeholder: "code", spellcheck: "false",
-    parent: demo, style: [{ resize: "none", border: "0.5px solid black", borderRadius: 0 },
-    { boxSizing: "border-box", height: h, width: `calc(100% - ${w * (1 + r)}px)` }],
-    onkeydown: e => {
-      if (e.key == "Alt") { e.preventDefault() }
-      if (e.key == "ArrowUp" && e.ctrlKey) { load(pos - 1) }
-      if (e.key == "ArrowDown" && e.ctrlKey) { load(pos + 1) }
-      if (e.key == "Enter" && (e.ctrlKey || e.shiftKey || e.altKey))
-        (e.preventDefault(), eval())
-    },
-    oninput: () => { edit_histroy[pos] = t.value }
-  })
-  setTimeout(() => t.focus(), 0)
+    const $ = { log, error, warn, clear }, shadow = {}
+    for (const k in window) { shadow[k] = undefined }
+    const t = dom("textarea", {
+      label: "code", placeholder: "code", spellcheck: "false",
+      parent: demo, style: [{ resize: "none", border: "0.5px solid black", borderRadius: 0 },
+      { boxSizing: "border-box", height: h, width: `calc(100% - ${w * (1 + r)}px)` }],
+      onkeydown: (e, p = true) => {
+        if (e.key == "Alt") { }
+        else if (e.key == "ArrowUp" && e.ctrlKey) { load(pos - 1) }
+        else if (e.key == "ArrowDown" && e.ctrlKey) { load(pos + 1) }
+        else if (e.key == "Enter" && (e.ctrlKey || e.shiftKey || e.altKey)) { eval() }
+        else { p = false } p ? e.preventDefault() : 0
+      },
+      oninput: () => { edit_histroy[pos] = t.value }
+    }); t.value = val()
+  }
 
   {
-    const text = `And here comes a problem, what if the history becomes too long
-and we can't find our old definition to modify?`
-    dom("div", { parent: demo, text, style: { marginBottom: "1em" } })
+    dom("div", {
+      parent: demo, text: `And here comes a problem, what if the history becomes too long
+        and we can't find our old definition to modify?`, style: { margin: "1em 0em" }
+    })
+    dom("div", {
+      parent: demo, text: `Actually, that's not very hard to deal with since we have
+        a fully working repl, just add a function to save current input as a snippet!
+        And that funciton is provided as "$.ssave", it will save current input by the name
+        you pass to it, and you can load snippets using "$.sload", have a try!` ,
+      style: { margin: "1em 0em" }
+    })
+
+    const h = 200, w = h * 16 / 9, r = 0.3
+    const csty = [
+      { overflow: "auto", display: "inline-block", height: h, width: w * (1 - r) },
+      { boxSizing: "border-box", border: "0.5px solid black", borderRight: "none" }]
+    const cdiv = dom("div", { parent: demo, style: csty })
+    const ediv = dom("div", { parent: demo, style: [...csty, { height: h, width: w * r }] })
+    const sdiv = dom("div", { parent: demo, style: [...csty, { height: h, width: w * r }] })
+    const dlog = o => (...a) => {
+      dom("div", { text: a.join(" "), parent: cdiv, ...o })
+      cdiv.scrollTop = cdiv.scrollHeight
+    }, log = dlog({}), warn = dlog({ style: { color: "yellow" } })
+    const error = dlog({ style: { color: "red" } }), clear = () => cdiv.innerHTML = ""
+
+    let history = [], pos = 0, loading = ""
+    let edit_histroy = [`$.ssave("1") // the left window shows current snippets`]
+    const val = (a = edit_histroy[pos], b = history[pos]) => isudf(a) ? isudf(b) ? "" : b : a
+    const load = n => { console.log(n, pos); if (n >= 0 && n <= history.length) { pos = n, t.value = val() } }
+    const update_list = (d, o) => (s = []) => d.innerHTML =
+      (forin(o(), (_, k) => s.push(`<div>${k}</div>`)), s.join(""))
+    const update_env = update_list(ediv, () => $)
+    const update_his = i => (history.push(i), pos = history.length,
+      edit_histroy = [], edit_histroy[pos] = t.value = loading, loading = "")
+    const eval = (i = val()) => {
+      try { exec({ ...shadow, $ })(i) } catch (e) { error(e) }
+      finally { update_env(), update_snp(), i ? update_his(i) : 0 }
+    }
+
+    const snippets = {}, update_snp = update_list(sdiv, () => snippets)
+    const ssave = (name) => isstr(name) ? snippets[name] = val() : 0
+    const sload = (name, v = snippets[name]) => v ? loading = v : 0
+
+    const $ = { log, error, warn, clear, ssave, sload }, shadow = {}
+    for (const k in window) { shadow[k] = undefined }
+    const t = dom("textarea", {
+      label: "code", placeholder: "code", spellcheck: "false",
+      parent: demo, style: [{ resize: "none", border: "0.5px solid black", borderRadius: 0 },
+      { boxSizing: "border-box", height: h, width: `calc(100% - ${w * (1 + r)}px)` }],
+      onkeydown: (e, p = true) => {
+        if (e.key == "Alt") { }
+        else if (e.key == "ArrowUp" && e.ctrlKey) { load(pos - 1) }
+        else if (e.key == "ArrowDown" && e.ctrlKey) { load(pos + 1) }
+        else if (e.key == "Enter" && (e.ctrlKey || e.shiftKey || e.altKey)) { eval() }
+        else { p = false } p ? e.preventDefault() : 0
+      }, oninput: () => { edit_histroy[pos] = t.value }
+    }); t.value = val()
   }
 })
 
