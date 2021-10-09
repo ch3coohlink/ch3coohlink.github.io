@@ -50,7 +50,7 @@ on exposing the original ideas behind the code, it gives reader
 and coder themselves a better vision of what's going on behind
 the source code.`
 const ctn = dom("div", { text: description, parent: document.body })
-style(document.body, { paddingBottom: "50vh" })
+style(document.body, { paddingBottom: "50vh", minWidth: 800 })
 const demos = []
 
 demos.push(() => {
@@ -291,20 +291,45 @@ demos.push(async () => {
   }, log = dlog({}), warn = dlog({ style: { color: "yellow" } })
   const error = dlog({ style: { color: "red" } }), clear = () => cdiv.innerHTML = ""
 
-  let history = [], pos = 0, edit_histroy = []
+  let history = [], pos = 0, edit_histroy = [], pending = []
   const val = (a = edit_histroy[pos], b = history[pos]) => isudf(a) ? isudf(b) ? "" : b : a
   const load = n => { if (n >= 0 && n <= history.length) { pos = n, t.value = val() } }
   const update_list = (d, o) => (s = []) => d.innerHTML =
     (forin(o(), (_, k) => s.push(`<div>${k}</div>`)), s.join(""))
   const update_env = update_list(ediv, () => $)
   const update_his = i => (history.push(i), pos = history.length, edit_histroy = [])
+  const update_pd = (v = pending.shift()) => edit_histroy[pos] = t.value = v ? v : ""
   const eval = (i = val()) => {
     try { exec({ ...shadow, $ })(i) } catch (e) { error(e), pending.unshift(i) }
     finally { update_env(), update_snp(), i ? update_his(i) : 0, update_pd() }
   }
 
+  const snippets = {}, update_snp = update_list(sdiv, () => snippets)
+  const ssave = (name) => isstr(name) ? snippets[name] = val() : 0
+  const sload = (name, v = snippets[name]) => v ? pending.unshift(v) : 0
+
+  const eload = async (url, f = () => { }) => {
+    try { exec({ window: {}, $ })(await (await fetch(url)).text() + `\n(${f})()`) }
+    catch (e) { error(e) } finally { update_env(), update_snp() }
+  }
+
+  const $ = { log, error, warn, clear, ssave, sload, eload, canvas }, shadow = {}
+  for (const k in window) { shadow[k] = undefined }
+  const t = dom("textarea", {
+    label: "code", placeholder: "code", spellcheck: "false",
+    parent: demo, style: [{ resize: "none", border: "0.5px solid black", borderRadius: 0 },
+    { boxSizing: "border-box", height: h, width: `calc(100% - ${w * (1 + r)}px)` }],
+    onkeydown: (e, p = true) => {
+      if (e.key == "Alt") { }
+      else if (e.key == "ArrowUp" && e.ctrlKey) { load(pos - 1) }
+      else if (e.key == "ArrowDown" && e.ctrlKey) { load(pos + 1) }
+      else if (e.key == "Enter" && (e.ctrlKey || e.shiftKey || e.altKey)) { eval() }
+      else { p = false } p ? e.preventDefault() : 0
+    }, oninput: () => { edit_histroy[pos] = t.value }
+  });
+
   const picogl = "https://raw.githubusercontent.com/tsherif/picogl.js/master/build/picogl.min.js"
-  const pending = [`$.eload("${picogl}", () => {$.PicoGL = PicoGL})`, `// now you can use $.PicoGL!
+  pending.push(`$.eload("${picogl}", () => {$.PicoGL = PicoGL})`, `// now you can use $.PicoGL!
 const { PicoGL, canvas } = $
 canvas.width = canvas.clientWidth;
 canvas.height = canvas.clientHeight;
@@ -367,32 +392,7 @@ app.createPrograms([vsSource, fsSource]).then(function([program]) {
   positions.delete();
   colors.delete();
   triangleArray.delete();
-});`]
-  const update_pd = (v = pending.shift()) => edit_histroy[pos] = t.value = v ? v : ""
-
-  const snippets = {}, update_snp = update_list(sdiv, () => snippets)
-  const ssave = (name) => isstr(name) ? snippets[name] = val() : 0
-  const sload = (name, v = snippets[name]) => v ? pending.unshift(v) : 0
-
-  const eload = async (url, f = () => { }) => {
-    try { exec({ window: {}, $ })(await (await fetch(url)).text() + `\n(${f})()`) }
-    catch (e) { error(e) } finally { update_env(), update_snp() }
-  }
-
-  const $ = { log, error, warn, clear, ssave, sload, eload, canvas }, shadow = {}
-  for (const k in window) { shadow[k] = undefined }
-  const t = dom("textarea", {
-    label: "code", placeholder: "code", spellcheck: "false",
-    parent: demo, style: [{ resize: "none", border: "0.5px solid black", borderRadius: 0 },
-    { boxSizing: "border-box", height: h, width: `calc(100% - ${w * (1 + r)}px)` }],
-    onkeydown: (e, p = true) => {
-      if (e.key == "Alt") { }
-      else if (e.key == "ArrowUp" && e.ctrlKey) { load(pos - 1) }
-      else if (e.key == "ArrowDown" && e.ctrlKey) { load(pos + 1) }
-      else if (e.key == "Enter" && (e.ctrlKey || e.shiftKey || e.altKey)) { eval() }
-      else { p = false } p ? e.preventDefault() : 0
-    }, oninput: () => { edit_histroy[pos] = t.value }
-  }); eval("")
+});`), eval("")
 })
 
 // demos.push(() => {
@@ -406,7 +406,7 @@ app.createPrograms([vsSource, fsSource]).then(function([program]) {
 
 // demos.push(() => {
 //   const demo = dom("div", { parent: ctn })
-//   dom("h3", { text: "DEMO 5: ", parent: demo, id: "demo5" })
+//   dom("h3", { text: "DEMO 5: Tabs", parent: demo, id: "demo5" })
 //   dom("div", {
 //     parent: demo, text: `
 //   `, style: { marginBottom: "1em" }
