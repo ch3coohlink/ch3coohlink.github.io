@@ -41,8 +41,8 @@ const _dom = cases((e, v, k) => (isfct(v) ? e[k] = v : e.setAttribute(k, v)),
   ["style", (e, v) => style(e, ...isarr(v) ? v : [v])])
 const dom = (n, o = {}, e = isstr(n) ? document.createElement(n) : n) =>
   (forin(o, (v, k) => v ? _dom(k, e, v, k) : 0), e)
-const exec = (e, a = [], n = (forin(e, (_, k) => a.push(k)), a.join(", "))) =>
-  c => new Function(`"use strict";\nreturn async ({ ${n} }) => { \n${c}\n }`)()(e)
+const exec = (e, a = [], n = (forin(e, (_, k) => a.push(k)), a.join(", "))) => async c =>
+  await new Function(`"use strict";\nreturn async ({ ${n} }) => { \n${c}\n }`)()(e)
 
 dom("h1", { text: "ENV.JS Demo Page", parent: document.body })
 const description = `Env.js is a web-based coding environment focusing
@@ -300,16 +300,18 @@ demos.push(() => {
   const update_his = i => (history.push(i), pos = history.length, edit_histroy = [])
   const update_nxt = (v = pending.shift()) => edit_histroy[pos] = t.value = v ? v : ""
   const update_all = i => (update_env(), update_snp(), i ? update_his(i) : 0, update_nxt())
+  const env = () => ({ window: {}, document: {}, $ })
   const eval = (i = val()) => {
-    const p = new Promise((res) => {
-      try { wait = false, resolve = dummy, exec({ window: {}, document: {}, $ })(i) }
+    const p = new Promise(async (res) => {
+      try { wait = false, resolve = dummy, await exec(env())(i) }
       catch (e) { error(e), pending.unshift(i) }
       finally { if (!wait) { res() } else { resolve = res } }
     }); p.finally(() => update_all(i))
   }
   const eload = async (url, f = () => { }) => {
-    try { wait = true, exec({ window: {}, $ })(await (await fetch(url)).text() + `\n(${f})()`) }
-    catch (e) { error(e) } finally { update_env(), update_snp(), resolve() }
+    try { wait = true, exec(env())(await (await fetch(url)).text() + `\n(${f})()`) }
+    catch (e) { error(e), pending.unshift(val()) }
+    finally { update_env(), update_snp(), resolve() }
   }
 
   const snippets = {}, update_snp = update_list(sdiv, () => snippets)
@@ -425,16 +427,18 @@ app.createPrograms([vsSource, fsSource]).then(function([program]) {
     const update_his = i => (history.push(i), pos = history.length, edit_histroy = [])
     const update_nxt = (v = pending.shift()) => edit_histroy[pos] = t.value = v ? v : ""
     const update_all = i => (update_env(), update_snp(), i ? update_his(i) : 0, update_nxt())
+    const env = () => ({ window: {}, document: {}, $ })
     const eval = (i = val()) => {
-      const p = new Promise((res) => {
-        try { wait = false, resolve = dummy, exec({ window: {}, document: {}, $ })(i) }
+      const p = new Promise(async (res) => {
+        try { wait = false, resolve = dummy, await exec(env())(i) }
         catch (e) { error(e), pending.unshift(i) }
         finally { if (!wait) { res() } else { resolve = res } }
       }); p.finally(() => update_all(i))
     }
     const eload = async (url, f = () => { }) => {
-      try { wait = true, exec({ window: {}, $ })(await (await fetch(url)).text() + `\n(${f})()`) }
-      catch (e) { error(e) } finally { update_env(), update_snp(), resolve() }
+      try { wait = true, exec(env())(await (await fetch(url)).text() + `\n(${f})()`) }
+      catch (e) { error(e), pending.unshift(val()) }
+      finally { update_env(), update_snp(), resolve() }
     }
 
     const snippets = {}, update_snp = update_list(sdiv, () => snippets)
@@ -454,7 +458,7 @@ app.createPrograms([vsSource, fsSource]).then(function([program]) {
         else if (e.key == "Enter" && (e.ctrlKey || e.shiftKey || e.altKey)) { eval() }
         else { p = false } p ? e.preventDefault() : 0
       }, oninput: () => { edit_histroy[pos] = t.value }
-    });
+    }); t.focus()
 
     {
       pending.push("abc")
