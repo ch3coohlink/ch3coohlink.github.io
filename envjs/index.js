@@ -401,12 +401,11 @@ app.createPrograms([vsSource, fsSource]).then(function([program]) {
 
   {
     dom("div", {
-      parent: demo, text: `Another useful feature is editing non-js text, which could
+      parent: demo, text: `Another useful feature is editing non-js string, which could
       also be done by providing a global function.`, style: { margin: "1em 0em" }
     })
 
-    const h = 200, w = h * 16 / 9, r = 0.3
-    const csty = [
+    const h = 200, w = h * 16 / 9, r = 0.3, csty = [
       { overflow: "auto", display: "inline-block", height: h, width: w * (1 - r) },
       { boxSizing: "border-box", border: "0.5px solid black", borderRight: "none" }]
     const cdiv = dom("div", { parent: demo, style: csty })
@@ -418,7 +417,9 @@ app.createPrograms([vsSource, fsSource]).then(function([program]) {
     }, log = dlog({}), warn = dlog({ style: { color: "yellow" } })
     const error = dlog({ style: { color: "red" } }), clear = () => cdiv.innerHTML = ""
 
-    let history = [], pos = 0, edit_histroy = [], pending = [], wait, resolve
+    let history = [], pos = 0, edit_histroy = [], pending = []
+    let snippets = {}, isjs, edt_target, wait, resolve
+
     const val = (a = edit_histroy[pos], b = history[pos]) => isudf(a) ? isudf(b) ? "" : b : a
     const load = n => { if (n >= 0 && n <= history.length) { pos = n, t.value = val() } }
     const update_list = (d, o) => (s = []) => d.innerHTML =
@@ -428,25 +429,26 @@ app.createPrograms([vsSource, fsSource]).then(function([program]) {
     const update_nxt = (v = pending.shift()) => edit_histroy[pos] = t.value = v ? v : ""
     const update_all = i => (update_env(), update_snp(), i ? update_his(i) : 0, update_nxt())
     const env = () => ({ window: {}, document: {}, $ })
+    const err = e => (error(e), pending.unshift(val()), isjs = true)
+    const init = () => (isjs = true, edt_target = dummy, wait = false, resolve = dummy)
     const eval = (i = val()) => {
-      const p = new Promise(async (res) => {
-        try { wait = false, resolve = dummy, await exec(env())(i) }
-        catch (e) { error(e), pending.unshift(i) }
-        finally { if (!wait) { res() } else { resolve = res } }
-      }); p.finally(() => update_all(i))
+      if (isjs) {
+        const p = new Promise(async (res) => {
+          try { init(), await exec(env())(i) }
+          catch (e) { err() } finally { if (!wait) { res() } else { resolve = res } }
+        }); p.finally(() => update_all(i))
+      } else { isjs = true, edt_target(t.value), update_all(t.value) }
     }
     const eload = async (url, f = () => { }) => {
-      try { wait = true, exec(env())(await (await fetch(url)).text() + `\n(${f})()`) }
-      catch (e) { error(e), pending.unshift(val()) }
-      finally { update_env(), update_snp(), resolve() }
+      try { wait = true, await exec(env())(await (await fetch(url)).text() + `\n;(${f})()`) }
+      catch (e) { err() } finally { update_env(), update_snp(), resolve() }
     }
-
-    const snippets = {}, update_snp = update_list(sdiv, () => snippets)
+    const update_snp = update_list(sdiv, () => snippets)
     const ssave = (name) => isstr(name) ? snippets[name] = val() : 0
     const sload = (name, v = snippets[name]) => v ? pending.unshift(v) : 0
+    const nonjs = (s, f) => { edt_target = f, isjs = false, pending.unshift(s) }
 
-    const $ = { log, error, warn, clear, ssave, sload, eload, canvas }, shadow = {}
-    for (const k in window) { shadow[k] = undefined }
+    const $ = { log, error, warn, clear, ssave, sload, eload, edit: nonjs }
     const t = dom("textarea", {
       label: "code", placeholder: "code", spellcheck: "false",
       parent: demo, style: [{ resize: "none", border: "0.5px solid black", borderRadius: 0 },
@@ -461,8 +463,14 @@ app.createPrograms([vsSource, fsSource]).then(function([program]) {
     }); t.focus()
 
     {
-      pending.push("abc")
-      eval("")
+      pending.push(`// Suppose we want to change the content of $.a
+$.a = "You will see this in non-js mode.\\nTry make some change."\n
+// Then we can use "$.edit" to enter string editing mode,
+// the first parameter is the initial value of the target string,
+// followed by a function which will receive the edited value.
+// In this case, we simply use it to change the value of "$.a".
+$.edit($.a, s => $.a = s)`, `// now show the change of "$.a"
+$.log($.a)`), eval("")
     }
   }
 })
