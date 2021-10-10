@@ -259,9 +259,9 @@ demos.push(() => {
   }
 })
 
-demos.push(async () => {
+demos.push(() => {
   const demo = dom("div", { parent: ctn })
-  dom("h3", { text: "DEMO 3: external script", parent: demo, id: "demo3" })
+  dom("h3", { text: "DEMO 3: external script & non-js text", parent: demo, id: "demo3" })
   dom("div", {
     parent: demo, text: `It's quict useful to load external lib, and by the same
       fashion of "$.ssave" and "$.sload", we can add a new function to load
@@ -274,7 +274,7 @@ demos.push(async () => {
       parent: demo, style: [
         { display: "block", width: "100%", boxSizing: "border-box", },
         { border: "0.5px solid black", borderBottom: "none" }]
-    }), style: [{ background: "black", display: "block", margin: "0 auto" },
+    }), style: [{ display: "block", margin: "0 auto" },
     { maxHeight: 800, minHeight: 500, maxWidth: "100%" }]
   })
 
@@ -291,27 +291,30 @@ demos.push(async () => {
   }, log = dlog({}), warn = dlog({ style: { color: "yellow" } })
   const error = dlog({ style: { color: "red" } }), clear = () => cdiv.innerHTML = ""
 
-  let history = [], pos = 0, edit_histroy = [], pending = []
+  let history = [], pos = 0, edit_histroy = [], pending = [], wait, resolve
   const val = (a = edit_histroy[pos], b = history[pos]) => isudf(a) ? isudf(b) ? "" : b : a
   const load = n => { if (n >= 0 && n <= history.length) { pos = n, t.value = val() } }
   const update_list = (d, o) => (s = []) => d.innerHTML =
     (forin(o(), (_, k) => s.push(`<div>${k}</div>`)), s.join(""))
-  const update_env = update_list(ediv, () => $)
+  const update_env = update_list(ediv, () => $), dummy = () => { }
   const update_his = i => (history.push(i), pos = history.length, edit_histroy = [])
-  const update_pd = (v = pending.shift()) => edit_histroy[pos] = t.value = v ? v : ""
+  const update_nxt = (v = pending.shift()) => edit_histroy[pos] = t.value = v ? v : ""
+  const update_all = i => (update_env(), update_snp(), i ? update_his(i) : 0, update_nxt())
   const eval = (i = val()) => {
-    try { exec({ ...shadow, $ })(i) } catch (e) { error(e), pending.unshift(i) }
-    finally { update_env(), update_snp(), i ? update_his(i) : 0, update_pd() }
+    const p = new Promise((res) => {
+      try { wait = false, resolve = dummy, exec({ window: {}, document: {}, $ })(i) }
+      catch (e) { error(e), pending.unshift(i) }
+      finally { if (!wait) { res() } else { resolve = res } }
+    }); p.finally(() => update_all(i))
+  }
+  const eload = async (url, f = () => { }) => {
+    try { wait = true, exec({ window: {}, $ })(await (await fetch(url)).text() + `\n(${f})()`) }
+    catch (e) { error(e) } finally { update_env(), update_snp(), resolve() }
   }
 
   const snippets = {}, update_snp = update_list(sdiv, () => snippets)
   const ssave = (name) => isstr(name) ? snippets[name] = val() : 0
   const sload = (name, v = snippets[name]) => v ? pending.unshift(v) : 0
-
-  const eload = async (url, f = () => { }) => {
-    try { exec({ window: {}, $ })(await (await fetch(url)).text() + `\n(${f})()`) }
-    catch (e) { error(e) } finally { update_env(), update_snp() }
-  }
 
   const $ = { log, error, warn, clear, ssave, sload, eload, canvas }, shadow = {}
   for (const k in window) { shadow[k] = undefined }
@@ -328,8 +331,9 @@ demos.push(async () => {
     }, oninput: () => { edit_histroy[pos] = t.value }
   });
 
-  const picogl = "https://raw.githubusercontent.com/tsherif/picogl.js/master/build/picogl.min.js"
-  pending.push(`$.eload("${picogl}", () => {$.PicoGL = PicoGL})`, `// now you can use $.PicoGL!
+  {
+    const picogl = "https://raw.githubusercontent.com/tsherif/picogl.js/master/build/picogl.min.js"
+    pending.push(`$.eload("${picogl}", () => {$.PicoGL = PicoGL})`, `// now you can use $.PicoGL!
 const { PicoGL, canvas } = $
 canvas.width = canvas.clientWidth;
 canvas.height = canvas.clientHeight;
@@ -385,19 +389,83 @@ app.createPrograms([vsSource, fsSource]).then(function([program]) {
   app.clear();
   drawCall.draw();
 
-  window.glcheck_renderDone = true;
-
   // CLEANUP
   program.delete();
   positions.delete();
   colors.delete();
   triangleArray.delete();
 });`), eval("")
+  }
+
+  {
+    dom("div", {
+      parent: demo, text: `Another useful feature is editing non-js text, which could
+      also be done by providing a global function.`, style: { margin: "1em 0em" }
+    })
+
+    const h = 200, w = h * 16 / 9, r = 0.3
+    const csty = [
+      { overflow: "auto", display: "inline-block", height: h, width: w * (1 - r) },
+      { boxSizing: "border-box", border: "0.5px solid black", borderRight: "none" }]
+    const cdiv = dom("div", { parent: demo, style: csty })
+    const ediv = dom("div", { parent: demo, style: [...csty, { height: h, width: w * r }] })
+    const sdiv = dom("div", { parent: demo, style: [...csty, { height: h, width: w * r }] })
+    const dlog = o => (...a) => {
+      dom("div", { text: a.join(" "), parent: cdiv, ...o })
+      cdiv.scrollTop = cdiv.scrollHeight
+    }, log = dlog({}), warn = dlog({ style: { color: "yellow" } })
+    const error = dlog({ style: { color: "red" } }), clear = () => cdiv.innerHTML = ""
+
+    let history = [], pos = 0, edit_histroy = [], pending = [], wait, resolve
+    const val = (a = edit_histroy[pos], b = history[pos]) => isudf(a) ? isudf(b) ? "" : b : a
+    const load = n => { if (n >= 0 && n <= history.length) { pos = n, t.value = val() } }
+    const update_list = (d, o) => (s = []) => d.innerHTML =
+      (forin(o(), (_, k) => s.push(`<div>${k}</div>`)), s.join(""))
+    const update_env = update_list(ediv, () => $), dummy = () => { }
+    const update_his = i => (history.push(i), pos = history.length, edit_histroy = [])
+    const update_nxt = (v = pending.shift()) => edit_histroy[pos] = t.value = v ? v : ""
+    const update_all = i => (update_env(), update_snp(), i ? update_his(i) : 0, update_nxt())
+    const eval = (i = val()) => {
+      const p = new Promise((res) => {
+        try { wait = false, resolve = dummy, exec({ window: {}, document: {}, $ })(i) }
+        catch (e) { error(e), pending.unshift(i) }
+        finally { if (!wait) { res() } else { resolve = res } }
+      }); p.finally(() => update_all(i))
+    }
+    const eload = async (url, f = () => { }) => {
+      try { wait = true, exec({ window: {}, $ })(await (await fetch(url)).text() + `\n(${f})()`) }
+      catch (e) { error(e) } finally { update_env(), update_snp(), resolve() }
+    }
+
+    const snippets = {}, update_snp = update_list(sdiv, () => snippets)
+    const ssave = (name) => isstr(name) ? snippets[name] = val() : 0
+    const sload = (name, v = snippets[name]) => v ? pending.unshift(v) : 0
+
+    const $ = { log, error, warn, clear, ssave, sload, eload, canvas }, shadow = {}
+    for (const k in window) { shadow[k] = undefined }
+    const t = dom("textarea", {
+      label: "code", placeholder: "code", spellcheck: "false",
+      parent: demo, style: [{ resize: "none", border: "0.5px solid black", borderRadius: 0 },
+      { boxSizing: "border-box", height: h, width: `calc(100% - ${w * (1 + r)}px)` }],
+      onkeydown: (e, p = true) => {
+        if (e.key == "Alt") { }
+        else if (e.key == "ArrowUp" && e.ctrlKey) { load(pos - 1) }
+        else if (e.key == "ArrowDown" && e.ctrlKey) { load(pos + 1) }
+        else if (e.key == "Enter" && (e.ctrlKey || e.shiftKey || e.altKey)) { eval() }
+        else { p = false } p ? e.preventDefault() : 0
+      }, oninput: () => { edit_histroy[pos] = t.value }
+    });
+
+    {
+      pending.push("abc")
+      eval("")
+    }
+  }
 })
 
 // demos.push(() => {
 //   const demo = dom("div", { parent: ctn })
-//   dom("h3", { text: "DEMO 4: meta repl / omit mode", parent: demo, id: "demo4" })
+//   dom("h3", { text: "DEMO 4: Tabs", parent: demo, id: "demo4" })
 //   dom("div", {
 //     parent: demo, text: `
 //   `, style: { marginBottom: "1em" }
@@ -406,11 +474,13 @@ app.createPrograms([vsSource, fsSource]).then(function([program]) {
 
 // demos.push(() => {
 //   const demo = dom("div", { parent: ctn })
-//   dom("h3", { text: "DEMO 5: Tabs", parent: demo, id: "demo5" })
+//   dom("h3", { text: "DEMO 5: meta repl / omit mode", parent: demo, id: "demo5" })
 //   dom("div", {
 //     parent: demo, text: `
 //   `, style: { marginBottom: "1em" }
 //   })
 // })
+
+// DEMO 6: Worker thread
 
 forof(demos, d => d())
