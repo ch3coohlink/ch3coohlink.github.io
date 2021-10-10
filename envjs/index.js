@@ -418,7 +418,7 @@ app.createPrograms([vsSource, fsSource]).then(function([program]) {
     const error = dlog({ style: { color: "red" } }), clear = () => cdiv.innerHTML = ""
 
     let history = [], pos = 0, edit_histroy = [], pending = []
-    let snippets = {}, isjs, edt_target, wait, resolve
+    let snippets = {}, isjs = true, edt_target, wait, resolve
 
     const val = (a = edit_histroy[pos], b = history[pos]) => isudf(a) ? isudf(b) ? "" : b : a
     const load = n => { if (n >= 0 && n <= history.length) { pos = n, t.value = val() } }
