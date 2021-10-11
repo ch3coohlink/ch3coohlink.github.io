@@ -296,14 +296,15 @@ demos.push(() => {
   const load = n => { if (n >= 0 && n <= history.length) { pos = n, t.value = val() } }
   const update_list = (d, o) => (s = []) => d.innerHTML =
     (forin(o(), (_, k) => s.push(`<div>${k}</div>`)), s.join(""))
-  const update_env = update_list(ediv, () => $), dummy = () => { }
+  const update_env = update_list(ediv, () => $)
+  const dummy = () => { }, ores = () => { wait = false }
   const update_his = i => (history.push(i), pos = history.length, edit_histroy = [])
   const update_nxt = (v = pending.shift()) => edit_histroy[pos] = t.value = v ? v : ""
   const update_all = i => (update_env(), update_snp(), i ? update_his(i) : 0, update_nxt())
   const env = () => ({ window: {}, document: {}, $ })
   const eval = (i = val()) => {
     const p = new Promise(async (res) => {
-      try { wait = false, resolve = dummy, await exec(env())(i) }
+      try { wait = false, resolve = ores, await exec(env())(i) }
       catch (e) { error(e), pending.unshift(i) }
       finally { if (!wait) { res() } else { resolve = res } }
     }); p.finally(() => update_all(i))
@@ -424,13 +425,14 @@ app.createPrograms([vsSource, fsSource]).then(function([program]) {
     const load = n => { if (n >= 0 && n <= history.length) { pos = n, t.value = val() } }
     const update_list = (d, o) => (s = []) => d.innerHTML =
       (forin(o(), (_, k) => s.push(`<div>${k}</div>`)), s.join(""))
-    const update_env = update_list(ediv, () => $), dummy = () => { }
+    const update_env = update_list(ediv, () => $)
+    const dummy = () => { }, ores = () => { wait = false }
     const update_his = i => (history.push(i), pos = history.length, edit_histroy = [])
     const update_nxt = (v = pending.shift()) => edit_histroy[pos] = t.value = v ? v : ""
     const update_all = i => (update_env(), update_snp(), i ? update_his(i) : 0, update_nxt())
     const env = () => ({ window: {}, document: {}, $ })
     const err = e => (error(e), pending.unshift(val()), isjs = true)
-    const init = () => (isjs = true, edt_target = dummy, wait = false, resolve = dummy)
+    const init = () => (isjs = true, edt_target = dummy, wait = false, resolve = ores)
     const eval = (i = val()) => {
       if (isjs) {
         const p = new Promise(async (res) => {
@@ -463,7 +465,7 @@ app.createPrograms([vsSource, fsSource]).then(function([program]) {
     }); t.focus()
 
     {
-      pending.push(`// Suppose we want to change the content of $.a
+      pending.push(`// Suppose we want to change the content of "$.a"
 $.a = "You will see this in non-js mode.\\nTry make some change."\n
 // Then we can use "$.edit" to enter string editing mode,
 // the first parameter is the initial value of the target string,
