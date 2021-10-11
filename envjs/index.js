@@ -296,8 +296,7 @@ demos.push(() => {
   const load = n => { if (n >= 0 && n <= history.length) { pos = n, t.value = val() } }
   const update_list = (d, o) => (s = []) => d.innerHTML =
     (forin(o(), (_, k) => s.push(`<div>${k}</div>`)), s.join(""))
-  const update_env = update_list(ediv, () => $)
-  const dummy = () => { }, ores = () => { wait = false }
+  const update_env = update_list(ediv, () => $), ores = () => { wait = false }
   const update_his = i => (history.push(i), pos = history.length, edit_histroy = [])
   const update_nxt = (v = pending.shift()) => edit_histroy[pos] = t.value = v ? v : ""
   const update_all = i => (update_env(), update_snp(), i ? update_his(i) : 0, update_nxt())
@@ -312,7 +311,7 @@ demos.push(() => {
   const eload = async (url, f = () => { }) => {
     try {
       wait = true; const res = await fetch(url)
-      if (res.ok) { exec(env())(await res.text() + `\n(${f})()`) }
+      if (res.ok) { await exec(env())(await res.text() + `\n(${f})()`) }
       else { throw `GET ${url} ${res.status}` }
     } catch (e) { update_err(e) } finally { update_env(), update_snp(), resolve() }
   }
@@ -446,7 +445,7 @@ app.createPrograms([vsSource, fsSource]).then(function([program]) {
     const eload = async (url, f = () => { }) => {
       try {
         wait = true; const res = await fetch(url)
-        if (res.ok) { exec(env())(await res.text() + `\n(${f})()`) }
+        if (res.ok) { await exec(env())(await res.text() + `\n(${f})()`) }
         else { throw `${res.type} ${url} ${res.status}` }
       } catch (e) { err(e) } finally { update_env(), update_snp(), resolve() }
     }
