@@ -483,6 +483,13 @@ $.log($.a)`), eval("")
   }
 })
 
+// * repl code extraction
+// * SAVE
+// * tabs
+// * version control
+// * omit mode
+// * worker thread
+
 // demos.push(() => {
 //   const demo = dom("div", { parent: ctn })
 //   dom("h3", { text: "DEMO 4: Tabs", parent: demo, id: "demo4" })
@@ -491,16 +498,5 @@ $.log($.a)`), eval("")
 //   `, style: { marginBottom: "1em" }
 //   })
 // })
-
-// demos.push(() => {
-//   const demo = dom("div", { parent: ctn })
-//   dom("h3", { text: "DEMO 5: meta repl / omit mode", parent: demo, id: "demo5" })
-//   dom("div", {
-//     parent: demo, text: `
-//   `, style: { marginBottom: "1em" }
-//   })
-// })
-
-// DEMO 6: Worker thread
 
 forof(demos, d => d())
