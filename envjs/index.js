@@ -301,18 +301,20 @@ demos.push(() => {
   const update_his = i => (history.push(i), pos = history.length, edit_histroy = [])
   const update_nxt = (v = pending.shift()) => edit_histroy[pos] = t.value = v ? v : ""
   const update_all = i => (update_env(), update_snp(), i ? update_his(i) : 0, update_nxt())
+  const update_err = e => (error(e), pending.unshift(val()))
   const env = () => ({ window: {}, document: {}, $ })
   const eval = (i = val()) => {
     const p = new Promise(async (res) => {
       try { wait = false, resolve = ores, await exec(env())(i) }
-      catch (e) { error(e), pending.unshift(i) }
-      finally { if (!wait) { res() } else { resolve = res } }
+      catch (e) { update_err(e) } finally { if (!wait) { res() } else { resolve = res } }
     }); p.finally(() => update_all(i))
   }
   const eload = async (url, f = () => { }) => {
-    try { wait = true, exec(env())(await (await fetch(url)).text() + `\n(${f})()`) }
-    catch (e) { error(e), pending.unshift(val()) }
-    finally { update_env(), update_snp(), resolve() }
+    try {
+      wait = true; const res = await fetch(url)
+      if (res.ok) { exec(env())(await res.text() + `\n(${f})()`) }
+      else { throw `GET ${url} ${res.status}` }
+    } catch (e) { update_err(e) } finally { update_env(), update_snp(), resolve() }
   }
 
   const snippets = {}, update_snp = update_list(sdiv, () => snippets)
@@ -335,7 +337,7 @@ demos.push(() => {
   });
 
   {
-    const picogl = "https://raw.githubusercontent.com/tsherif/picogl.js/master/build/picogl.min.js"
+    const picogl = "https://ch3coohlink.github.io/external/picogl.min.js"
     pending.push(`$.eload("${picogl}", () => {$.PicoGL = PicoGL})`, `// now you can use $.PicoGL!
 const { PicoGL, canvas } = $
 canvas.width = canvas.clientWidth;
@@ -421,12 +423,12 @@ app.createPrograms([vsSource, fsSource]).then(function([program]) {
     let history = [], pos = 0, edit_histroy = [], pending = []
     let snippets = {}, isjs = true, edt_target, wait, resolve
 
+    const dummy = () => { }, ores = () => { wait = false }
     const val = (a = edit_histroy[pos], b = history[pos]) => isudf(a) ? isudf(b) ? "" : b : a
     const load = n => { if (n >= 0 && n <= history.length) { pos = n, t.value = val() } }
     const update_list = (d, o) => (s = []) => d.innerHTML =
       (forin(o(), (_, k) => s.push(`<div>${k}</div>`)), s.join(""))
     const update_env = update_list(ediv, () => $)
-    const dummy = () => { }, ores = () => { wait = false }
     const update_his = i => (history.push(i), pos = history.length, edit_histroy = [])
     const update_nxt = (v = pending.shift()) => edit_histroy[pos] = t.value = v ? v : ""
     const update_all = i => (update_env(), update_snp(), i ? update_his(i) : 0, update_nxt())
@@ -437,14 +439,18 @@ app.createPrograms([vsSource, fsSource]).then(function([program]) {
       if (isjs) {
         const p = new Promise(async (res) => {
           try { init(), await exec(env())(i) }
-          catch (e) { err() } finally { if (!wait) { res() } else { resolve = res } }
+          catch (e) { err(e) } finally { if (!wait) { res() } else { resolve = res } }
         }); p.finally(() => update_all(i))
       } else { isjs = true, edt_target(t.value), update_all(t.value) }
     }
     const eload = async (url, f = () => { }) => {
-      try { wait = true, await exec(env())(await (await fetch(url)).text() + `\n;(${f})()`) }
-      catch (e) { err() } finally { update_env(), update_snp(), resolve() }
+      try {
+        wait = true; const res = await fetch(url)
+        if (res.ok) { exec(env())(await res.text() + `\n(${f})()`) }
+        else { throw `${res.type} ${url} ${res.status}` }
+      } catch (e) { err(e) } finally { update_env(), update_snp(), resolve() }
     }
+
     const update_snp = update_list(sdiv, () => snippets)
     const ssave = (name) => isstr(name) ? snippets[name] = val() : 0
     const sload = (name, v = snippets[name]) => v ? pending.unshift(v) : 0
