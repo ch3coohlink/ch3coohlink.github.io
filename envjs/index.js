@@ -263,7 +263,7 @@ demos.push(() => {
   const demo = dom("div", { parent: ctn })
   dom("h3", { text: "DEMO 3: external script & non-js text", parent: demo, id: "demo3" })
   dom("div", {
-    parent: demo, text: `It's quict useful to load external lib, and by the same
+    parent: demo, text: `It's quite useful to load external lib, and by the same
       fashion of "$.ssave" and "$.sload", we can add a new function to load
       external script. Here I presented a simple example loading PicoGL.js
       (which is a nice tiny webgl2 helper).
