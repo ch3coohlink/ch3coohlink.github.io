@@ -467,7 +467,7 @@ app.createPrograms([vsSource, fsSource]).then(function([program]) {
         else if (e.key == "Enter" && (e.ctrlKey || e.shiftKey || e.altKey)) { eval() }
         else { p = false } p ? e.preventDefault() : 0
       }, oninput: () => { edit_histroy[pos] = t.value }
-    }); t.focus()
+    })
 
     {
       pending.push(`// Suppose we want to change the content of "$.a"
@@ -482,8 +482,9 @@ $.log($.a)`), eval("")
   }
 })
 
-// * repl code extraction
+// v repl code extraction (poor choice)
 // * SAVE
+// * dom interface
 // * tabs
 // * version control
 // * omit mode
