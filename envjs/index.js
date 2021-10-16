@@ -162,9 +162,9 @@ demos.push(() => {
   const demo = dom("div", { parent: ctn, style: { position: "relative" } })
   dom("h3", { text: "DEMO 2: history", parent: demo, id: "demo2" })
   const text = `Firstly, let's add a simple history feature.
-  You can navigate your past input using ctrl + up / down.
-  ( Note that in this demo, once you made an execution,
-  the textarea will be automatically cleared, just like a repl. )`
+  You can navigate your past input using ctrl + up / down. ( Note that
+  in this demo, once you made an execution, the textarea will be automatically
+  cleared, just like a REPL(read eval print loop). )`
   dom("div", { parent: demo, text, style: { marginBottom: "1em" } })
 
   {
@@ -219,7 +219,7 @@ demos.push(() => {
     })
     dom("div", {
       parent: demo, text: `Actually, that's not very hard to deal with since we have
-        a fully working repl, just add a function to save current input as a snippet!
+        a fully working REPL, just add a function to save current input as a snippet!
         And that funciton is provided as "$.ssave", it will save current input by the name
         you pass to it, and you can load snippets using "$.sload", have a try!`,
       style: { margin: "1em 0em" }
@@ -520,15 +520,15 @@ demos.push(async () => {
   dom("div", {
     parent: demo, text: `Several useful features has been implemented since
     the beginning of this page, but there is still one crucial feature being absent.
-    Yes, we still can't save our work, everything just gone after a page refresh.
+    That is, we still can't save our work, everything just gone after a page refresh.
     So it is the time to visit this feature.`, style: { margin: "1em 0em" }
   })
   dom("div", {
-    parent: demo, text: `Saving is trivial for a repl, just write the history
+    parent: demo, text: `Saving is trivial for a REPL, just write the history
     into storage and it's done. But it's not that straightforward for loading,
-    since the control command of repl is also recorded into the history.
+    since the control command of REPL is also recorded into the history.
     A quick fix for this problem is to neglect the side effects of (most)
-    repl commands during the loading process, and this seemingly works
+    REPL commands during the loading process, and this seemingly works
     well so I'll just keep it.`, style: { margin: "1em 0em" }
   })
 
@@ -621,7 +621,7 @@ demos.push(async () => {
     .map(n => db.get(getpath(n))))
 
   {
-    init(), pending.push(`// this repl will automatically load data from name: "${replid}"
+    init(), pending.push(`// this REPL will automatically load data from name: "${replid}"
 // you can do this manually by executing the following code
 // $.load("${replid}")
 
@@ -635,14 +635,14 @@ demos.push(async () => {
 
   {
     dom("div", {
-      parent: demo, text: `One more thing about save & load is the version control,
-      it's clear that`, style: { margin: "1em 0em" }
+      parent: demo, text: `By extending the ideas behind the save & load procedure,
+      it is possible to propose a new kind of version control system.`, style: { margin: "1em 0em" }
     })
   }
 })
 
 // v repl code extraction (poor choice)
-// * SAVE
+// v SAVE
 // * dom interface
 // * tabs
 // * version control
@@ -650,13 +650,3 @@ demos.push(async () => {
 // * worker thread
 
 forof(demos, d => d())
-
-// ReferenceError: reload is not defined
-//     at eval (eval at <anonymous> (http://127.0.0.1:8080/envjs/index.js:56:9), <anonymous>:5:1)
-//     at http://127.0.0.1:8080/envjs/index.js:56:81
-//     at http://127.0.0.1:8080/envjs/index.js:568:41
-//     at new Promise (<anonymous>)
-//     at eval (http://127.0.0.1:8080/envjs/index.js:567:17)
-//     at http://127.0.0.1:8080/envjs/index.js:607:29
-//     at forin (http://127.0.0.1:8080/envjs/index.js:20:46)
-//     at _load (http://127.0.0.1:8080/envjs/index.js:607:5)
