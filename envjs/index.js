@@ -29,7 +29,7 @@ const isudf = o => o === undefined, isnth = o => isudf(o) || isnul(o)
 const isobj = o => o && typeof o == "object", isnul = o => o === null
 const tarr = [Float32Array, Int32Array, Uint32Array, Float64Array,
   Int8Array, Int16Array, Uint8Array, Uint16Array, Uint8ClampedArray,
-  ...window["BigInt"] ? [BigInt64Array, BigUint64Array] : []]
+  ...window["BigInt64Array"] ? [BigInt64Array, BigUint64Array] : []]
 const _istarr = o => { for (const A of tarr) if (o instanceof A) return true; return false }
 const isarr = Array.isArray, istarr = o => isobj(o) && _istarr(o)
 const isnumstr = s => isstr(s) && !isNaN(parseFloat(s))
@@ -499,7 +499,21 @@ $.log($.a)`), eval("")
   }
 })
 
-demos.push(() => {
+const store = (name = "default", store = "default") => {
+  const dbp = new Promise((res, rej, r = indexedDB.open(name)) => (r.onsuccess = () => res(r.result),
+    r.onupgradeneeded = () => r.result.createObjectStore(store), r.onerror = () => rej(r.error)))
+  const action = (type, cb) => dbp.then(db => new Promise((r, j, t = db.transaction(store, type)) =>
+    (t.oncomplete = () => r(), t.onabort = t.onerror = () => j(t.error), cb(t.objectStore(store)))))
+  const _ = null, ro = f => action("readonly", f), rw = f => action("readwrite", f)
+  const key = (r = _) => ro(s => s.getAllKeys().onsuccess = e => r = e.target.result).then(() => r)
+  const val = (r = _) => ro(s => s.getAll().onsuccess = e => r = e.target.result).then(() => r)
+  const get = (k, r = _) => ro(s => r = s.get(k)).then(() => r.result), clr = () => rw(s => s.clear())
+  const set = (k, v) => rw(s => s.put(v, k)), del = k => rw(s => s.delete(k))
+  return { get, set, del, clr, key, val }
+}
+
+const oeval = eval
+demos.push(async () => {
   const demo = dom("div", { parent: ctn, style: { position: "relative" } })
   const id = 4, title = "save, load, version control"
   dom("h3", { text: `DEMO ${id}: ${title}`, parent: demo, id: "demo" + id })
@@ -507,31 +521,40 @@ demos.push(() => {
     parent: demo, text: `Several useful features has been implemented since
     the beginning of this page, but there is still one crucial feature being absent.
     Yes, we still can't save our work, everything just gone after a page refresh.
-    So it is the time to visit this feature.`,
-    style: { margin: "1em 0em" }
+    So it is the time to visit this feature.`, style: { margin: "1em 0em" }
   })
   dom("div", {
-    parent: demo, text: `Saving is trivial for a repl, `, style: { margin: "1em 0em" }
+    parent: demo, text: `Saving is trivial for a repl, just write the history
+    into storage and it's done. But it's not that straightforward for loading,
+    since the control command of repl is also recorded into the history.
+    A quick fix for this problem is to neglect the side effects of (most)
+    repl commands during the loading process, and this seemingly works
+    well so I'll just keep it.`, style: { margin: "1em 0em" }
   })
 
-  const h = 200, w = h * 16 / 9, r = 0.3, csty = [
+  const h = 300, w = h * 16 / 9, r = 0.15, csty = [
     { overflow: "auto", display: "inline-block", height: h, width: w * (1 - r) },
     { boxSizing: "border-box", border: "0.5px solid black", borderRight: "none" }]
   const cdiv = dom("div", { parent: demo, style: csty })
   const ediv = dom("div", { parent: demo, style: [...csty, { height: h, width: w * r }] })
   const sdiv = dom("div", { parent: demo, style: [...csty, { height: h, width: w * r }] })
   const dlog = o => (...a) => {
-    dom("div", { text: a.join(" "), parent: cdiv, ...o })
+    style(dom("pre", { text: a.join(" "), parent: cdiv, ...o }), { margin: 0 })
     cdiv.scrollTop = cdiv.scrollHeight
   }, log = dlog({}), warn = dlog({ style: { color: "yellow" } })
   const error = dlog({ style: { color: "red" } }), clear = () => cdiv.innerHTML = ""
 
-  let history = [], pos = 0, edit_histroy = [], pending = []
-  let snippets = {}, isjs = true, edt_target, wait, resolve
+  let $, history, pos, edit_histroy, pending = []
+  let snippets, isjs, aftedit, wait, resolve
+  const init = () => (history = [], pos = history.length, $ = {
+    log, error, warn, clear, ssave, sload, eload, edit,
+    save, forget, load, listall, exportall
+  }, edit_histroy = [], pending = [], snippets = {}, reset())
+  const reset = () => (isjs = true, aftedit = dummy, wait = false, resolve = ores)
 
   const dummy = () => { }, ores = () => { wait = false }
   const val = (a = edit_histroy[pos], b = history[pos]) => isudf(a) ? isudf(b) ? "" : b : a
-  const load = n => { if (n >= 0 && n <= history.length) { pos = n, t.value = val() } }
+  const load_pos = n => { if (n >= 0 && n <= history.length) { pos = n, t.value = val() } }
   const update_list = (d, o) => (s = []) => d.innerHTML =
     (forin(o(), (_, k) => s.push(`<div>${k}</div>`)), s.join(""))
   const update_env = update_list(ediv, () => $)
@@ -539,15 +562,13 @@ demos.push(() => {
   const update_nxt = (v = pending.shift()) => edit_histroy[pos] = t.value = v ? v : ""
   const update_all = i => (update_env(), update_snp(), i ? update_his(i) : 0, update_nxt())
   const env = () => ({ window: {}, document: {}, $ })
-  const err = e => (error(e), pending.unshift(val()), isjs = true)
-  const init = () => (isjs = true, edt_target = dummy, wait = false, resolve = ores)
-  const eval = (i = val()) => {
-    if (isjs) {
-      const p = new Promise(async (res) => {
-        try { init(), await exec(env())(i) }
-        catch (e) { err(e) } finally { if (!wait) { res() } else { resolve = res } }
-      }); p.finally(() => update_all(i))
-    } else { isjs = true, edt_target(t.value), update_all(t.value) }
+  const err = e => (error(isstr(e) ? e : e.stack), pending.unshift(val()), isjs = true)
+  const eval = async (i = val()) => {
+    if (!isjs) { isjs = true, aftedit(t.value), update_all(t.value) }
+    else (await new Promise(async r => {
+      try { reset(), await exec(env())(i) }
+      catch (e) { err(e) } finally { if (!wait) { r() } else { resolve = r } }
+    }), update_all(i))
   }
   const eload = async (url, f = () => { }) => {
     try {
@@ -558,27 +579,65 @@ demos.push(() => {
   }
 
   const update_snp = update_list(sdiv, () => snippets)
-  const ssave = (name) => isstr(name) ? snippets[name] = val() : 0
+  const ssave = name => isstr(name) ? snippets[name] = val() : 0
   const sload = (name, v = snippets[name]) => v ? pending.unshift(v) : 0
-  const nonjs = (s, f) => { edt_target = f, isjs = false, pending.unshift(s) }
+  const edit = (s, f) => { aftedit = f, isjs = false, pending.unshift(s) }
 
-  const $ = { log, error, warn, clear, ssave, sload, eload, edit: nonjs }
-  const t = dom("textarea", {
+  const replid = "demo 4: save, load, version control", t = dom("textarea", {
     label: "code", placeholder: "code", spellcheck: "false",
     parent: demo, style: [{ resize: "none", border: "0.5px solid black", borderRadius: 0 },
     { boxSizing: "border-box", height: h, width: `calc(100% - ${w * (1 + r)}px)` },
-    { margin: 0, position: "absolute" }],
+    { margin: 0, position: "absolute", whiteSpace: "pre", wordWrap: "normal" }],
     onkeydown: (e, p = true) => {
-      if (e.key == "Alt") { }
-      else if (e.key == "ArrowUp" && e.ctrlKey) { load(pos - 1) }
-      else if (e.key == "ArrowDown" && e.ctrlKey) { load(pos + 1) }
-      else if (e.key == "Enter" && (e.ctrlKey || e.shiftKey || e.altKey)) { eval() }
-      else { p = false } p ? e.preventDefault() : 0
+      const { altKey: a, ctrlKey: c, shiftKey: s } = e
+      if (e.key == "ArrowUp" && c) { load_pos(pos - 1) }
+      else if (e.key == "ArrowDown" && c) { load_pos(pos + 1) }
+      else if (e.key == "Enter" && (a || c || s)) { eval() }
+      else if (e.key == "s" && c) { save(replid) }
+      else if (e.key == "Alt") { } else { p = false } p ? e.preventDefault() : 0
     }, oninput: () => { edit_histroy[pos] = t.value }
   })
 
+  const db = store("envjs"), spath = "saved_repl"
+  const loadenv = { log, error, warn, clear, edit }
+  const _load = async (o, _ = (init(), $)) => {
+    $ = {}, forin(_, (_, k) => $[k] = dummy), Object.assign($, loadenv)
+    for (const h of o.history) { await eval(h) }
+    forin(o, (_, k) => oeval(`o => ${k} = o.${k}`)(o))
+    Object.assign($, _), t.value = val(), update_env(), update_snp()
+  }
+  const saves = await db.get(spath) ?? new Set, getpath = n => [spath, n].join("/")
+  const save = async n => (saves.add(n), Promise.all([db.set(spath, saves), db
+    .set(getpath(n), { history, pos, edit_histroy, pending, snippets })]))
+  const forget = async n => (saves.delete(n),
+    Promise.all([db.set(spath, saves), db.del(getpath(n))]))
+  const load = async n => {
+    if (!saves.has(n)) { return error(Error(`repl "${n}" is not found.`)) }
+    const s = await db.get(getpath(n)), h = s?.history; if (s && isarr(h)) { _load(s) }
+    else { return error(Error(`repl "${n}" data corrupted.`)) }
+  }
+  const listall = () => Array.from(saves)
+  const exportall = () => Promise.all(Array.from(saves)
+    .map(n => db.get(getpath(n))))
+
   {
-    pending.push(``), eval("")
+    init(), pending.push(`// this repl will automatically load data from name: "${replid}"
+// you can do this manually by executing the following code
+// $.load("${replid}")
+
+// you can use ctrl+s to save current state
+// which is identical to this command:
+// $.save("${replid}")
+
+// and this line will bring you back to the initial state
+// $.forget("${replid}")`), eval(`$.load("${replid}")`)
+  }
+
+  {
+    dom("div", {
+      parent: demo, text: `One more thing about save & load is the version control,
+      it's clear that`, style: { margin: "1em 0em" }
+    })
   }
 })
 
@@ -591,3 +650,13 @@ demos.push(() => {
 // * worker thread
 
 forof(demos, d => d())
+
+// ReferenceError: reload is not defined
+//     at eval (eval at <anonymous> (http://127.0.0.1:8080/envjs/index.js:56:9), <anonymous>:5:1)
+//     at http://127.0.0.1:8080/envjs/index.js:56:81
+//     at http://127.0.0.1:8080/envjs/index.js:568:41
+//     at new Promise (<anonymous>)
+//     at eval (http://127.0.0.1:8080/envjs/index.js:567:17)
+//     at http://127.0.0.1:8080/envjs/index.js:607:29
+//     at forin (http://127.0.0.1:8080/envjs/index.js:20:46)
+//     at _load (http://127.0.0.1:8080/envjs/index.js:607:5)
