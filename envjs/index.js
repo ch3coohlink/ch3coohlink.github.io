@@ -1,4 +1,14 @@
-const { log, dir, clear } = console; clear()
+window.onerror = function (a, b, c, d, e) {
+  const msg = document.createElement("div")
+  const stack = document.createElement("div")
+  msg.textContent = e.toString()
+  stack.textContent = e.stack
+  document.body.textContent = `JavaScript error occured
+    during loading process, try to contact the site owner.`
+  document.body.append(msg, stack)
+}
+
+const { log, dir, clear } = console
 const stamp = (tag, point, elapse) => ({ tag, point, elapse })
 const mktimer = (s = performance.now(), a = [stamp("start", s, 0)]) => (m = "",
   n = performance.now()) => (a.push(stamp(m, n, n - a[a.length - 1].elapse)), a)
@@ -17,8 +27,9 @@ const isnum = o => typeof o == "number", isfct = o => typeof o == "function"
 const isstr = o => typeof o == "string", isbgi = o => typeof o == "bigint"
 const isudf = o => o === undefined, isnth = o => isudf(o) || isnul(o)
 const isobj = o => o && typeof o == "object", isnul = o => o === null
-const tarr = [Float32Array, Int32Array, Uint32Array, Float64Array, Int8Array,
-  Int16Array, Uint8Array, Uint16Array, Uint8ClampedArray, BigInt64Array, BigUint64Array]
+const tarr = [Float32Array, Int32Array, Uint32Array, Float64Array,
+  Int8Array, Int16Array, Uint8Array, Uint16Array, Uint8ClampedArray,
+  ...window["BigInt"] ? [BigInt64Array, BigUint64Array] : []]
 const _istarr = o => { for (const A of tarr) if (o instanceof A) return true; return false }
 const isarr = Array.isArray, istarr = o => isobj(o) && _istarr(o)
 const isnumstr = s => isstr(s) && !isNaN(parseFloat(s))
@@ -54,7 +65,7 @@ style(document.body, { paddingBottom: "50vh", minWidth: 800 })
 const demos = []
 
 demos.push(() => {
-  const demo = dom("div", { parent: ctn })
+  const demo = dom("div", { parent: ctn, style: { position: "relative" } })
   dom("h3", { text: "DEMO 0: simple eval", parent: demo, id: "demo0" })
   const text = `The following demo shows a basic js evaluation environment, which
   offers a simple textarea (right) to write code and a simple console (left) to show your output.`
@@ -79,7 +90,8 @@ demos.push(() => {
   const t = dom("textarea", {
     label: "code", placeholder: "code", spellcheck: "false",
     parent: demo, style: [{ resize: "none", border: "0.5px solid black", borderRadius: 0 },
-    { boxSizing: "border-box", height: h, width: `calc(100% - ${w}px)` }],
+    { boxSizing: "border-box", height: h, width: `calc(100% - ${w}px)` },
+    { margin: 0, position: "absolute" }],
     onkeydown: e => {
       if (e.key == "Alt") { e.preventDefault() }
       if (e.key == "Enter" && (e.ctrlKey || e.shiftKey || e.altKey)) {
@@ -95,7 +107,7 @@ console.error(new Error("SOME ERROR"))
 })
 
 demos.push(() => {
-  const demo = dom("div", { parent: ctn })
+  const demo = dom("div", { parent: ctn, style: { position: "relative" } })
   dom("h3", { text: "DEMO 1: change the environment", parent: demo, id: "demo1" })
   const text = `Demo 1 adds a "$" variable on top of demo 0.
   "$" is just a plain js object, and will be reference to the same object
@@ -127,7 +139,8 @@ demos.push(() => {
   const t = dom("textarea", {
     label: "code", placeholder: "code", spellcheck: "false",
     parent: demo, style: [{ resize: "none", border: "0.5px solid black", borderRadius: 0 },
-    { boxSizing: "border-box", height: h, width: `calc(100% - ${w * (1 + r)}px)` }],
+    { boxSizing: "border-box", height: h, width: `calc(100% - ${w * (1 + r)}px)` },
+    { margin: 0, position: "absolute" }],
     onkeydown: e => {
       if (e.key == "Alt") { e.preventDefault() }
       if (e.key == "Enter" && (e.ctrlKey || e.shiftKey || e.altKey)) {
@@ -146,7 +159,7 @@ $.console.log(JSON.stringify($)) // this output to the left console`
 })
 
 demos.push(() => {
-  const demo = dom("div", { parent: ctn })
+  const demo = dom("div", { parent: ctn, style: { position: "relative" } })
   dom("h3", { text: "DEMO 2: history", parent: demo, id: "demo2" })
   const text = `Firstly, let's add a simple history feature.
   You can navigate your past input using ctrl + up / down.
@@ -186,7 +199,8 @@ demos.push(() => {
     const t = dom("textarea", {
       label: "code", placeholder: "code", spellcheck: "false",
       parent: demo, style: [{ resize: "none", border: "0.5px solid black", borderRadius: 0 },
-      { boxSizing: "border-box", height: h, width: `calc(100% - ${w * (1 + r)}px)` }],
+      { boxSizing: "border-box", height: h, width: `calc(100% - ${w * (1 + r)}px)` },
+      { margin: 0, position: "absolute" }],
       onkeydown: (e, p = true) => {
         if (e.key == "Alt") { }
         else if (e.key == "ArrowUp" && e.ctrlKey) { load(pos - 1) }
@@ -247,7 +261,8 @@ demos.push(() => {
     const t = dom("textarea", {
       label: "code", placeholder: "code", spellcheck: "false",
       parent: demo, style: [{ resize: "none", border: "0.5px solid black", borderRadius: 0 },
-      { boxSizing: "border-box", height: h, width: `calc(100% - ${w * (1 + r)}px)` }],
+      { boxSizing: "border-box", height: h, width: `calc(100% - ${w * (1 + r)}px)` },
+      { margin: 0, position: "absolute" }],
       onkeydown: (e, p = true) => {
         if (e.key == "Alt") { }
         else if (e.key == "ArrowUp" && e.ctrlKey) { load(pos - 1) }
@@ -260,7 +275,7 @@ demos.push(() => {
 })
 
 demos.push(() => {
-  const demo = dom("div", { parent: ctn })
+  const demo = dom("div", { parent: ctn, style: { position: "relative" } })
   dom("h3", { text: "DEMO 3: external script & non-js text", parent: demo, id: "demo3" })
   dom("div", {
     parent: demo, text: `It's quite useful to load external lib, and by the same
@@ -325,7 +340,8 @@ demos.push(() => {
   const t = dom("textarea", {
     label: "code", placeholder: "code", spellcheck: "false",
     parent: demo, style: [{ resize: "none", border: "0.5px solid black", borderRadius: 0 },
-    { boxSizing: "border-box", height: h, width: `calc(100% - ${w * (1 + r)}px)` }],
+    { boxSizing: "border-box", height: h, width: `calc(100% - ${w * (1 + r)}px)` },
+    { margin: 0, position: "absolute" }],
     onkeydown: (e, p = true) => {
       if (e.key == "Alt") { }
       else if (e.key == "ArrowUp" && e.ctrlKey) { load(pos - 1) }
@@ -459,7 +475,8 @@ app.createPrograms([vsSource, fsSource]).then(function([program]) {
     const t = dom("textarea", {
       label: "code", placeholder: "code", spellcheck: "false",
       parent: demo, style: [{ resize: "none", border: "0.5px solid black", borderRadius: 0 },
-      { boxSizing: "border-box", height: h, width: `calc(100% - ${w * (1 + r)}px)` }],
+      { boxSizing: "border-box", height: h, width: `calc(100% - ${w * (1 + r)}px)` },
+      { margin: 0, position: "absolute" }],
       onkeydown: (e, p = true) => {
         if (e.key == "Alt") { }
         else if (e.key == "ArrowUp" && e.ctrlKey) { load(pos - 1) }
@@ -482,6 +499,89 @@ $.log($.a)`), eval("")
   }
 })
 
+demos.push(() => {
+  const demo = dom("div", { parent: ctn, style: { position: "relative" } })
+  const id = 4, title = "save, load, version control"
+  dom("h3", { text: `DEMO ${id}: ${title}`, parent: demo, id: "demo" + id })
+  dom("div", {
+    parent: demo, text: `Several useful features has been implemented since
+    the beginning of this page, but there is still one crucial feature being absent.
+    Yes, we still can't save our work, everything just gone after a page refresh.
+    So it is the time to visit this feature.`,
+    style: { margin: "1em 0em" }
+  })
+  dom("div", {
+    parent: demo, text: `Saving is trivial for a repl, `, style: { margin: "1em 0em" }
+  })
+
+  const h = 200, w = h * 16 / 9, r = 0.3, csty = [
+    { overflow: "auto", display: "inline-block", height: h, width: w * (1 - r) },
+    { boxSizing: "border-box", border: "0.5px solid black", borderRight: "none" }]
+  const cdiv = dom("div", { parent: demo, style: csty })
+  const ediv = dom("div", { parent: demo, style: [...csty, { height: h, width: w * r }] })
+  const sdiv = dom("div", { parent: demo, style: [...csty, { height: h, width: w * r }] })
+  const dlog = o => (...a) => {
+    dom("div", { text: a.join(" "), parent: cdiv, ...o })
+    cdiv.scrollTop = cdiv.scrollHeight
+  }, log = dlog({}), warn = dlog({ style: { color: "yellow" } })
+  const error = dlog({ style: { color: "red" } }), clear = () => cdiv.innerHTML = ""
+
+  let history = [], pos = 0, edit_histroy = [], pending = []
+  let snippets = {}, isjs = true, edt_target, wait, resolve
+
+  const dummy = () => { }, ores = () => { wait = false }
+  const val = (a = edit_histroy[pos], b = history[pos]) => isudf(a) ? isudf(b) ? "" : b : a
+  const load = n => { if (n >= 0 && n <= history.length) { pos = n, t.value = val() } }
+  const update_list = (d, o) => (s = []) => d.innerHTML =
+    (forin(o(), (_, k) => s.push(`<div>${k}</div>`)), s.join(""))
+  const update_env = update_list(ediv, () => $)
+  const update_his = i => (history.push(i), pos = history.length, edit_histroy = [])
+  const update_nxt = (v = pending.shift()) => edit_histroy[pos] = t.value = v ? v : ""
+  const update_all = i => (update_env(), update_snp(), i ? update_his(i) : 0, update_nxt())
+  const env = () => ({ window: {}, document: {}, $ })
+  const err = e => (error(e), pending.unshift(val()), isjs = true)
+  const init = () => (isjs = true, edt_target = dummy, wait = false, resolve = ores)
+  const eval = (i = val()) => {
+    if (isjs) {
+      const p = new Promise(async (res) => {
+        try { init(), await exec(env())(i) }
+        catch (e) { err(e) } finally { if (!wait) { res() } else { resolve = res } }
+      }); p.finally(() => update_all(i))
+    } else { isjs = true, edt_target(t.value), update_all(t.value) }
+  }
+  const eload = async (url, f = () => { }) => {
+    try {
+      wait = true; const res = await fetch(url)
+      if (res.ok) { await exec(env())(await res.text() + `\n(${f})()`) }
+      else { throw `${res.type} ${url} ${res.status}` }
+    } catch (e) { err(e) } finally { update_env(), update_snp(), resolve() }
+  }
+
+  const update_snp = update_list(sdiv, () => snippets)
+  const ssave = (name) => isstr(name) ? snippets[name] = val() : 0
+  const sload = (name, v = snippets[name]) => v ? pending.unshift(v) : 0
+  const nonjs = (s, f) => { edt_target = f, isjs = false, pending.unshift(s) }
+
+  const $ = { log, error, warn, clear, ssave, sload, eload, edit: nonjs }
+  const t = dom("textarea", {
+    label: "code", placeholder: "code", spellcheck: "false",
+    parent: demo, style: [{ resize: "none", border: "0.5px solid black", borderRadius: 0 },
+    { boxSizing: "border-box", height: h, width: `calc(100% - ${w * (1 + r)}px)` },
+    { margin: 0, position: "absolute" }],
+    onkeydown: (e, p = true) => {
+      if (e.key == "Alt") { }
+      else if (e.key == "ArrowUp" && e.ctrlKey) { load(pos - 1) }
+      else if (e.key == "ArrowDown" && e.ctrlKey) { load(pos + 1) }
+      else if (e.key == "Enter" && (e.ctrlKey || e.shiftKey || e.altKey)) { eval() }
+      else { p = false } p ? e.preventDefault() : 0
+    }, oninput: () => { edit_histroy[pos] = t.value }
+  })
+
+  {
+    pending.push(``), eval("")
+  }
+})
+
 // v repl code extraction (poor choice)
 // * SAVE
 // * dom interface
@@ -489,14 +589,5 @@ $.log($.a)`), eval("")
 // * version control
 // * omit mode
 // * worker thread
-
-// demos.push(() => {
-//   const demo = dom("div", { parent: ctn })
-//   dom("h3", { text: "DEMO 4: Tabs", parent: demo, id: "demo4" })
-//   dom("div", {
-//     parent: demo, text: `
-//   `, style: { marginBottom: "1em" }
-//   })
-// })
 
 forof(demos, d => d())
