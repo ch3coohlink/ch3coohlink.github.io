@@ -512,7 +512,6 @@ const store = (name = "default", store = "default") => {
   return { get, set, del, clr, key, val }
 }
 
-const oeval = eval
 demos.push(async () => {
   const demo = dom("div", { parent: ctn, style: { position: "relative" } })
   const id = 4, title = "save, load, version control"
@@ -524,8 +523,8 @@ demos.push(async () => {
     So it is the time to visit this feature.`, style: { margin: "1em 0em" }
   })
   dom("div", {
-    parent: demo, text: `Saving is trivial for a REPL, just write the history
-    into storage and it's done. But it's not that straightforward for loading,
+    parent: demo, text: `Saving is trivial for a REPL, just write the history into
+    the storage and it's done. But it's not that straightforward for loading,
     since the control command of REPL is also recorded into the history.
     A quick fix for this problem is to neglect the side effects of (most)
     REPL commands during the loading process, and this seemingly works
@@ -547,8 +546,8 @@ demos.push(async () => {
   let $, history, pos, edit_histroy, pending = []
   let snippets, isjs, aftedit, wait, resolve
   const init = () => (history = [], pos = history.length, $ = {
-    log, error, warn, clear, ssave, sload, eload, edit,
-    save, forget, load, listall, exportall
+    log, error, warn, clear, ssave, sload, eload,
+    edit, save, forget, load, listall, exportall
   }, edit_histroy = [], pending = [], snippets = {}, reset())
   const reset = () => (isjs = true, aftedit = dummy, wait = false, resolve = ores)
 
@@ -560,15 +559,15 @@ demos.push(async () => {
   const update_env = update_list(ediv, () => $)
   const update_his = i => (history.push(i), pos = history.length, edit_histroy = [])
   const update_nxt = (v = pending.shift()) => edit_histroy[pos] = t.value = v ? v : ""
-  const update_all = i => (update_env(), update_snp(), i ? update_his(i) : 0, update_nxt())
+  const update_all = (i, s) => (update_env(), update_snp(), i && s ? update_his(i) : 0, update_nxt())
   const env = () => ({ window: {}, document: {}, $ })
   const err = e => (error(isstr(e) ? e : e.stack), pending.unshift(val()), isjs = true)
-  const eval = async (i = val()) => {
-    if (!isjs) { isjs = true, aftedit(t.value), update_all(t.value) }
+  const eval = async (i = val(), save = true) => {
+    if (!isjs) { isjs = true, aftedit(t.value), update_all(t.value, save) }
     else (await new Promise(async r => {
       try { reset(), await exec(env())(i) }
       catch (e) { err(e) } finally { if (!wait) { r() } else { resolve = r } }
-    }), update_all(i))
+    }), update_all(i, save))
   }
   const eload = async (url, f = () => { }) => {
     try {
@@ -599,11 +598,11 @@ demos.push(async () => {
   })
 
   const db = store("envjs"), spath = "saved_repl"
-  const loadenv = { log, error, warn, clear, edit }
+  const loadenv = { log, error, warn, clear, edit, eload }
   const _load = async (o, _ = (init(), $)) => {
     $ = {}, forin(_, (_, k) => $[k] = dummy), Object.assign($, loadenv)
-    for (const h of o.history) { await eval(h) }
-    forin(o, (_, k) => oeval(`o => ${k} = o.${k}`)(o))
+    for (const h of o.history) { await eval(h) } history = o.history, pos = o.pos
+    edit_histroy = o.edit_histroy, pending = o.pending, snippets = o.snippets
     Object.assign($, _), t.value = val(), update_env(), update_snp()
   }
   const saves = await db.get(spath) ?? new Set, getpath = n => [spath, n].join("/")
@@ -615,13 +614,12 @@ demos.push(async () => {
     if (!saves.has(n)) { return error(Error(`repl "${n}" is not found.`)) }
     const s = await db.get(getpath(n)), h = s?.history; if (s && isarr(h)) { _load(s) }
     else { return error(Error(`repl "${n}" data corrupted.`)) }
-  }
-  const listall = () => Array.from(saves)
-  const exportall = () => Promise.all(Array.from(saves)
-    .map(n => db.get(getpath(n))))
+  }, listall = () => Array.from(saves), exportall = () =>
+    Promise.all(Array.from(saves).map(n => db.get(getpath(n))))
 
   {
-    init(), pending.push(`// this REPL will automatically load data from name: "${replid}"
+    init(), pending.push(`// this REPL will automatically load data from name:
+// "${replid}"
 // you can do this manually by executing the following code
 // $.load("${replid}")
 
@@ -630,7 +628,7 @@ demos.push(async () => {
 // $.save("${replid}")
 
 // and this line will bring you back to the initial state
-// $.forget("${replid}")`), eval(`$.load("${replid}")`)
+// $.forget("${replid}")`), eval(`$.load("${replid}")`, false)
   }
 
   {
@@ -639,6 +637,15 @@ demos.push(async () => {
       it is possible to propose a new kind of version control system.`, style: { margin: "1em 0em" }
     })
   }
+})
+
+demos.push(async () => {
+  const demo = dom("div", { parent: ctn, style: { position: "relative" } })
+  const id = 5, title = "dom"
+  dom("h3", { text: `DEMO ${id}: ${title}`, parent: demo, id: "demo" + id })
+  dom("div", {
+    parent: demo, text: ``, style: { margin: "1em 0em" }
+  })
 })
 
 // v repl code extraction (poor choice)
