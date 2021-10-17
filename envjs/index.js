@@ -352,7 +352,7 @@ demos.push(() => {
   });
 
   {
-    const picogl = "https://ch3coohlink.github.io/external/picogl.min.js"
+    const picogl = "../external/picogl.min.js"
     pending.push(`$.eload("${picogl}", () => {$.PicoGL = PicoGL})`, `// now you can use $.PicoGL!
 const { PicoGL, canvas } = $
 canvas.width = canvas.clientWidth;
@@ -597,6 +597,27 @@ demos.push(async () => {
     }, oninput: () => { edit_histroy[pos] = t.value }
   })
 
+  {
+    dom("div", {
+      parent: demo, text: `By extending the ideas behind the save & load procedure,
+      it is possible to propose a new kind of version control system.`, style: { margin: "1em 0em" }
+    })
+    dom("div", {
+      parent: demo, text: `You can think of each savepoint as a version
+      of the codebase, and ideally, the development of the software is
+      the growth of the REPL's history. This perspective on software development
+      reveals a possibility, that is: every single feature or bugfix is the delta
+      between two REPL savepoint, and both of the savepoint is able to iteract.
+      We can show the real function to the reader before we show the actual code,
+      and by flexibly dividing the version, we can create a new code reading
+      experience, that is, reading equals development.`, style: { margin: "1em 0em" }
+    })
+    dom("div", {
+      parent: demo, text: `To achieve this vision, there is still a lot of work
+      to be done, but I think this is a good start.`, style: { margin: "1em 0em" }
+    })
+  }
+
   const db = store("envjs"), spath = "saved_repl"
   const loadenv = { log, error, warn, clear, edit, eload }
   const _load = async (o, _ = (init(), $)) => {
@@ -621,38 +642,154 @@ demos.push(async () => {
     init(), pending.push(`// this REPL will automatically load data from name:
 // "${replid}"
 // you can do this manually by executing the following code
-// $.load("${replid}")
-
+// $.load("${replid}")\n
 // you can use ctrl+s to save current state
 // which is identical to this command:
-// $.save("${replid}")
-
+// $.save("${replid}")\n
 // and this line will bring you back to the initial state
-// $.forget("${replid}")`), eval(`$.load("${replid}")`, false)
-  }
-
-  {
-    dom("div", {
-      parent: demo, text: `By extending the ideas behind the save & load procedure,
-      it is possible to propose a new kind of version control system.`, style: { margin: "1em 0em" }
-    })
+// $.forget("${replid}")\n
+// "$.listall" will return a array of all saved repl names
+// "$.exportall" will return all saved repl data`), eval(`$.load("${replid}")`, false)
   }
 })
 
-demos.push(async () => {
+
+const example_dom = async demo => {
+  const h = 600, sty = [
+    { overflow: "auto", display: "inline-block", height: h, width: "50%" },
+    { boxSizing: "border-box", border: "0.5px solid black", borderRight: "none" }]
+  const alldiv = dom("div", { parent: demo, style: { display: "flex" } })
+  const html = dom("div", { parent: alldiv, style: sty })
+  const body = dom("div", { parent: html, style: { margin: 8 } })
+  const adiv = dom("div", {
+    parent: alldiv, style: [...sty, { overflow: "hidden" },
+    { position: "relative", border: "none" },
+    { display: "flex", flexDirection: "column" }]
+  })
+  const infodiv = dom("div", { parent: adiv, style: { height: "50%", width: `100%` } })
+  const cdiv = dom("div", { parent: infodiv, style: [...sty, { height: "100%", width: "80%" }] })
+  const ediv = dom("div", { parent: infodiv, style: [...sty, { height: "100%", width: "10%" }] })
+  const sdiv = dom("div", {
+    parent: infodiv, style: [...sty,
+    { height: "100%", width: "10%", borderRight: "0.5px solid black" }]
+  })
+  const dlog = o => (...a) => {
+    style(dom("pre", { text: a.join(" "), parent: cdiv, ...o }), { margin: 0 })
+    cdiv.scrollTop = cdiv.scrollHeight
+  }, log = dlog({}), warn = dlog({ style: { color: "yellow" } })
+  const error = dlog({ style: { color: "red" } }), clear = () => cdiv.innerHTML = ""
+
+  const replid = "demo 5: dom", t = dom("textarea", {
+    label: "code", placeholder: "code", spellcheck: "false",
+    parent: adiv, style: [{ resize: "none", border: "0.5px solid black", borderRadius: 0 },
+    { boxSizing: "border-box", height: "50%", width: "100%" },
+    { margin: 0, whiteSpace: "pre", wordWrap: "normal", borderTop: "none" }],
+    onkeydown: (e, p = true) => {
+      const { altKey: a, ctrlKey: c, shiftKey: s } = e
+      if (e.key == "ArrowUp" && c) { load_pos(pos - 1) }
+      else if (e.key == "ArrowDown" && c) { load_pos(pos + 1) }
+      else if (e.key == "Enter" && (a || c || s)) { eval() }
+      else if (e.key == "s" && c) { save(replid) }
+      else if (e.key == "Alt") { } else { p = false } p ? e.preventDefault() : 0
+    }, oninput: () => { edit_histroy[pos] = t.value }
+  })
+
+  let $, history, pos, edit_histroy, pending = []
+  let snippets, isjs, aftedit, wait, resolve
+  const init = () => (history = [], pos = history.length, $ = {
+    dom, log, error, warn, clear, ssave, sload, eload,
+    edit, save, forget, load, listall, exportall, newrepl: example_dom
+  }, edit_histroy = [], pending = [], snippets = {}, reset())
+  const reset = () => (isjs = true, aftedit = dummy, wait = false, resolve = ores)
+
+  const dummy = () => { }, ores = () => { wait = false }
+  const val = (a = edit_histroy[pos], b = history[pos]) => isudf(a) ? isudf(b) ? "" : b : a
+  const load_pos = n => { if (n >= 0 && n <= history.length) { pos = n, t.value = val() } }
+  const update_list = (d, o) => (s = []) => d.innerHTML =
+    (forin(o(), (_, k) => s.push(`<div>${k}</div>`)), s.join(""))
+  const update_env = update_list(ediv, () => $)
+  const update_his = i => (history.push(i), pos = history.length, edit_histroy = [])
+  const update_nxt = (v = pending.shift()) => edit_histroy[pos] = t.value = v ? v : ""
+  const update_all = (i, s) => (update_env(), update_snp(), i && s ? update_his(i) : 0, update_nxt())
+  const env = () => ({ window: {}, document: { html, body }, $ })
+  const err = e => (error(isstr(e) ? e : e.stack), pending.unshift(val()), isjs = true)
+  const eval = async (i = val(), save = true) => {
+    if (!isjs) { isjs = true, aftedit(t.value), update_all(t.value, save) }
+    else (await new Promise(async r => {
+      try { reset(), await exec(env())(i) }
+      catch (e) { err(e) } finally { if (!wait) { r() } else { resolve = r } }
+    }), update_all(i, save))
+  }
+  const eload = async (url, f = () => { }) => {
+    try {
+      wait = true; const res = await fetch(url)
+      if (res.ok) { await exec(env())(await res.text() + `\n(${f})()`) }
+      else { throw `${res.type} ${url} ${res.status}` }
+    } catch (e) { err(e) } finally { update_env(), update_snp(), resolve() }
+  }
+
+  const update_snp = update_list(sdiv, () => snippets)
+  const ssave = name => isstr(name) ? snippets[name] = val() : 0
+  const sload = (name, v = snippets[name]) => v ? pending.unshift(v) : 0
+  const edit = (s, f) => { aftedit = f, isjs = false, pending.unshift(s) }
+
+  const db = store("envjs"), spath = "saved_repl"
+  const loadenv = { log, error, warn, clear, edit, eload }
+  const _load = async (o, _ = (init(), $)) => {
+    $ = {}, forin(_, (_, k) => $[k] = dummy), Object.assign($, loadenv)
+    for (const h of o.history) { await eval(h) } history = o.history, pos = o.pos
+    edit_histroy = o.edit_histroy, pending = o.pending, snippets = o.snippets
+    Object.assign($, _), t.value = val(), update_env(), update_snp()
+  }
+  const saves = await db.get(spath) ?? new Set, getpath = n => [spath, n].join("/")
+  const save = async n => (saves.add(n), Promise.all([db.set(spath, saves), db
+    .set(getpath(n), { history, pos, edit_histroy, pending, snippets })]))
+  const forget = async n => (saves.delete(n),
+    Promise.all([db.set(spath, saves), db.del(getpath(n))]))
+  const load = async n => {
+    if (!saves.has(n)) { return error(Error(`repl "${n}" is not found.`)) }
+    const s = await db.get(getpath(n)), h = s?.history; if (s && isarr(h)) { _load(s) }
+    else { return error(Error(`repl "${n}" data corrupted.`)) }
+  }, listall = () => Array.from(saves), exportall = () =>
+    Promise.all(Array.from(saves).map(n => db.get(getpath(n))))
+
+  {
+    const expmd = `# Marked in browser\n\nRendered by **marked**.`
+    init(), pending.push(`// firstly, load a markdown lib
+$.eload("../external/marked.min.js", () => { $.marked = marked })` , ` // now test it
+$.log($.marked(\`${expmd}\`))`, `// use it\n
+// (document.body is not the real html body in here so this is ok)
+document.body.innerHTML = $.marked(\`${expmd}\`)`, `// make a function
+$.update = s => document.body.innerHTML = $.marked(s)`, `// remember the "$.edit" ?
+$.edit("# This a markdown document, do whatever you want to it.", $.update)`, `// something more interesting\n
+// make a div element using "$.dom"
+const somediv = $.dom("div", { parent: document.body })\n
+// use "$.newrepl" to create a new REPL
+$.newrepl(somediv)`, `// that's how you make a REPL inside a REPL`)
+    eval("") // eval(`await $.load("${replid}"), $.clear()`, false)
+  }
+}
+demos.push(() => {
   const demo = dom("div", { parent: ctn, style: { position: "relative" } })
   const id = 5, title = "dom"
   dom("h3", { text: `DEMO ${id}: ${title}`, parent: demo, id: "demo" + id })
   dom("div", {
-    parent: demo, text: ``, style: { margin: "1em 0em" }
+    parent: demo, text: `Having discussed so many feature of the REPL itself,
+    let's have a taste on the actual application. DOM operation should be
+    a good topic so here it is.`, style: { margin: "1em 0em" }
   })
+  dom("div", {
+    parent: demo, text: `The editor layout is changed a little bit,
+    but I believe you can figure it out.`, style: { margin: "1em 0em" }
+  })
+  example_dom(demo)
 })
 
 // v repl code extraction (poor choice)
 // v SAVE
-// * dom interface
+// ? version control
+// v dom interface
 // * tabs
-// * version control
 // * omit mode
 // * worker thread
 
