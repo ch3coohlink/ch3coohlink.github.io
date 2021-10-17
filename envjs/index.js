@@ -632,9 +632,9 @@ demos.push(async () => {
   const forget = async n => (saves.delete(n),
     Promise.all([db.set(spath, saves), db.del(getpath(n))]))
   const load = async n => {
-    if (!saves.has(n)) { return error(Error(`repl "${n}" is not found.`)) }
+    if (!saves.has(n)) { return error(Error(`REPL "${n}" is not found.`)) }
     const s = await db.get(getpath(n)), h = s?.history; if (s && isarr(h)) { _load(s) }
-    else { return error(Error(`repl "${n}" data corrupted.`)) }
+    else { return error(Error(`REPL "${n}" data corrupted.`)) }
   }, listall = () => Array.from(saves), exportall = () =>
     Promise.all(Array.from(saves).map(n => db.get(getpath(n))))
 
@@ -648,17 +648,17 @@ demos.push(async () => {
 // $.save("${replid}")\n
 // and this line will bring you back to the initial state
 // $.forget("${replid}")\n
-// "$.listall" will return a array of all saved repl names
-// "$.exportall" will return all saved repl data`), eval(`$.load("${replid}")`, false)
+// "$.listall" will return a array of all saved REPL names
+// "$.exportall" will return all saved REPL data`), eval(`$.load("${replid}")`, false)
   }
 })
 
-
-const example_dom = async demo => {
+const defaultdo = ({ init, eval, pending }) => (init(), eval(""))
+const createrepl = async (container, replid = "default", dosth = defaultdo) => {
   const h = 600, sty = [
     { overflow: "auto", display: "inline-block", height: h, width: "50%" },
     { boxSizing: "border-box", border: "0.5px solid black", borderRight: "none" }]
-  const alldiv = dom("div", { parent: demo, style: { display: "flex" } })
+  const alldiv = dom("div", { parent: container, style: { display: "flex" } })
   const html = dom("div", { parent: alldiv, style: sty })
   const body = dom("div", { parent: html, style: { margin: 8 } })
   const adiv = dom("div", {
@@ -667,11 +667,11 @@ const example_dom = async demo => {
     { display: "flex", flexDirection: "column" }]
   })
   const infodiv = dom("div", { parent: adiv, style: { height: "50%", width: `100%` } })
-  const cdiv = dom("div", { parent: infodiv, style: [...sty, { height: "100%", width: "80%" }] })
-  const ediv = dom("div", { parent: infodiv, style: [...sty, { height: "100%", width: "10%" }] })
+  const cdiv = dom("div", { parent: infodiv, style: [...sty, { height: "100%", width: "70%" }] })
+  const ediv = dom("div", { parent: infodiv, style: [...sty, { height: "100%", width: "15%" }] })
   const sdiv = dom("div", {
     parent: infodiv, style: [...sty,
-    { height: "100%", width: "10%", borderRight: "0.5px solid black" }]
+    { height: "100%", width: "15%", borderRight: "0.5px solid black" }]
   })
   const dlog = o => (...a) => {
     style(dom("pre", { text: a.join(" "), parent: cdiv, ...o }), { margin: 0 })
@@ -679,7 +679,7 @@ const example_dom = async demo => {
   }, log = dlog({}), warn = dlog({ style: { color: "yellow" } })
   const error = dlog({ style: { color: "red" } }), clear = () => cdiv.innerHTML = ""
 
-  const replid = "demo 5: dom", t = dom("textarea", {
+  const t = dom("textarea", {
     label: "code", placeholder: "code", spellcheck: "false",
     parent: adiv, style: [{ resize: "none", border: "0.5px solid black", borderRadius: 0 },
     { boxSizing: "border-box", height: "50%", width: "100%" },
@@ -698,7 +698,7 @@ const example_dom = async demo => {
   let snippets, isjs, aftedit, wait, resolve
   const init = () => (history = [], pos = history.length, $ = {
     dom, log, error, warn, clear, ssave, sload, eload,
-    edit, save, forget, load, listall, exportall, newrepl: example_dom
+    edit, save, forget, load, listall, exportall, newrepl: createrepl
   }, edit_histroy = [], pending = [], snippets = {}, reset())
   const reset = () => (isjs = true, aftedit = dummy, wait = false, resolve = ores)
 
@@ -747,27 +747,13 @@ const example_dom = async demo => {
   const forget = async n => (saves.delete(n),
     Promise.all([db.set(spath, saves), db.del(getpath(n))]))
   const load = async n => {
-    if (!saves.has(n)) { return error(Error(`repl "${n}" is not found.`)) }
+    if (!saves.has(n)) { return error(Error(`REPL "${n}" is not found.`)) }
     const s = await db.get(getpath(n)), h = s?.history; if (s && isarr(h)) { _load(s) }
-    else { return error(Error(`repl "${n}" data corrupted.`)) }
+    else { return error(Error(`REPL "${n}" data corrupted.`)) }
   }, listall = () => Array.from(saves), exportall = () =>
     Promise.all(Array.from(saves).map(n => db.get(getpath(n))))
 
-  {
-    const expmd = `# Marked in browser\n\nRendered by **marked**.`
-    init(), pending.push(`// firstly, load a markdown lib
-$.eload("../external/marked.min.js", () => { $.marked = marked })` , ` // now test it
-$.log($.marked(\`${expmd}\`))`, `// use it\n
-// (document.body is not the real html body in here so this is ok)
-document.body.innerHTML = $.marked(\`${expmd}\`)`, `// make a function
-$.update = s => document.body.innerHTML = $.marked(s)`, `// remember the "$.edit" ?
-$.edit("# This a markdown document, do whatever you want to it.", $.update)`, `// something more interesting\n
-// make a div element using "$.dom"
-const somediv = $.dom("div", { parent: document.body })\n
-// use "$.newrepl" to create a new REPL
-$.newrepl(somediv)`, `// that's how you make a REPL inside a REPL`)
-    eval("") // eval(`await $.load("${replid}"), $.clear()`, false)
-  }
+  dosth ? dosth({ init, eval, pending: (...a) => pending.push(...a) }) : 0
 }
 demos.push(() => {
   const demo = dom("div", { parent: ctn, style: { position: "relative" } })
@@ -782,7 +768,39 @@ demos.push(() => {
     parent: demo, text: `The editor layout is changed a little bit,
     but I believe you can figure it out.`, style: { margin: "1em 0em" }
   })
-  example_dom(demo)
+  createrepl(demo, "demo 5: dom", ({ init, eval, pending }) => {
+    const expmd = `# Marked in browser\n\nRendered by **marked**.`
+    init(), pending(`// firstly, load a markdown lib
+$.eload("../external/marked.min.js", () => { $.marked = marked })` , ` // now test it
+$.log($.marked(\`${expmd}\`))`, `// use it\n
+// (document.body is not the real html body in here so this is ok)
+document.body.innerHTML = $.marked(\`${expmd}\`)`, `// make a function
+$.update = s => document.body.innerHTML = $.marked(s)`, `// remember the "$.edit" ?
+$.edit("# This a markdown document, do whatever you want to it.", $.update)`, `// something more interesting\n
+// make a div element using "$.dom"
+const somediv = $.dom("div", { parent: document.body })\n
+// use "$.newrepl" to create a new REPL
+$.newrepl(somediv)`, `// that's how you make a REPL inside a REPL`)
+    eval("") // eval(`await $.load("${replid}"), $.clear()`, false)
+  })
+})
+
+demos.push(() => {
+  const demo = dom("div", { parent: ctn, style: { position: "relative" } })
+  const id = 6, title = "write the editor inside the editor", replid = `demo ${id}: ${title}`
+  dom("h3", { text: `DEMO ${id}: ${title}`, parent: demo, id: "demo" + id })
+  dom("div", {
+    parent: demo, text: `In the previous section we see how to create a REPL
+    inside a REPL, but that is done through the global function "$.newrepl",
+    which is just cheating from the perspective of a editor creater. So the
+    goal of this section is to implement "$.newrepl" manually, step by step,
+    with no secret left behind.`, style: { margin: "1em 0em" }
+  })
+  createrepl(demo, replid, ({ init, eval, pending }) => {
+    init()
+    pending()
+    eval(`await $.load("${replid}"), $.clear()`, false)
+  })
 })
 
 // v repl code extraction (poor choice)
