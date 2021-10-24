@@ -1,12 +1,12 @@
-window.onerror = function (a, b, c, d, e) {
-  const msg = document.createElement("div")
-  const stack = document.createElement("div")
-  msg.textContent = e.toString()
-  stack.textContent = e.stack
-  document.body.textContent = `JavaScript error occured
-    during loading process, try to contact the site owner.`
-  document.body.append(msg, stack)
-}
+// window.onerror = function (a, b, c, d, e) {
+//   const msg = document.createElement("div")
+//   const stack = document.createElement("div")
+//   msg.textContent = e.toString()
+//   stack.textContent = e.stack
+//   document.body.textContent = `JavaScript error occured
+//     during loading process, try to contact the site owner.`
+//   document.body.append(msg, stack)
+// }
 
 const { log, dir, clear } = console
 const stamp = (tag, point, elapse) => ({ tag, point, elapse })
@@ -44,14 +44,14 @@ const dsplice = (p, i, c, ...n) => ((d = p.childNodes, rm = [], l = d.length
 
 const style = (e, ...s) => (forof(s, s =>
   forin(s, (v, k) => e.style[k] = isnum(v) ? `${v}px` : v)), e)
-const _dom = cases((e, v, k) => (isfct(v) ? e[k] = v : e.setAttribute(k, v)),
+const _dom = cases((e, v, k) => (e[k] = v, isfct(v) ? 0 : e.setAttribute(k, v)),
   ["class", (e, v) => e.className = isarr(v) ? v.join(" ") : v],
   ["child", (e, v) => e.append(...v)],
   ["parent", (e, v) => v ? v.appendChild(e) : 0],
   ["text", (e, v) => e.textContent = v],
   ["style", (e, v) => style(e, ...isarr(v) ? v : [v])])
-const dom = (n, o = {}, e = isstr(n) ? document.createElement(n) : n) =>
-  (forin(o, (v, k) => v ? _dom(k, e, v, k) : 0), e)
+const dom = (n, o = {}, f = _ => { }, e = isstr(n) ? document.createElement(n) : n) =>
+  (forin(o, (v, k) => v ? _dom(k, e, v, k) : 0), f(e), e)
 const exec = (e, a = [], n = (forin(e, (_, k) => a.push(k)), a.join(", "))) => async c =>
   await new Function(`"use strict";\nreturn async ({ ${n} }) => { \n${c}\n }`)()(e)
 
@@ -795,6 +795,9 @@ demos.push(() => {
     goal of this section is to implement "$.newrepl" manually, step by step,
     with no secret left behind.`, style: { margin: "1em 0em" }
   })
+  dom("div", {
+    parent: demo, text: `(this chapter is deprecated)`, style: { margin: "1em 0em" }
+  })
   createrepl(demo, replid, ({ init, eval, pending }) => {
     init()
     pending()
@@ -802,6 +805,126 @@ demos.push(() => {
     // eval(`$.load("${replid}")`, { save: false })
   })
 })
+
+const rnd8 = () => Math.random().toString(16).slice(2, 10)
+const uuid = (a = rnd8(), b = rnd8()) => [rnd8(), a.slice(0, 4)
+  , a.slice(4), b.slice(0, 4), b.slice(4) + rnd8()].join("-")
+demos.push(() => {
+  const demo = dom("div", { parent: ctn, style: { position: "relative" } })
+  const id = 7, title = "recap & new design", replid = `demo ${id}: ${title}`
+  dom("h3", { text: `DEMO ${id}: ${title}`, parent: demo, id: "demo" + id })
+
+  dom("div", {
+    parent: demo, text: [`在DEMO6中我理解到一件事情：要在REPL中完成一整段程序是困难的，
+这主要是由于用户只能看到他们当前正在编写的一小段程序，
+而大部分时间我们希望看到正在操作的整个程序上下文，
+我原本以为简单打印出环境中的所有数据可以解决这一问题，但事实看来并非如此。`,
+      `I learned one thing in DEMO6: it is difficult to complete a whole program in REPL,
+      this is mainly because users can only see a small fraction of what
+      they are currently working on, and most of the time we want to see the entire program context,
+      I originally thought that simply printing out all the data in the environment
+      could solve this problem, but it doesn't seem to be the case.`][1], style: { margin: "1em 0em" }
+  })
+  dom("div", {
+    parent: demo, text: [`为此我在原有的设计上添加了一点变化，
+让用户可以方便地浏览并操作REPL中的历史记录（这解决了许多用户交互上的问题）。`
+      , `For this reason, I add a little change to the original design
+      so that users can easily browse and manipulate the history records
+      in the REPL. (This solves many user-interaction problems)`][1], style: { margin: "1em 0em" }
+  })
+
+  const root = dom("div", { parent: demo }).attachShadow({ mode: "open" })
+  const csselm = dom("style", { parent: root }), px = v => isnum(v) ? `${v}px` : v
+  const hyphenate = s => s.replace(/[A-Z]/g, m => `-${m.toLowerCase()}`)
+  const content = s => Object.keys(s).reduce((p, k) => p + `${hyphenate(k)}: ${px(s[k])}; `, "")
+  const css = (e => (r, ...s) => { e.sheet.insertRule(`${r} { ${s.map(v => content(v)).join(" ")}}`) })(csselm)
+  css("textarea:focus", { background: "#baffbc", outline: "none" })
+  css("textarea", { display: "block", position: "absolute", boxSizing: "border-box", margin: 0, border: 0 },
+    { background: "#ddd", boxShadow: "inset white 0px 0px 20px 5px", resize: "none", width: "100%" },
+    { padding: 10, lineHeight: "1em", fontSize: "1em", fontFamily: "consolas, courier new, monospace" },
+    { transition: "top 0.5s cubic-bezier(.08,.82,.17,1) 0s", overflow: "hidden" })
+
+  const topdiv = dom("div", { parent: root, style: { display: "flex", height: "50vh" } })
+  const txtlist = dom("div", {
+    parent: topdiv, style: [{ border: "1px solid black", borderRight: "none" },
+    { width: "50%", position: "relative", overflow: "auto" }]
+  }), htmldiv = dom("div", { parent: topdiv, style: { border: "1px solid black", width: "50%" } })
+
+  const newdata = (v = "") => ({ uuid: uuid(), value: v })
+  let data = maprg(100, i => newdata(String(i))), order, elms
+  let pos = 0, curr = 0
+
+  const valid = i => 0 <= i && i < data.length, swap = (a, b, t = data[a]) =>
+    valid(a) && valid(b) ? (data[a] = data[b], data[b] = t, update()) : 0
+  const focus = (e, y = Number(e.style.top.slice(0, -2)) + (e.clientHeight - txtlist.clientHeight) / 2) =>
+    (txtlist.scrollTo({ left: 0, top: y, behavior: "smooth" }), e.focus())
+  const moveto = p => valid(p) ? focus(elms[data[pos = p].uuid]) : 0
+  const swapwith = (id, r, a = order[id], b = a + r) => (swap(a, b), moveto(order[id]))
+  const step = () => { }
+  const execto = (i) => { }
+
+  const update = () => (!data || data.length === 0 ? data = [newdata()] : 0,
+    order = {}, elms = {}, forrg(data.length, (i, l = data[i]) => order[l.uuid] = i),
+    forof([...txtlist.children], e => order[e.uuid] ? elms[e.uuid] = e : e.remove()),
+    forof(data, d => elms[d.uuid] ? 0 : elms[d.uuid] = editor(d)), uposition())
+
+  const oninput = (s, id) => { data[order[id]].value = s }
+  const uposition = (h = 0, i = 0) => forof(data, ({ uuid }, e = elms[uuid]) => (
+    style(e, { top: h, zIndex: String(i++) }), h += e.getBoundingClientRect().height))
+  const uheight = (e, l = 1) => { e.style.height = "", e.style.height = `calc(${l}em + 20px)` }
+
+  const emitkey = new Set(`Alt Tab`.split(" "))
+  const editor = ({ value, uuid }) => dom("textarea", {
+    spellcheck: "false", uuid, value, parent: txtlist, onkeydown: (e, p = true) => {
+      const { altKey: a, ctrlKey: c, shiftKey: s } = e, n = !(a || c || s)
+      if (e.key == "ArrowUp" && c && !s || e.key === "PageUp" && n) { moveto(pos - 1) }
+      else if (e.key == "ArrowDown" && c && !s || e.key === "PageDown" && n) { moveto(pos + 1) }
+      else if (e.key == "ArrowUp" && c && s || e.key === "PageUp" && s) { swapwith(uuid, -1) }
+      else if (e.key == "ArrowDown" && c && s || e.key === "PageDown" && s) { swapwith(uuid, +1) }
+      else if (e.key == "ArrowLeft" && a || e.key == "ArrowRight" && a) { }
+      else if (e.key == "Enter" && (a || c || s)) { step() }
+      else if (e.key == "r" && a) { execto(order[uuid]) }
+      else if (e.key == "s" && c) { }
+      else if ((emitkey.has(e.key))) { } else { p = false } p ? e.preventDefault() : 0
+    }, onclick: _ => moveto(order[uuid]), oninput: (e, t = e.target, v = t.value) =>
+      (uheight(t, v.split(/\r?\n/).length), uposition(), oninput(v, uuid)),
+  }, uheight)
+
+  update()
+})
+
+const convert_diff = (df, r = [], o = 0) => (forrg(df.length, (i
+  , [pd, _, __, pl] = df[i - 1] ?? [], [dw, x, y, l] = df[i]
+  , j = dw ? y : x, p = r[r.length - 1], [t, s, e] = p ?? []) =>
+  x < 0 || y < 0 ? 0 : dw === pd && pl === 0 ? p[2] += 1 : (o += isudf(t) ? 0
+    : t ? e - s : s - e, r.push([dw, j, j + 1, o]))), r)
+const forward_myers = (a, b) => {
+  const vs = [], n = a.length, m = b.length, max = n + m, v = { [1]: 0 }
+  let found = false; for (let d = 0; d <= max; d++) {
+    for (let k = -d; k <= d; k += 2) {
+      const down = k === -d || k !== d && v[k - 1] < v[k + 1]
+      const xs = down ? v[k + 1] : v[k - 1]; let xe = down ? xs : xs + 1, ye = xe - k
+      while (xe < n && ye < m && a[xe] === b[ye]) { xe++, ye++ } v[k] = xe
+      if (xe >= n && ye >= m) { found = true }
+    } if (found) { vs.push(v); break } vs.push({ ...v });
+  } let r = [], xs = n, ys = m; for (let d = vs.length - 1; d >= 0; d--) {
+    const v = vs[d], k = xs - ys, down = k === -d || k !== d && v[k - 1] < v[k + 1]
+    xs = down ? v[k + 1] : v[k - 1], ys = xs - (down ? k + 1 : k - 1)
+    let xe = down ? xs : xs + 1, ye = xe - k, l = 0
+    while (xe < n && ye < m && a[xe] === b[ye]) { xe++, ye++, l++ }
+    r.unshift([down, xs, ys, l])
+  } if (r[0] && r[0][1] == 0 && r[0][2] == -1 && r[0][3] == 0) { r.shift() }
+  return convert_diff(r)
+}
+
+// forof(forward_myers("a".split(""), "abcd".split("")), log)
+// log("--------------------")
+// forof(forward_myers("accd".split(""), "abcd".split("")), log)
+// log("--------------------")
+// forof(forward_myers("".split(""), "abcd".split("")), log)
+// log("--------------------")
+// forof(forward_myers("FDAJKDLFAS".split(""), "FDLFDFASDAS".split("")), log)
+
 
 // v repl code extraction (poor choice)
 // v SAVE
