@@ -868,7 +868,7 @@ demos.push(() => {
     forof([...txtlist.children], e => order[e.uuid] ? elms[e.uuid] = e : e.remove()),
     forof(data, d => elms[d.uuid] ? 0 : elms[d.uuid] = editor(d)), uposition())
 
-  const oninput = (s, id) => { data[order[id]].value = s }
+  const oninput = (s, id) => { data[order[id]].value = s, uposition(), moveto(order[id]) }
   const uposition = (h = 0, i = 0) => forof(data, ({ uuid }, e = elms[uuid]) => (
     style(e, { top: h, zIndex: String(i++) }), h += e.getBoundingClientRect().height))
   const uheight = (e, l = 1) => { e.style.height = "", e.style.height = `calc(${l}em + 20px)` }
@@ -886,11 +886,13 @@ demos.push(() => {
       else if (e.key == "r" && a) { execto(order[uuid]) }
       else if (e.key == "s" && c) { }
       else if ((emitkey.has(e.key))) { } else { p = false } p ? e.preventDefault() : 0
-    }, onclick: _ => moveto(order[uuid]), oninput: (e, t = e.target, v = t.value) =>
-      (uheight(t, v.split(/\r?\n/).length), uposition(), oninput(v, uuid)),
+    }, oninput: (e, t = e.target, v = t.value) => (uheight(t, v.split(/\r?\n/).length),
+      oninput(v, uuid)), onclick: _ => moveto(order[uuid]),
   }, uheight)
 
   update()
+
+  log("current version only shows ui change, no real repl implemented")
 })
 
 const convert_diff = (df, r = [], o = 0) => (forrg(df.length, (i
