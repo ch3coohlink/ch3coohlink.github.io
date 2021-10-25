@@ -832,6 +832,14 @@ demos.push(() => {
       so that users can easily browse and manipulate the history records
       in the REPL. (This solves many user-interaction problems)`][1], style: { margin: "1em 0em" }
   })
+  const line = text => dom("div", { parent: demo, text, style: { margin: "0.5em 0em" } })
+  line(`Hot keys:`)
+  line(`PageUp/PageDown: move up/down in history`)
+  line(`Shift + PageUp/PageDown: swap up/down history`)
+  line(`Shift + Enter: step one command`)
+  line(`Alt + R: execute till this command`)
+  line(`Shift + Delete/Insert: delete/insert a command`)
+
 
   const root = dom("div", { parent: demo }).attachShadow({ mode: "open" })
   const csselm = dom("style", { parent: root }), px = v => isnum(v) ? `${v}px` : v
@@ -880,7 +888,7 @@ demos.push(() => {
   const uheight = (e, l = 1) => { e.style.height = "", e.style.height = `calc(${l}em + 20px)` }
   const ustate = () => forof(data, ({ state: s, uuid: u }, y = elms[u].style) =>
     y.background = { executed: "#8f8fff", error: "#ff7b7b" }[s] ?? "")
-  const cstate = (m = 0, i = 0) => (
+  const cstate = (m = 0, i = 0) => ( // TODO: refresh repl state
     forof(data, d => i++ >= m ? delete d.state : 0), curr > m ? curr = m : 0)
 
   const emitkey = new Set(`Alt Tab`.split(" "))
@@ -900,8 +908,9 @@ demos.push(() => {
       } else if (e.key == "Enter" && (a || c || s)) {
         if (data[curr].state !== "error") {
           await step(); const l = data.length
-          if (curr === l && data[l - 1].value !== "") { data.push(newdata()), update(), moveto(l) }
-          else { ustate() }
+          if (curr === l && data[l - 1].value !== "") {
+            data.push(newdata()), update(), moveto(l)
+          } else { ustate() }
         }
       } else if (e.key == "r" && a) { execto(order[uuid]) }
       else if (e.key == "s" && c) { }
@@ -912,8 +921,6 @@ demos.push(() => {
   }, uheight)
 
   update()
-
-  log("current version only shows ui change, no real repl implemented")
 })
 
 const convert_diff = (df, r = [], o = 0) => (forrg(df.length, (i
