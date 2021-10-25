@@ -834,10 +834,10 @@ demos.push(() => {
   })
   const line = text => dom("div", { parent: demo, text, style: { margin: "0.5em 0em" } })
   line(`Hot keys:`)
-  line(`PageUp/PageDown: move up/down in history`)
-  line(`Shift + PageUp/PageDown: swap up/down history`)
+  line(`PageUp/PageDown or Ctrl + ArrowUp/ArrowDown: move up/down in history`)
+  line(`Shift + PageUp/PageDown or Shift + Ctrl + ArrowUp/ArrowDown: swap up/down history`)
   line(`Shift + Enter: step one command`)
-  line(`Alt + R: execute till this command`)
+  line(`Alt + Shift + Ctrl + R: execute till this command`)
   line(`Shift + Delete/Insert: delete/insert a command`)
 
 
@@ -888,8 +888,9 @@ demos.push(() => {
   const uheight = (e, l = 1) => { e.style.height = "", e.style.height = `calc(${l}em + 20px)` }
   const ustate = () => forof(data, ({ state: s, uuid: u }, y = elms[u].style) =>
     y.background = { executed: "#8f8fff", error: "#ff7b7b" }[s] ?? "")
-  const cstate = (m = 0, i = 0) => ( // TODO: refresh repl state
-    forof(data, d => i++ >= m ? delete d.state : 0), curr > m ? curr = m : 0)
+  const cstate = (m = 0, i = 0) => (forof(data, d => i++ >= m
+    && d.state !== "error" ? delete d.state : 0), curr > m ? curr = m : 0)
+  // TODO: refresh repl state
 
   const emitkey = new Set(`Alt Tab`.split(" "))
   const editor = ({ value, uuid }) => dom("textarea", {
@@ -902,21 +903,24 @@ demos.push(() => {
       else if (e.key == "Delete" && s) {
         data.splice(order[uuid], 1), cstate(order[uuid]), update()
         const l = data.length; moveto(pos < l ? pos : l - 1)
-      } else if (e.key == "Insert" && s) {
+      }
+      else if (e.key == "Insert" && s) {
         data.splice(order[uuid] + 1, 0, newdata())
         cstate(order[uuid] + 1), update(), moveto(pos + 1)
-      } else if (e.key == "Enter" && (a || c || s)) {
-        if (data[curr].state !== "error") {
+      }
+      else if (e.key == "Enter" && (a || c || s)) {
+        if (valid(curr) && data[curr].state !== "error") {
           await step(); const l = data.length
           if (curr === l && data[l - 1].value !== "") {
             data.push(newdata()), update(), moveto(l)
           } else { ustate() }
         }
-      } else if (e.key == "r" && a) { execto(order[uuid]) }
+      } else if (e.key.toLowerCase() == "r" && a && c && s) { execto(order[uuid]) }
       else if (e.key == "s" && c) { }
       else if (e.key == "ArrowLeft" && a || e.key == "ArrowRight" && a) { }
       else if ((emitkey.has(e.key))) { } else { p = false } p ? e.preventDefault() : 0
     }, oninput: (e, t = e.target, v = t.value) => (uheight(t, v.split(/\r?\n/).length),
+      delete data[order[uuid]].state,
       cstate(order[uuid]), ustate(), oninput(v, uuid)), onclick: _ => moveto(order[uuid]),
   }, uheight)
 
