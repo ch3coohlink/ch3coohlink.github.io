@@ -851,43 +851,64 @@ demos.push(() => {
   }), htmldiv = dom("div", { parent: topdiv, style: { border: "1px solid black", width: "50%" } })
 
   const newdata = (v = "") => ({ uuid: uuid(), value: v })
-  let data = maprg(100, i => newdata(String(i))), order, elms
-  let pos = 0, curr = 0
+  let data = maprg(100, i => newdata("return " + i)), order, elms
+  // let data = [], order, elms
+  let pos = 0, curr = 0, $ = { window: {}, document: {} }
 
   const valid = i => 0 <= i && i < data.length, swap = (a, b, t = data[a]) =>
-    valid(a) && valid(b) ? (data[a] = data[b], data[b] = t, update()) : 0
+    valid(a) && valid(b) ? (data[a] = data[b], data[b] = t, cstate(Math.min(a, b)), update()) : 0
   const focus = (e, y = Number(e.style.top.slice(0, -2)) + (e.clientHeight - txtlist.clientHeight) / 2) =>
     (txtlist.scrollTo({ left: 0, top: y, behavior: "smooth" }), e.focus())
   const moveto = p => valid(p) ? focus(elms[data[pos = p].uuid]) : 0
   const swapwith = (id, r, a = order[id], b = a + r) => (swap(a, b), moveto(order[id]))
-  const step = () => { }
-  const execto = (i) => { }
+  const step = async (i = curr, r) => {
+    if (!valid(i)) { return false } try {
+      r = await exec({ ...$, $ })(data[i].value), curr++
+      r ? log(r) : 0; data[i].state = "executed"; return true
+    } catch (e) { data[i].state = "error"; return false }
+  }
+  const execto = async i => { if (curr > i) cstate(); while (curr <= i && await step()); ustate() }
 
   const update = () => (!data || data.length === 0 ? data = [newdata()] : 0,
     order = {}, elms = {}, forrg(data.length, (i, l = data[i]) => order[l.uuid] = i),
     forof([...txtlist.children], e => order[e.uuid] ? elms[e.uuid] = e : e.remove()),
-    forof(data, d => elms[d.uuid] ? 0 : elms[d.uuid] = editor(d)), uposition())
+    forof(data, d => elms[d.uuid] ? 0 : elms[d.uuid] = editor(d)), uposition(), ustate())
 
   const oninput = (s, id) => { data[order[id]].value = s, uposition(), moveto(order[id]) }
   const uposition = (h = 0, i = 0) => forof(data, ({ uuid }, e = elms[uuid]) => (
     style(e, { top: h, zIndex: String(i++) }), h += e.getBoundingClientRect().height))
   const uheight = (e, l = 1) => { e.style.height = "", e.style.height = `calc(${l}em + 20px)` }
+  const ustate = () => forof(data, ({ state: s, uuid: u }, y = elms[u].style) =>
+    y.background = { executed: "#8f8fff", error: "#ff7b7b" }[s] ?? "")
+  const cstate = (m = 0, i = 0) => (
+    forof(data, d => i++ >= m ? delete d.state : 0), curr > m ? curr = m : 0)
 
   const emitkey = new Set(`Alt Tab`.split(" "))
   const editor = ({ value, uuid }) => dom("textarea", {
-    spellcheck: "false", uuid, value, parent: txtlist, onkeydown: (e, p = true) => {
+    spellcheck: "false", uuid, value, parent: txtlist, onkeydown: async (e, p = true) => {
       const { altKey: a, ctrlKey: c, shiftKey: s } = e, n = !(a || c || s)
       if (e.key == "ArrowUp" && c && !s || e.key === "PageUp" && n) { moveto(pos - 1) }
       else if (e.key == "ArrowDown" && c && !s || e.key === "PageDown" && n) { moveto(pos + 1) }
       else if (e.key == "ArrowUp" && c && s || e.key === "PageUp" && s) { swapwith(uuid, -1) }
       else if (e.key == "ArrowDown" && c && s || e.key === "PageDown" && s) { swapwith(uuid, +1) }
-      else if (e.key == "ArrowLeft" && a || e.key == "ArrowRight" && a) { }
-      else if (e.key == "Enter" && (a || c || s)) { step() }
-      else if (e.key == "r" && a) { execto(order[uuid]) }
+      else if (e.key == "Delete" && s) {
+        data.splice(order[uuid], 1), cstate(order[uuid]), update()
+        const l = data.length; moveto(pos < l ? pos : l - 1)
+      } else if (e.key == "Insert" && s) {
+        data.splice(order[uuid] + 1, 0, newdata())
+        cstate(order[uuid] + 1), update(), moveto(pos + 1)
+      } else if (e.key == "Enter" && (a || c || s)) {
+        if (data[curr].state !== "error") {
+          await step(); const l = data.length
+          if (curr === l && data[l - 1].value !== "") { data.push(newdata()), update(), moveto(l) }
+          else { ustate() }
+        }
+      } else if (e.key == "r" && a) { execto(order[uuid]) }
       else if (e.key == "s" && c) { }
+      else if (e.key == "ArrowLeft" && a || e.key == "ArrowRight" && a) { }
       else if ((emitkey.has(e.key))) { } else { p = false } p ? e.preventDefault() : 0
     }, oninput: (e, t = e.target, v = t.value) => (uheight(t, v.split(/\r?\n/).length),
-      oninput(v, uuid)), onclick: _ => moveto(order[uuid]),
+      cstate(order[uuid]), ustate(), oninput(v, uuid)), onclick: _ => moveto(order[uuid]),
   }, uheight)
 
   update()
