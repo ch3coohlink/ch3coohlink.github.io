@@ -837,20 +837,23 @@ demos.push(() => {
   line(`PageUp/PageDown or Ctrl + ArrowUp/ArrowDown: move up/down in history`)
   line(`Shift + PageUp/PageDown or Shift + Ctrl + ArrowUp/ArrowDown: swap up/down history`)
   line(`Shift + Enter: step one command`)
-  line(`Alt + Shift + Ctrl + R: execute till this command`)
+  line(`Alt + E: execute till this command`)
   line(`Shift + Delete/Insert: delete/insert a command`)
-
 
   const root = dom("div", { parent: demo }).attachShadow({ mode: "open" })
   const csselm = dom("style", { parent: root }), px = v => isnum(v) ? `${v}px` : v
   const hyphenate = s => s.replace(/[A-Z]/g, m => `-${m.toLowerCase()}`)
   const content = s => Object.keys(s).reduce((p, k) => p + `${hyphenate(k)}: ${px(s[k])}; `, "")
   const css = (e => (r, ...s) => { e.sheet.insertRule(`${r} { ${s.map(v => content(v)).join(" ")}}`) })(csselm)
-  css("textarea:focus", { background: "#baffbc", outline: "none" })
-  css("textarea", { display: "block", position: "absolute", boxSizing: "border-box", margin: 0, border: 0 },
+  css("textarea:focus", { background: "#00ff0020", outline: "none" },
+    { boxShadow: "inset #ffffff60 0px 0px 20px 5px" })
+  css("textarea", { display: "block", boxSizing: "border-box", margin: 0, border: 0, padding: 10 },
+    { background: "#00000000", resize: "none", width: "100%", overflow: "hidden" },
+    { lineHeight: "1em", fontSize: "1em", fontFamily: "consolas, courier new, monospace" })
+  css(".repl-item", { display: "block", position: "absolute", margin: 0, border: 0 },
     { background: "#ddd", boxShadow: "inset white 0px 0px 20px 5px", resize: "none", width: "100%" },
-    { padding: 10, lineHeight: "1em", fontSize: "1em", fontFamily: "consolas, courier new, monospace" },
     { transition: "top 0.5s cubic-bezier(.08,.82,.17,1) 0s", overflow: "hidden" })
+  css(".repl-item-result", { margin: 0, padding: "0px 10px", fontSize: "0.5em", color: "#555" })
 
   const topdiv = dom("div", { parent: root, style: { display: "flex", height: "50vh" } })
   const txtlist = dom("div", {
@@ -859,70 +862,77 @@ demos.push(() => {
   }), htmldiv = dom("div", { parent: topdiv, style: { border: "1px solid black", width: "50%" } })
 
   const newdata = (v = "") => ({ uuid: uuid(), value: v })
-  let data = maprg(100, i => newdata("return " + i)), order, elms
-  // let data = [], order, elms
+  let data = maprg(0, i => newdata("return " + i)), order, elms
   let pos = 0, curr = 0, $ = { window: {}, document: {} }
 
-  const valid = i => 0 <= i && i < data.length, swap = (a, b, t = data[a]) =>
-    valid(a) && valid(b) ? (data[a] = data[b], data[b] = t, cstate(Math.min(a, b)), update()) : 0
-  const focus = (e, y = Number(e.style.top.slice(0, -2)) + (e.clientHeight - txtlist.clientHeight) / 2) =>
-    (txtlist.scrollTo({ left: 0, top: y, behavior: "smooth" }), e.focus())
-  const moveto = p => valid(p) ? focus(elms[data[pos = p].uuid]) : 0
-  const swapwith = (id, r, a = order[id], b = a + r) => (swap(a, b), moveto(order[id]))
+  const valid = i => 0 <= i && i < data.length
+  const focus = (e, y = Number(e.style.top.slice(0, -2)) +
+    (e.children[0].clientHeight - txtlist.clientHeight) / 2) =>
+    (txtlist.scrollTo({ left: 0, top: y, behavior: "smooth" }), e.children[0].focus())
+  const move = p => valid(p) ? focus(elms[data[pos = p].uuid]) : 0
+  const moverel = p => move(pos + p)
+  const swap = (a, b, t = data[a]) => valid(a) && valid(b) ?
+    (data[a] = data[b], data[b] = t, cstate(Math.min(a, b)), update()) : 0
+  const swaprel = (id, r, a = order[id], b = a + r) => (swap(a, b), move(order[id]))
   const step = async (i = curr, r) => {
     if (!valid(i)) { return false } try {
-      r = await exec({ ...$, $ })(data[i].value), curr++
-      r ? log(r) : 0; data[i].state = "executed"; return true
-    } catch (e) { data[i].state = "error"; return false }
+      r = await exec({ ...$, $ })(data[i].value), curr++, wrtdata(data[i], r, "executed")
+    } catch (e) { wrtdata(data[i], e.stack, "error"); return false } return true
   }
-  const execto = async i => { if (curr > i) cstate(); while (curr <= i && await step()); ustate() }
 
   const update = () => (!data || data.length === 0 ? data = [newdata()] : 0,
     order = {}, elms = {}, forrg(data.length, (i, l = data[i]) => order[l.uuid] = i),
     forof([...txtlist.children], e => order[e.uuid] ? elms[e.uuid] = e : e.remove()),
-    forof(data, d => elms[d.uuid] ? 0 : elms[d.uuid] = editor(d)), uposition(), ustate())
+    forof(data, d => elms[d.uuid] ? 0 : elms[d.uuid] = editor(d)),
+    uresult(), uposition(), ustate())
 
-  const oninput = (s, id) => { data[order[id]].value = s, uposition(), moveto(order[id]) }
+  const uresult = () => forof(data, ({ uuid, result }) =>
+    elms[uuid].children[1].textContent = isstr(result) ? result : JSON.stringify(result))
   const uposition = (h = 0, i = 0) => forof(data, ({ uuid }, e = elms[uuid]) => (
     style(e, { top: h, zIndex: String(i++) }), h += e.getBoundingClientRect().height))
   const uheight = (e, l = 1) => { e.style.height = "", e.style.height = `calc(${l}em + 20px)` }
   const ustate = () => forof(data, ({ state: s, uuid: u }, y = elms[u].style) =>
     y.background = { executed: "#8f8fff", error: "#ff7b7b" }[s] ?? "")
-  const cstate = (m = 0, i = 0) => (forof(data, d => i++ >= m
-    && d.state !== "error" ? delete d.state : 0), curr > m ? curr = m : 0)
-  // TODO: refresh repl state
+  const cstate = (m = 0, i = 0) => (forof(data, d => i++ >= m &&
+    d.state !== "error" ? clrdata(d) : 0), curr > m ? curr = m : 0) // TODO: refresh repl state
+  const clrdata = d => (delete d.result, delete d.state)
+  const wrtdata = (d, r, s) => (d.result = r, d.state = s)
 
+  const add = (uuid, i = order[uuid] + 1) => (
+    data.splice(i, 0, newdata()), cstate(i), update(), moverel(1))
+  const del = (uuid, i = order[uuid]) => (data.splice(i, 1),
+    cstate(i), update(), moverel(pos < data.length ? 0 : -1))
+  const forward = async (uuid, l = data.length) => {
+    if (valid(curr) && data[curr].state !== "error") { await step() }
+    if (!(curr === l && data[l - 1].value !== "")) { update(), move(order[uuid]) }
+    else { data.push(newdata()), update(), move(l) }
+  }
+  const exectill = async i => {
+    if (!valid(i)) { return } if (curr > i) { cstate() }
+    while (curr <= i && await step()); update(), move(i)
+  }
+  const save = () => { }
   const emitkey = new Set(`Alt Tab`.split(" "))
-  const editor = ({ value, uuid }) => dom("textarea", {
-    spellcheck: "false", uuid, value, parent: txtlist, onkeydown: async (e, p = true) => {
-      const { altKey: a, ctrlKey: c, shiftKey: s } = e, n = !(a || c || s)
-      if (e.key == "ArrowUp" && c && !s || e.key === "PageUp" && n) { moveto(pos - 1) }
-      else if (e.key == "ArrowDown" && c && !s || e.key === "PageDown" && n) { moveto(pos + 1) }
-      else if (e.key == "ArrowUp" && c && s || e.key === "PageUp" && s) { swapwith(uuid, -1) }
-      else if (e.key == "ArrowDown" && c && s || e.key === "PageDown" && s) { swapwith(uuid, +1) }
-      else if (e.key == "Delete" && s) {
-        data.splice(order[uuid], 1), cstate(order[uuid]), update()
-        const l = data.length; moveto(pos < l ? pos : l - 1)
-      }
-      else if (e.key == "Insert" && s) {
-        data.splice(order[uuid] + 1, 0, newdata())
-        cstate(order[uuid] + 1), update(), moveto(pos + 1)
-      }
-      else if (e.key == "Enter" && (a || c || s)) {
-        if (valid(curr) && data[curr].state !== "error") {
-          await step(); const l = data.length
-          if (curr === l && data[l - 1].value !== "") {
-            data.push(newdata()), update(), moveto(l)
-          } else { ustate() }
-        }
-      } else if (e.key.toLowerCase() == "r" && a && c && s) { execto(order[uuid]) }
-      else if (e.key == "s" && c) { }
-      else if (e.key == "ArrowLeft" && a || e.key == "ArrowRight" && a) { }
-      else if ((emitkey.has(e.key))) { } else { p = false } p ? e.preventDefault() : 0
-    }, oninput: (e, t = e.target, v = t.value) => (uheight(t, v.split(/\r?\n/).length),
-      delete data[order[uuid]].state,
-      cstate(order[uuid]), ustate(), oninput(v, uuid)), onclick: _ => moveto(order[uuid]),
-  }, uheight)
+  const editor = ({ value, uuid }) => dom("div", {
+    onclick: _ => move(order[uuid]),
+    class: "repl-item", parent: txtlist, uuid, child: [dom("textarea", {
+      spellcheck: "false", value, onkeydown: (e, p = true, l = data.length) => {
+        const { altKey: a, ctrlKey: c, shiftKey: s } = e, n = !(a || c || s)
+        if (e.key == "ArrowUp" && c && !s || e.key === "PageUp" && n) { moverel(-1) }
+        else if (e.key == "ArrowDown" && c && !s || e.key === "PageDown" && n) { moverel(+1) }
+        else if (e.key == "ArrowUp" && c && s || e.key === "PageUp" && s) { swaprel(uuid, -1) }
+        else if (e.key == "ArrowDown" && c && s || e.key === "PageDown" && s) { swaprel(uuid, +1) }
+        else if (e.key == "Insert" && s) { add(uuid) } else if (e.key == "Delete" && s) { del(uuid) }
+        else if (e.key == "Enter" && (a || c || s)) { forward(uuid) }
+        else if (e.key == "e" && a) { exectill(order[uuid]) }
+        else if (e.key == "s" && c) { save() }
+        else if (e.key == "ArrowLeft" && a || e.key == "ArrowRight" && a) { }
+        else if ((emitkey.has(e.key))) { } else { p = false } p ? e.preventDefault() : 0
+      }, onclick: _ => move(order[uuid]), oninput: (e, t = e.target, v = t.value) => (
+        uheight(t, v.split(/\r?\n/).length), clrdata(data[order[uuid]]),
+        cstate(order[uuid]), data[order[uuid]].value = v, update(), move(order[uuid])),
+    }, uheight), dom("pre", { class: "repl-item-result" })]
+  })
 
   update()
 })
