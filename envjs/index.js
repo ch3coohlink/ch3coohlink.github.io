@@ -852,8 +852,9 @@ demos.push(() => {
     { lineHeight: "1em", fontSize: "1em", fontFamily: "consolas, courier new, monospace" })
   css(".repl-item", { display: "block", position: "absolute", margin: 0, border: 0 },
     { background: "#ddd", boxShadow: "inset white 0px 0px 20px 5px", resize: "none", width: "100%" },
-    { transition: "top 0.5s cubic-bezier(.08,.82,.17,1) 0s", overflow: "hidden" })
+    { transition: "all 0.5s cubic-bezier(.08,.82,.17,1) 0s", overflow: "hidden" })
   css(".repl-item-result", { margin: 0, padding: "0px 10px", fontSize: "0.5em", color: "#555" })
+  const scolor = { executed: "#8f8fff", error: "#ff7b7b" }
 
   const topdiv = dom("div", { parent: root, style: { display: "flex", height: "50vh" } })
   const txtlist = dom("div", {
@@ -862,8 +863,9 @@ demos.push(() => {
   }), htmldiv = dom("div", { parent: topdiv, style: { border: "1px solid black", width: "50%" } })
 
   const newdata = (v = "") => ({ uuid: uuid(), value: v })
-  let data = maprg(0, i => newdata("return " + i)), order, elms
-  let pos = 0, curr = 0, $ = { window: {}, document: {} }
+  // let data = maprg(10, i => newdata("return " + i))
+  let data = ["return $", "$.a = 1", "return $"].map(newdata)
+  let pos = 0, curr = 0, $ = {}, order, elms
 
   const valid = i => 0 <= i && i < data.length
   const focus = (e, y = Number(e.style.top.slice(0, -2)) +
@@ -871,18 +873,19 @@ demos.push(() => {
     (txtlist.scrollTo({ left: 0, top: y, behavior: "smooth" }), e.children[0].focus())
   const move = p => valid(p) ? focus(elms[data[pos = p].uuid]) : 0
   const moverel = p => move(pos + p)
-  const swap = (a, b, t = data[a]) => valid(a) && valid(b) ?
-    (data[a] = data[b], data[b] = t, cstate(Math.min(a, b)), update()) : 0
-  const swaprel = (id, r, a = order[id], b = a + r) => (swap(a, b), move(order[id]))
+  const swap = async (a, b, t = data[a]) => valid(a) && valid(b) ?
+    (data[a] = data[b], data[b] = t, await cstate(Math.min(a, b)), update()) : 0
+  const swaprel = async (id, r, a = order[id], b = a + r) => (await swap(a, b), move(order[id]))
+  const env = () => ({ window: {}, document: {}, $ })
   const step = async (i = curr, r) => {
     if (!valid(i)) { return false } try {
-      r = await exec({ ...$, $ })(data[i].value), curr++, wrtdata(data[i], r, "executed")
+      r = await exec(env())(data[i].value), curr++, wrtdata(data[i], r, "executed")
     } catch (e) { wrtdata(data[i], e.stack, "error"); return false } return true
   }
 
   const update = () => (!data || data.length === 0 ? data = [newdata()] : 0,
     order = {}, elms = {}, forrg(data.length, (i, l = data[i]) => order[l.uuid] = i),
-    forof([...txtlist.children], e => order[e.uuid] ? elms[e.uuid] = e : e.remove()),
+    forof([...txtlist.children], e => isnum(order[e.uuid]) ? elms[e.uuid] = e : e.remove()),
     forof(data, d => elms[d.uuid] ? 0 : elms[d.uuid] = editor(d)),
     uresult(), uposition(), ustate())
 
@@ -891,31 +894,34 @@ demos.push(() => {
   const uposition = (h = 0, i = 0) => forof(data, ({ uuid }, e = elms[uuid]) => (
     style(e, { top: h, zIndex: String(i++) }), h += e.getBoundingClientRect().height))
   const uheight = (e, l = 1) => { e.style.height = "", e.style.height = `calc(${l}em + 20px)` }
-  const ustate = () => forof(data, ({ state: s, uuid: u }, y = elms[u].style) =>
-    y.background = { executed: "#8f8fff", error: "#ff7b7b" }[s] ?? "")
-  const cstate = (m = 0, i = 0) => (forof(data, d => i++ >= m &&
-    d.state !== "error" ? clrdata(d) : 0), curr > m ? curr = m : 0) // TODO: refresh repl state
+  const ustate = () => forof(data, ({ state: s, uuid }) => elms[uuid].style.background = scolor[s] ?? "")
   const clrdata = d => (delete d.result, delete d.state)
   const wrtdata = (d, r, s) => (d.result = r, d.state = s)
 
-  const add = (uuid, i = order[uuid] + 1) => (
-    data.splice(i, 0, newdata()), cstate(i), update(), moverel(1))
-  const del = (uuid, i = order[uuid]) => (data.splice(i, 1),
-    cstate(i), update(), moverel(pos < data.length ? 0 : -1))
-  const forward = async (uuid, l = data.length) => {
+  const add = async (uuid, i = order[uuid] + 1) => (
+    data.splice(i, 0, newdata()), await cstate(i), update(), moverel(1))
+  const del = async (uuid, i = order[uuid]) => (data.splice(i, 1),
+    await cstate(i), update(), moverel(pos < data.length ? 0 : -1))
+  const forward = async (l = data.length) => {
     if (valid(curr) && data[curr].state !== "error") { await step() }
-    if (!(curr === l && data[l - 1].value !== "")) { update(), move(order[uuid]) }
-    else { data.push(newdata()), update(), move(l) }
+    if (curr === l && data[l - 1].value !== "") { data.push(newdata()) }
+    update(), move(curr), log(curr)
   }
+  const backward = async _ => (await exectill(Math.max(curr - 2, 0)), log(curr))
   const exectill = async i => {
-    if (!valid(i)) { return } if (curr > i) { cstate() }
-    while (curr <= i && await step()); update(), move(i)
+    if (!valid(i)) { return } if (curr > i) { _cstate(), curr = 0, $ = {} }
+    while (curr <= i && await step()); update(), move(i), log(curr)
   }
+  const _cstate = (m = 0) => forrg(data.length, (i, d = data[i]) =>
+    i >= m && d.state !== "error" ? clrdata(d) : 0)
+  const cstate = async (m = 0) => (_cstate(m), curr > m ? await exectill(m) : 0)
+  // TODO: refresh repl state (not very correct)
+
   const save = () => { }
   const emitkey = new Set(`Alt Tab`.split(" "))
   const editor = ({ value, uuid }) => dom("div", {
-    onclick: _ => move(order[uuid]),
-    class: "repl-item", parent: txtlist, uuid, child: [dom("textarea", {
+    onclick: _ => move(order[uuid]), class: "repl-item",
+    parent: txtlist, uuid, child: [dom("textarea", {
       spellcheck: "false", value, onkeydown: (e, p = true, l = data.length) => {
         const { altKey: a, ctrlKey: c, shiftKey: s } = e, n = !(a || c || s)
         if (e.key == "ArrowUp" && c && !s || e.key === "PageUp" && n) { moverel(-1) }
@@ -923,18 +929,21 @@ demos.push(() => {
         else if (e.key == "ArrowUp" && c && s || e.key === "PageUp" && s) { swaprel(uuid, -1) }
         else if (e.key == "ArrowDown" && c && s || e.key === "PageDown" && s) { swaprel(uuid, +1) }
         else if (e.key == "Insert" && s) { add(uuid) } else if (e.key == "Delete" && s) { del(uuid) }
-        else if (e.key == "Enter" && (a || c || s)) { forward(uuid) }
+        else if (e.key == "Enter" && s && c) { backward() }
+        else if (e.key == "Enter" && (a || c || s) && !(s && c)) { forward() }
         else if (e.key == "e" && a) { exectill(order[uuid]) }
         else if (e.key == "s" && c) { save() }
         else if (e.key == "ArrowLeft" && a || e.key == "ArrowRight" && a) { }
         else if ((emitkey.has(e.key))) { } else { p = false } p ? e.preventDefault() : 0
-      }, onclick: _ => move(order[uuid]), oninput: (e, t = e.target, v = t.value) => (
+      }, oninput: (e, t = e.target, v = t.value) => (
         uheight(t, v.split(/\r?\n/).length), clrdata(data[order[uuid]]),
         cstate(order[uuid]), data[order[uuid]].value = v, update(), move(order[uuid])),
     }, uheight), dom("pre", { class: "repl-item-result" })]
   })
 
   update()
+
+  const idb = store("envjs")
 })
 
 const convert_diff = (df, r = [], o = 0) => (forrg(df.length, (i
