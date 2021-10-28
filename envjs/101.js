@@ -63,7 +63,7 @@ const store = (name = "default", store = "default") => {
   return { get, set, del, clr, key, val }
 }
 
-const fullrepl = async (demo) => {
+const fullrepl = async (demo, shflag = true) => {
   const root = demo.attachShadow({ mode: "open" })
   const csselm = dom("style", { parent: root }), px = v => isnum(v) ? `${v}px` : v
   const hyphenate = s => s.replace(/[A-Z]/g, m => `-${m.toLowerCase()}`)
@@ -80,13 +80,24 @@ const fullrepl = async (demo) => {
   css(".repl-item-result", { margin: 0, padding: "0px 10px", fontSize: "0.5em", color: "#555" })
   const scolor = { executed: "#8f8fff", error: "#ff7b7b", working: "#ffff75" }
 
-  const topdiv = dom("div", { parent: root, style: { display: "flex", height: "100%" } })
-  const txtlist = dom("div", {
-    parent: topdiv, style: [{ borderRight: "1px solid black" },
-    { width: "50%", position: "relative", overflow: "auto" }]
-  }), framediv = dom("div", { parent: topdiv, style: { width: "50%" } })
-  const html = dom("div", { parent: framediv })
-  const body = dom("div", { parent: framediv })
+  const shtrans = "all 0.3s", topdiv = dom("div", {
+    parent: root, style: { display: "flex", height: "100%" }, tabindex: "0", onkeydown:
+      (e, { key: k, altKey: a, ctrlKey: c, shiftKey: s } = e) => (k + a + c + s !== "`truefalsefalse"
+        ? 0 : shflag = (shflag ? hide() : show(), !shflag), e.stopPropagation())
+  }), txtlist = dom("div", { parent: topdiv }, e => style(e, { boxSizing: "border-box" },
+    { transition: shtrans }, shflag ? { borderRight: "1px solid black" } : {},
+    { width: shflag ? "50%" : 0, position: "relative", overflow: "auto" }))
+  const framediv = dom("div", { parent: topdiv }, e =>
+    style(e, { width: shflag ? "50%" : "100%", transition: shtrans, overflow: "hidden" }))
+  const html = dom("div", { parent: framediv }, e => style(e, shflag ? { transform: `scale(0.5)` } : {},
+    { width: "100vw", height: "100vh", transition: shtrans, transformOrigin: "top left" }))
+
+  const show = (p = 0.5) => (
+    style(txtlist, { width: p * 100 + "%", borderRight: "1px solid black" }),
+    style(framediv, { width: (1 - p) * 100 + "%" }),
+    style(html, { transform: `scale(${1 - p})` }))
+  const hide = () => (style(txtlist, { width: 0, borderRight: "" }),
+    style(framediv, { width: "100%" }), style(html, { transform: "" }))
 
   const newdata = (v = "") => ({ uuid: uuid(), value: v })
   let data = [].map(newdata)//; data = maprg(10, i => newdata("return " + i))
@@ -101,12 +112,14 @@ const fullrepl = async (demo) => {
   const swap = async (a, b, t = data[a]) => valid(a) && valid(b) ?
     (data[a] = data[b], data[b] = t, await cstate(Math.min(a, b)), update()) : 0
   const swaprel = async (id, r, a = order[id], b = a + r) => (await swap(a, b), move(order[id]))
+
+  const env = () => ({ window: {}, document: { html, body }, ...$$$, $, $$, $$$, main: true })
   const step = async (i = curr, r) => {
     if (!valid(i)) { return false } try {
       elms[data[i].uuid].style.background = scolor.working
       r = await exec(env())(data[i].value), curr++, wrtdata(data[i], r)
     } catch (e) { wrtdata(data[i], e.stack, "error"); return false } return true
-  }
+  }; let body
 
   const update = () => (!data || data.length === 0 ? data = [newdata()] : 0,
     order = {}, elms = {}, forrg(data.length, (i, l = data[i]) => order[l.uuid] = i),
@@ -131,9 +144,9 @@ const fullrepl = async (demo) => {
     if (valid(curr) && data[curr].state !== "error") { await step() }
     if (curr === l && data[l - 1].value !== "") { data.push(newdata()) }
     update(), move(Math.min(curr, data.length - 1))
-  }, backward = async _ => await exectill(curr - 2)
-  const reset = () => ($ = {}, html.innerHTML = "", $$$ =
-    { dom, load, read, erase, save, repls: () => repls })
+  }, backward = async _ => (await exectill(curr - 2), move(curr))
+  const reset = () => (html.innerHTML = "", body = dom("div", { parent: html }), $ = {}, $$$ =
+    { dom, style, load, read, erase, save, repls: () => repls, fullrepl })
   const exectill = async i => {
     if (!valid(i) && i !== -1) { return } if (curr > i) { _cstate(), curr = 0, reset() }
     while (curr <= i && await step()) { } update(), move(i)
@@ -141,31 +154,40 @@ const fullrepl = async (demo) => {
     i >= m && d.state !== "error" ? clrdata(d) : 0)
   const cstate = async (m = 0) => (_cstate(m), curr > m ? await exectill(m - 1) : 0)
 
-  const env = () => ({ window: {}, document: { html, body }, ...$$$, $, $$, $$$ })
-  const load = async (n = $$.name) => (data = (await read(n)).map(newdata), reset(), update(), move(0))
+  const load = async (n = $$.name) => (data = (await read(n)).map(newdata),
+    reset(), update(), move(data.length - 1))
   const read = async (n, p = srk + "/" + n) => await idb.get(p) ?? []
   const erase = async (n, p = srk + "/" + n) => (repls.del(n),
     await Promise.all([idb.set(srk, repls), idb.del(p)]))
   const save = async (n = $$.name, p = srk + "/" + n) => (repls.add(n),
     await Promise.all([idb.set(srk, repls), idb.set(p, data.map(d => d.value))]))
-  const emitkey = new Set(`Alt Tab`.split(" "))
+
+  const transkey = (v, a = "f", c = "f", s = "f", k = "", f) => (forof(v.split(" "),
+    v => v == "any" ? f = 1 : v == "alt" ? a = "t" : v == "ctrl"
+      ? c = "t" : v == "shift" ? s = "t" : k = v), f ? k : k + a + c + s)
+  const keybind = {}, bindkey = (f, ...a) => forof(a, a => keybind[transkey(a)] = f)
+  const testkey = (e, uuid, { key: k, altKey: a, ctrlKey: c, shiftKey: s } = e, p,
+    f = keybind[k + [a, c, s].map(b => b ? "t" : "f").join("")] ?? keybind[k]) =>
+    (f ? p = !f(uuid) : 0, p ? e.preventDefault() : 0)
+
+  const exectoid = uuid => exectill(order[uuid])
+  bindkey(_ => { moverel(-1) }, "ArrowUp ctrl", "PageUp")
+  bindkey(_ => { moverel(+1) }, "ArrowDown ctrl", "PageDown")
+  bindkey(_ => { swaprel(_, -1) }, "ArrowUp ctrl shift", "PageUp shift")
+  bindkey(_ => { swaprel(_, +1) }, "ArrowDown ctrl shift", "PageDown shift")
+  bindkey(_ => { add(_) }, "Insert shift")
+  bindkey(_ => { del(_) }, "Delete shift")
+  bindkey(_ => { forward() }, ..."alt ctrl shift".split(" ").map(v => "Enter " + v), "Tab")
+  bindkey(_ => { backward() }, "Enter ctrl shift", "shift Tab")
+  bindkey(_ => { exectoid(_) }, "e alt")
+  bindkey(_ => { save() }, "s ctrl")
+  bindkey(_ => { }, "Alt any", "Tab any", "ArrowLeft alt", "ArrowRight alt")
+
   const editor = ({ value, uuid }) => dom("div", {
     onclick: _ => move(order[uuid]), class: "repl-item",
     parent: txtlist, uuid, child: [dom("textarea", {
-      spellcheck: "false", value, onkeydown: (e, p = true) => {
-        const { altKey: a, ctrlKey: c, shiftKey: s } = e, n = !(a || c || s)
-        if (e.key == "ArrowUp" && c && !s || e.key === "PageUp" && n) { moverel(-1) }
-        else if (e.key == "ArrowDown" && c && !s || e.key === "PageDown" && n) { moverel(+1) }
-        else if (e.key == "ArrowUp" && c && s || e.key === "PageUp" && s) { swaprel(uuid, -1) }
-        else if (e.key == "ArrowDown" && c && s || e.key === "PageDown" && s) { swaprel(uuid, +1) }
-        else if (e.key == "Insert" && s) { add(uuid) } else if (e.key == "Delete" && s) { del(uuid) }
-        else if (e.key == "Enter" && s && c) { backward() }
-        else if (e.key == "Enter" && (a || c || s) && !(s && c)) { forward() }
-        else if (e.key == "e" && a) { exectill(order[uuid]) }
-        else if (e.key == "s" && c) { save() }
-        else if (e.key == "ArrowLeft" && a || e.key == "ArrowRight" && a) { }
-        else if ((emitkey.has(e.key))) { } else { p = false } p ? e.preventDefault() : 0
-      }, oninput: async (e, t = e.target, v = t.value) => (
+      spellcheck: "false", value, onkeydown: e => testkey(e, uuid),
+      oninput: async (e, t = e.target, v = t.value) => (
         uheight(t, v.split(/\r?\n/).length), clrdata(data[order[uuid]]),
         await cstate(order[uuid]), data[order[uuid]].value = v, update(), move(order[uuid])),
     }, uheight), dom("pre", { class: "repl-item-result" })]
