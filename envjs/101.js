@@ -44,6 +44,7 @@ const dom = (n, o = {}, f = _ => { }, e = isstr(n) ? document.createElement(n) :
   (forin(o, (v, k) => v ? _dom(k, e, v, k) : 0), f(e), e)
 const exec = (e, a = [], n = (forin(e, (_, k) => a.push(k)), a.join(", "))) => async c =>
   await new Function(`"use strict";\nreturn async ({ ${n} }) => { \n${c}\n }`)()(e)
+const sleep = n => new Promise(r => setTimeout(r, n))
 
 const rnd8 = () => Math.random().toString(16).slice(2, 10)
 const uuid = (a = rnd8(), b = rnd8()) => [rnd8(), a.slice(0, 4)
@@ -77,17 +78,19 @@ const fullrepl = async (demo) => {
     { background: "#ddd", boxShadow: "inset white 0px 0px 20px 5px", resize: "none", width: "100%" },
     { transition: "all 0.5s cubic-bezier(.08,.82,.17,1) 0s", overflow: "hidden" })
   css(".repl-item-result", { margin: 0, padding: "0px 10px", fontSize: "0.5em", color: "#555" })
-  const scolor = { executed: "#8f8fff", error: "#ff7b7b" }
+  const scolor = { executed: "#8f8fff", error: "#ff7b7b", working: "#ffff75" }
 
   const topdiv = dom("div", { parent: root, style: { display: "flex", height: "100%" } })
   const txtlist = dom("div", {
     parent: topdiv, style: [{ borderRight: "1px solid black" },
     { width: "50%", position: "relative", overflow: "auto" }]
-  }), htmldiv = dom("div", { parent: topdiv, style: { width: "50%" } })
+  }), framediv = dom("div", { parent: topdiv, style: { width: "50%" } })
+  const html = dom("div", { parent: framediv })
+  const body = dom("div", { parent: framediv })
 
   const newdata = (v = "") => ({ uuid: uuid(), value: v })
-  let data = [].map(newdata) // let data = maprg(10, i => newdata("return " + i))
-  let pos = 0, curr = 0, $, $$ = { name: "demo7" }, $$$, order, elms
+  let data = [].map(newdata)//; data = maprg(10, i => newdata("return " + i))
+  let pos = 0, curr = 0, $, $$ = { name: "env.js - 101" }, $$$, order, elms
 
   const valid = i => 0 <= i && i < data.length
   const focus = (e, c = e.children[0].clientHeight, h = txtlist.clientHeight,
@@ -100,15 +103,15 @@ const fullrepl = async (demo) => {
   const swaprel = async (id, r, a = order[id], b = a + r) => (await swap(a, b), move(order[id]))
   const step = async (i = curr, r) => {
     if (!valid(i)) { return false } try {
-      r = await exec(env())(data[i].value), curr++, wrtdata(data[i], r, "executed")
+      elms[data[i].uuid].style.background = scolor.working
+      r = await exec(env())(data[i].value), curr++, wrtdata(data[i], r)
     } catch (e) { wrtdata(data[i], e.stack, "error"); return false } return true
   }
 
   const update = () => (!data || data.length === 0 ? data = [newdata()] : 0,
     order = {}, elms = {}, forrg(data.length, (i, l = data[i]) => order[l.uuid] = i),
     forof([...txtlist.children], e => isnum(order[e.uuid]) ? elms[e.uuid] = e : e.remove()),
-    forof(data, d => elms[d.uuid] ? 0 : elms[d.uuid] = editor(d)),
-    uresult(), uposition(), ustate())
+    forof(data, d => elms[d.uuid] ? 0 : elms[d.uuid] = editor(d)), uresult(), uposition(), ustate())
 
   const stringify = r => isstr(r) ? r : isfct(r) ? "" + r : JSON.stringify(r)
   const uresult = () => forof(data, ({ uuid, result }) =>
@@ -118,7 +121,7 @@ const fullrepl = async (demo) => {
   const uheight = (e, l = 1) => { e.style.height = "", e.style.height = `calc(${l}em + 20px)` }
   const ustate = () => forof(data, ({ state: s, uuid }) => elms[uuid].style.background = scolor[s] ?? "")
   const clrdata = d => (delete d.result, delete d.state)
-  const wrtdata = (d, r, s) => (d.result = r, d.state = s)
+  const wrtdata = (d, r, s = "executed") => (d.result = r, d.state = s)
 
   const add = async (uuid, i = order[uuid] + 1) => (
     data.splice(i, 0, newdata()), await cstate(i), update(), moverel(1))
@@ -129,7 +132,8 @@ const fullrepl = async (demo) => {
     if (curr === l && data[l - 1].value !== "") { data.push(newdata()) }
     update(), move(Math.min(curr, data.length - 1))
   }, backward = async _ => await exectill(curr - 2)
-  const reset = () => { $ = {}, htmldiv.innerHTML = "", $$$ = { load, save, dom } }
+  const reset = () => ($ = {}, html.innerHTML = "", $$$ =
+    { dom, load, read, erase, save, repls: () => repls })
   const exectill = async i => {
     if (!valid(i) && i !== -1) { return } if (curr > i) { _cstate(), curr = 0, reset() }
     while (curr <= i && await step()) { } update(), move(i)
@@ -137,14 +141,18 @@ const fullrepl = async (demo) => {
     i >= m && d.state !== "error" ? clrdata(d) : 0)
   const cstate = async (m = 0) => (_cstate(m), curr > m ? await exectill(m - 1) : 0)
 
-  const env = () => ({ window: {}, document: { html: htmldiv, body: htmldiv }, ...$$$, $, $$, $$$ })
-  const load = () => { }
-  const save = () => { }
+  const env = () => ({ window: {}, document: { html, body }, ...$$$, $, $$, $$$ })
+  const load = async (n = $$.name) => (data = (await read(n)).map(newdata), reset(), update(), move(0))
+  const read = async (n, p = srk + "/" + n) => await idb.get(p) ?? []
+  const erase = async (n, p = srk + "/" + n) => (repls.del(n),
+    await Promise.all([idb.set(srk, repls), idb.del(p)]))
+  const save = async (n = $$.name, p = srk + "/" + n) => (repls.add(n),
+    await Promise.all([idb.set(srk, repls), idb.set(p, data.map(d => d.value))]))
   const emitkey = new Set(`Alt Tab`.split(" "))
   const editor = ({ value, uuid }) => dom("div", {
     onclick: _ => move(order[uuid]), class: "repl-item",
     parent: txtlist, uuid, child: [dom("textarea", {
-      spellcheck: "false", value, onkeydown: (e, p = true, l = data.length) => {
+      spellcheck: "false", value, onkeydown: (e, p = true) => {
         const { altKey: a, ctrlKey: c, shiftKey: s } = e, n = !(a || c || s)
         if (e.key == "ArrowUp" && c && !s || e.key === "PageUp" && n) { moverel(-1) }
         else if (e.key == "ArrowDown" && c && !s || e.key === "PageDown" && n) { moverel(+1) }
@@ -157,16 +165,14 @@ const fullrepl = async (demo) => {
         else if (e.key == "s" && c) { save() }
         else if (e.key == "ArrowLeft" && a || e.key == "ArrowRight" && a) { }
         else if ((emitkey.has(e.key))) { } else { p = false } p ? e.preventDefault() : 0
-      }, oninput: (e, t = e.target, v = t.value) => (
+      }, oninput: async (e, t = e.target, v = t.value) => (
         uheight(t, v.split(/\r?\n/).length), clrdata(data[order[uuid]]),
-        cstate(order[uuid]), data[order[uuid]].value = v, update(), move(order[uuid])),
+        await cstate(order[uuid]), data[order[uuid]].value = v, update(), move(order[uuid])),
     }, uheight), dom("pre", { class: "repl-item-result" })]
   })
 
-  reset(), update()
-  const idb = store("envjs")
-  const sv = await idb.get("saved_repl")
-
+  const idb = store("envjs"), srk = "saved_repl"
+  const repls = await idb.get(srk) ?? new Set(); await load()
 }
 
 style(document.body, { margin: 0, height: "100vh" })
