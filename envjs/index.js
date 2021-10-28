@@ -809,7 +809,7 @@ demos.push(() => {
 const rnd8 = () => Math.random().toString(16).slice(2, 10)
 const uuid = (a = rnd8(), b = rnd8()) => [rnd8(), a.slice(0, 4)
   , a.slice(4), b.slice(0, 4), b.slice(4) + rnd8()].join("-")
-demos.push(() => {
+demos.push(async () => {
   const demo = dom("div", { parent: ctn, style: { position: "relative" } })
   const id = 7, title = "recap & new design", replid = `demo ${id}: ${title}`
   dom("h3", { text: `DEMO ${id}: ${title}`, parent: demo, id: "demo" + id })
@@ -837,6 +837,7 @@ demos.push(() => {
   line(`PageUp/PageDown or Ctrl + ArrowUp/ArrowDown: move up/down in history`)
   line(`Shift + PageUp/PageDown or Shift + Ctrl + ArrowUp/ArrowDown: swap up/down history`)
   line(`Shift + Enter: step one command`)
+  line(`Shift + Ctrl + Enter: step back one command`)
   line(`Alt + E: execute till this command`)
   line(`Shift + Delete/Insert: delete/insert a command`)
 
@@ -848,7 +849,7 @@ demos.push(() => {
   css("textarea:focus", { background: "#00ff0020", outline: "none" },
     { boxShadow: "inset #ffffff60 0px 0px 20px 5px" })
   css("textarea", { display: "block", boxSizing: "border-box", margin: 0, border: 0, padding: 10 },
-    { background: "#00000000", resize: "none", width: "100%", overflow: "hidden" },
+    { background: "#00000000", resize: "none", width: "100%", overflow: "hidden", whiteSpace: "pre" },
     { lineHeight: "1em", fontSize: "1em", fontFamily: "consolas, courier new, monospace" })
   css(".repl-item", { display: "block", position: "absolute", margin: 0, border: 0 },
     { background: "#ddd", boxShadow: "inset white 0px 0px 20px 5px", resize: "none", width: "100%" },
@@ -863,20 +864,18 @@ demos.push(() => {
   }), htmldiv = dom("div", { parent: topdiv, style: { border: "1px solid black", width: "50%" } })
 
   const newdata = (v = "") => ({ uuid: uuid(), value: v })
-  // let data = maprg(10, i => newdata("return " + i))
-  let data = ["return $", "$.a = 1", "return $"].map(newdata)
-  let pos = 0, curr = 0, $ = {}, order, elms
+  let data = [].map(newdata) // let data = maprg(10, i => newdata("return " + i))
+  let pos = 0, curr = 0, $, $$ = { name: "demo7" }, $$$, order, elms
 
   const valid = i => 0 <= i && i < data.length
-  const focus = (e, y = Number(e.style.top.slice(0, -2)) +
-    (e.children[0].clientHeight - txtlist.clientHeight) / 2) =>
-    (txtlist.scrollTo({ left: 0, top: y, behavior: "smooth" }), e.children[0].focus())
+  const focus = (e, c = e.children[0].clientHeight, h = txtlist.clientHeight,
+    y = Number(e.style.top.slice(0, -2)) + (c - h) / 2) =>
+    (c < h ? txtlist.scrollTo({ left: 0, top: y, behavior: "smooth" }) : 0, e.children[0].focus())
   const move = p => valid(p) ? focus(elms[data[pos = p].uuid]) : 0
   const moverel = p => move(pos + p)
   const swap = async (a, b, t = data[a]) => valid(a) && valid(b) ?
     (data[a] = data[b], data[b] = t, await cstate(Math.min(a, b)), update()) : 0
   const swaprel = async (id, r, a = order[id], b = a + r) => (await swap(a, b), move(order[id]))
-  const env = () => ({ window: {}, document: {}, $ })
   const step = async (i = curr, r) => {
     if (!valid(i)) { return false } try {
       r = await exec(env())(data[i].value), curr++, wrtdata(data[i], r, "executed")
@@ -889,8 +888,9 @@ demos.push(() => {
     forof(data, d => elms[d.uuid] ? 0 : elms[d.uuid] = editor(d)),
     uresult(), uposition(), ustate())
 
+  const stringify = r => isstr(r) ? r : isfct(r) ? "" + r : JSON.stringify(r)
   const uresult = () => forof(data, ({ uuid, result }) =>
-    elms[uuid].children[1].textContent = isstr(result) ? result : JSON.stringify(result))
+    elms[uuid].children[1].textContent = stringify(result))
   const uposition = (h = 0, i = 0) => forof(data, ({ uuid }, e = elms[uuid]) => (
     style(e, { top: h, zIndex: String(i++) }), h += e.getBoundingClientRect().height))
   const uheight = (e, l = 1) => { e.style.height = "", e.style.height = `calc(${l}em + 20px)` }
@@ -905,18 +905,18 @@ demos.push(() => {
   const forward = async (l = data.length) => {
     if (valid(curr) && data[curr].state !== "error") { await step() }
     if (curr === l && data[l - 1].value !== "") { data.push(newdata()) }
-    update(), move(curr), log(curr)
-  }
-  const backward = async _ => (await exectill(Math.max(curr - 2, 0)), log(curr))
+    update(), move(Math.min(curr, data.length - 1))
+  }, backward = async _ => await exectill(curr - 2)
+  const reset = () => { $ = {}, htmldiv.innerHTML = "", $$$ = { load, save, dom } }
   const exectill = async i => {
-    if (!valid(i)) { return } if (curr > i) { _cstate(), curr = 0, $ = {} }
-    while (curr <= i && await step()); update(), move(i), log(curr)
-  }
-  const _cstate = (m = 0) => forrg(data.length, (i, d = data[i]) =>
+    if (!valid(i) && i !== -1) { return } if (curr > i) { _cstate(), curr = 0, reset() }
+    while (curr <= i && await step()) { } update(), move(i)
+  }, _cstate = (m = 0) => forrg(data.length, (i, d = data[i]) =>
     i >= m && d.state !== "error" ? clrdata(d) : 0)
-  const cstate = async (m = 0) => (_cstate(m), curr > m ? await exectill(m) : 0)
-  // TODO: refresh repl state (not very correct)
+  const cstate = async (m = 0) => (_cstate(m), curr > m ? await exectill(m - 1) : 0)
 
+  const env = () => ({ window: {}, document: { html: htmldiv, body: htmldiv }, ...$$$, $, $$, $$$ })
+  const load = () => { }
   const save = () => { }
   const emitkey = new Set(`Alt Tab`.split(" "))
   const editor = ({ value, uuid }) => dom("div", {
@@ -941,9 +941,7 @@ demos.push(() => {
     }, uheight), dom("pre", { class: "repl-item-result" })]
   })
 
-  update()
-
-  const idb = store("envjs")
+  reset(), update()
 })
 
 const convert_diff = (df, r = [], o = 0) => (forrg(df.length, (i
