@@ -145,8 +145,6 @@ const fullrepl = async (demo, shflag = true) => {
     if (curr === l && data[l - 1].value !== "") { data.push(newdata()) }
     update(), move(Math.min(curr, data.length - 1))
   }, backward = async _ => (await exectill(curr - 2), move(curr))
-  const reset = () => (html.innerHTML = "", body = dom("div", { parent: html }), $ = {}, $$$ =
-    { dom, style, load, read, erase, save, repls: () => repls, fullrepl })
   const exectill = async i => {
     if (!valid(i) && i !== -1) { return } if (curr > i) { _cstate(), curr = 0, reset() }
     while (curr <= i && await step()) { } update(), move(i)
@@ -154,6 +152,8 @@ const fullrepl = async (demo, shflag = true) => {
     i >= m && d.state !== "error" ? clrdata(d) : 0)
   const cstate = async (m = 0) => (_cstate(m), curr > m ? await exectill(m - 1) : 0)
 
+  const reset = () => (html.innerHTML = "", body = dom("div", { parent: html }), $ = {}, $$$ =
+    { dom, style, load, read, erase, save, repls: () => repls, fullrepl })
   const load = async (n = $$.name) => (data = (await read(n)).map(newdata),
     reset(), update(), move(data.length - 1))
   const read = async (n, p = srk + "/" + n) => await idb.get(p) ?? []
