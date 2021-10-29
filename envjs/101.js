@@ -78,27 +78,30 @@ const fullrepl = async (demo, { shflag = true, name = "env.js - 101" } = {}) => 
     { background: "#ddd", boxShadow: "inset white 0px 0px 20px 5px", resize: "none", width: "100%" },
     { transition: "all 0.5s cubic-bezier(.08,.82,.17,1) 0s", overflow: "hidden", boxSizing: "border-box" })
   css(".repl-item-result", { margin: 0, fontSize: "0.5em", color: "#555" })
-  css(".editor-list::-webkit-scrollbar", { display: "none" })
+  css(".no-scroll-bar::-webkit-scrollbar", { display: "none" })
+  css(".no-scroll-bar", { MsOverflowStyle: "none", scrollbarWidth: "none" })
   const scolor = { executed: "#8f8fff", error: "#ff7b7b", working: "#ffff75" }
 
   const shtrans = "all 0.3s", topdiv = dom("div", {
-    parent: root, style: { display: "flex", height: "100%" }, tabindex: "0", onkeydown:
+    style: { display: "flex", height: "100%", background: "white" }, parent: root, tabindex: "0", onkeydown:
       (e, { key: k, altKey: a, ctrlKey: c, shiftKey: s } = e) => (k + a + c + s !== "`truefalsefalse"
         ? 0 : shflag = (shflag ? hide() : show(), !shflag), e.stopPropagation())
-  }), txtlist = dom("div", { parent: topdiv, class: "editor-list" }, e => style(e, { boxSizing: "border-box" },
+  }), editordiv = dom("div", { parent: topdiv }, e => style(e, { boxSizing: "border-box" },
     { transition: shtrans }, shflag ? { borderRight: "1px solid black" } : {},
-    { MsOverflowStyle: "none", scrollbarWidth: "none" },
-    { width: shflag ? "50%" : 0, position: "relative", overflow: "auto" }))
+    { width: shflag ? "50%" : 0, position: "relative", overflow: "hidden" }))
+  const txtlist = dom("div", { parent: editordiv, class: "no-scroll-bar" }, e => style(e,
+    { transition: shtrans, position: "relative", width: "100%", height: "100%" },
+    { overflow: "auto" }))
   const framediv = dom("div", { parent: topdiv }, e =>
     style(e, { width: shflag ? "50%" : "100%", transition: shtrans, overflow: "hidden" }))
   const html = dom("div", { parent: framediv }, e => style(e, shflag ? { transform: `scale(0.5)` } : {},
     { width: "100vw", height: "100vh", transition: shtrans, transformOrigin: "top left", overflow: "auto" }))
 
   const show = (p = 0.5) => (
-    style(txtlist, { width: p * 100 + "%", borderRight: "1px solid black" }),
+    style(editordiv, { width: p * 100 + "%", borderRight: "1px solid black" }),
     style(framediv, { width: (1 - p) * 100 + "%" }),
     style(html, { transform: `scale(${1 - p})` }))
-  const hide = () => (style(txtlist, { width: 0, borderRight: "" }),
+  const hide = () => (style(editordiv, { width: 0, borderRight: "" }),
     style(framediv, { width: "100%" }), style(html, { transform: "" }))
 
   const newdata = (v = "") => ({ uuid: uuid(), value: v })
@@ -145,21 +148,22 @@ const fullrepl = async (demo, { shflag = true, name = "env.js - 101" } = {}) => 
     data.splice(i, 0, newdata()), await cstate(i), update(), moverel(1))
   const del = async (uuid, i = order[uuid]) => (data.splice(i, 1),
     await cstate(i), update(), moverel(pos < data.length ? 0 : -1))
-  const forward = async (l = data.length) => {
+  const forward = async (focus = false, l = data.length) => {
     if (valid(curr) && data[curr].state !== "error") { await step() }
     if (curr === l && data[l - 1].value !== "") { data.push(newdata()) }
-    update(), move(Math.min(curr, data.length - 1))
-  }, backward = async _ => (await exectill(curr - 2, { reset: false }), move(curr))
-  const exectill = async (i, { reset: r = true, hard = false } = {}) => {
+    update(), focus ? move(Math.min(curr, data.length - 1)) : 0
+  }, backward = async (focus = false) => (
+    await exectill(curr - 2, { focus, reset: false }), focus ? move(curr) : 0)
+  const exectill = async (i, { reset: r = true, hard = false, focus = false } = {}) => {
     if (!valid(i) && i !== -1) { return }
     if (curr > i || hard) { _cstate(), curr = 0, r ? reset(hard) : 0 }
-    while (curr <= i && await step()) { } update(), move(i)
+    while (curr <= i && await step()) { } update(), focus ? move(i) : 0
   }, _cstate = (m = 0) => forrg(data.length, (i, d = data[i]) =>
     i >= m && d.state !== "error" ? clrdata(d) : 0)
   const cstate = async (m = 0, o = { reset: false }) =>
     (_cstate(m), curr > m ? await exectill(m - 1, o) : 0)
 
-  const skip = Symbol("skip ex")
+  const skip = Symbol("skip execution")
   const reset = (hard = false) => (html.innerHTML = "",
     body = dom("div", { parent: html }), $ = {}, hard ? $$ = { name } : 0, $$$ = {
       log, dom, style, load, read, erase, save, repls: () => repls, fullrepl,
@@ -184,18 +188,26 @@ const fullrepl = async (demo, { shflag = true, name = "env.js - 101" } = {}) => 
     (f ? p = !f(uuid) : 0, p ? e.preventDefault() : 0)
 
   const exectoid = (uuid, o) => exectill(order[uuid], o)
+  const rtdiv = dom("div", { parent: editordiv }, e => style(e,
+    { transition: "all 1s", zIndex: String(1e10), top: 0, position: "absolute" },
+    { width: "100%", height: "100%", pointerEvents: "none" }))
+  let realtime = false, togglert = () => realtime = (!realtime
+    ? style(rtdiv, { boxShadow: "inset 0 0 50px 20px #fff03c6b" })
+    : style(rtdiv, { boxShadow: "inset 0 0 0 0 #fff03c6b" }), !realtime)
+
   bindkey(_ => { moverel(-1) }, "ArrowUp ctrl", "PageUp")
   bindkey(_ => { moverel(+1) }, "ArrowDown ctrl", "PageDown")
   bindkey(_ => { swaprel(_, -1) }, "ArrowUp ctrl shift", "PageUp shift")
   bindkey(_ => { swaprel(_, +1) }, "ArrowDown ctrl shift", "PageDown shift")
   bindkey(_ => { add(_) }, "Insert shift")
   bindkey(_ => { del(_) }, "Delete shift")
-  bindkey(_ => { forward() }, "shift Enter", "Tab")
-  bindkey(_ => { backward() }, "ctrl Enter", "shift Tab")
+  bindkey(_ => { forward(true) }, "shift Enter", "Tab")
+  bindkey(_ => { backward(true) }, "ctrl Enter", "shift Tab")
   bindkey(_ => { exectoid(_, { reset: false }) }, "e alt")
   bindkey(_ => { exectoid(_) }, "d alt")
   bindkey(_ => { exectoid(_, { hard: true }) }, "R alt shift ctrl")
   bindkey(_ => { save() }, "s ctrl")
+  bindkey(_ => { togglert() }, "b ctrl")
   bindkey(_ => { }, "Alt any", "Tab any", "ArrowLeft alt", "ArrowRight alt")
 
   const editor = ({ value, uuid }) => dom("div", {
@@ -204,7 +216,10 @@ const fullrepl = async (demo, { shflag = true, name = "env.js - 101" } = {}) => 
       spellcheck: "false", value, onkeydown: e => testkey(e, uuid),
       oninput: async (e, t = e.target, v = t.value) => (
         uheight(t, v.split(/\r?\n/).length), clrdata(data[order[uuid]]),
-        await cstate(order[uuid]), data[order[uuid]].value = v, update(), move(order[uuid])),
+        data[order[uuid]].value = v, await (realtime
+          ? exectill(order[uuid], { reset: false })
+          : cstate(order[uuid], { reset: false })),
+        update(), move(order[uuid])),
     }, e => uheight(e, value.split(/\r?\n/).length)),
     dom("pre", { class: "repl-item-result" })]
   })
@@ -212,7 +227,8 @@ const fullrepl = async (demo, { shflag = true, name = "env.js - 101" } = {}) => 
   const idb = store("envjs"), srk = "saved_repl"
   const repls = await idb.get(srk) ?? new Set()
   await load(JSON.parse(await (await fetch("101.json")).text()))
-  await exectoid(data[data.length-4].uuid)
+  await exectoid(data[data.length - 4].uuid)
+  // await load()
 }
 
 style(document.body, { margin: 0, height: "100vh" })

@@ -7,12 +7,11 @@
   "skip(inited)\nconst csselm = dom(\"style\", {parent:body})\nconst px = v => isnum(v) ? `${v}px` : v\nconst hyphenate = s => s.replace(/[A-Z]/g, m => `-${m.toLowerCase()}`)\nconst content = s => Object.keys(s)\n  .reduce((p, k) => p + `${hyphenate(k)}: ${px(s[k])}; `, \"\")\n$$$.css = (e => (r, ...s) => { e.sheet.insertRule(\n  `${r} { ${s.map(v => content(v)).join(\" \")}}`) })(csselm)",
   "skip(inited)\nconst upage = o=> d=> forin(o, (v, k)=> d[k]? v.innerText= d[k]: 0 )\n$.defpage= (n, o)=> ($[\"p\"+n]=upage(o), $[\"ps\"+n]=f=>f(o))",
   "skip(inited)\ndocument.body.onclick = () => { forward() }\ndocument.body.oncontextmenu = e => { backward(), e.preventDefault() }",
-  "skip(inited)\nstyle(document.html, {overflow:\"hidden\"})\nstyle(document.body, {position:\"relative\"})\nstyle(document.body, {background:\"#745f65\", color:\"white\"})\n\ncss(\".page\", { width:\"100%\" })\ncss(\".page\", {textAlign:\"center\", position:\"absolute\"})\ncss(\".page\", {transition:\"all 0.5s\"})\ncss(\".content\", {transition:\"all 0.5s\"})",
+  "skip(inited)\nstyle(document.html, {overflow:\"hidden\"})\nstyle(document.body, {position:\"relative\", userSelect:\"none\"})\nstyle(document.body, {background:\"#745f65\", color:\"white\"})\n\ncss(\".page\", { width:\"100%\" })\ncss(\".page\", {textAlign:\"center\", position:\"absolute\"})\ncss(\".page\", {transition:\"all 0.5s\"})\ncss(\".content\", {transition:\"all 0.5s\"})",
   "skip(inited)\nconst top = dom(\"div\", {class:\"page\", parent:body})\nconst t = dom(\"div\", {class:\"content\", parent:top, style:\n  {fontSize:\"10em\"}})\nconst subt = dom(\"div\", {class:\"content\", parent:top, style:\n  {fontSize:\"3em\", textAlign:\"right\", margin:\"1em 10%\"}})\nconst au = dom(\"div\", {class:\"content\", parent:top, style:\n  {fontSize:\"2em\", textAlign:\"right\", margin:\"3em 10%\"}})\n\n$.defpage(1, {top, t, subt, au})",
   "skip(inited)\nconst top = dom(\"div\", {class:\"page\", parent:body})\nconst t = dom(\"div\", {class:\"content\", parent:top, style:\n  {fontSize:\"9em\"}})\nconst demo = dom(\"div\", {class:\"\"})\n$.defpage(2, {top, t})",
   "$$.state = \"init\"",
   "$.p1({t:\"env.js 101\", subt:\"——交互式开发工具原型\", au:\"ch3coohlink@2021\"})\n$.p2({t:\"测试中的第二页\"})\n\n$.ps1(({top})=>style(top, {top:\"30%\"}))\n$.ps2(({top})=>style(top, {top:\"200vh\"}))",
   "$.ps1(({top}) => style(top, {top:\"-100vh\"}))\n$.ps2(({top}) => style(top, {top:\"20%\"}))",
-  "$.ps2(({top}) => style(top, {top:\"30%\"}))",
-  ""
+  "$.ps2(({top}) => style(top, {top:\"30%\"}))"
 ]
