@@ -63,7 +63,7 @@ const store = (name = "default", store = "default") => {
   return { get, set, del, clr, key, val }
 }
 
-const fullrepl = async (demo, shflag = true) => {
+const fullrepl = async (demo, { shflag = true, name = "env.js - 101" } = {}) => {
   const root = demo.attachShadow({ mode: "open" })
   const csselm = dom("style", { parent: root }), px = v => isnum(v) ? `${v}px` : v
   const hyphenate = s => s.replace(/[A-Z]/g, m => `-${m.toLowerCase()}`)
@@ -71,26 +71,28 @@ const fullrepl = async (demo, shflag = true) => {
   const css = (e => (r, ...s) => { e.sheet.insertRule(`${r} { ${s.map(v => content(v)).join(" ")}}`) })(csselm)
   css("textarea:focus", { background: "#00ff0020", outline: "none" },
     { boxShadow: "inset #ffffff60 0px 0px 20px 5px" })
-  css("textarea", { display: "block", boxSizing: "border-box", margin: 0, border: 0, padding: 10 },
+  css("textarea", { display: "block", boxSizing: "border-box", margin: 0, border: 0, padding: 0 },
     { background: "#00000000", resize: "none", width: "100%", overflow: "hidden", whiteSpace: "pre" },
     { lineHeight: "1em", fontSize: "1em", fontFamily: "consolas, courier new, monospace" })
-  css(".repl-item", { display: "block", position: "absolute", margin: 0, border: 0 },
+  css(".repl-item", { display: "block", position: "absolute", margin: 0, border: 0, padding: 10 },
     { background: "#ddd", boxShadow: "inset white 0px 0px 20px 5px", resize: "none", width: "100%" },
-    { transition: "all 0.5s cubic-bezier(.08,.82,.17,1) 0s", overflow: "hidden" })
-  css(".repl-item-result", { margin: 0, padding: "0px 10px", fontSize: "0.5em", color: "#555" })
+    { transition: "all 0.5s cubic-bezier(.08,.82,.17,1) 0s", overflow: "hidden", boxSizing: "border-box" })
+  css(".repl-item-result", { margin: 0, fontSize: "0.5em", color: "#555" })
+  css(".editor-list::-webkit-scrollbar", { display: "none" })
   const scolor = { executed: "#8f8fff", error: "#ff7b7b", working: "#ffff75" }
 
   const shtrans = "all 0.3s", topdiv = dom("div", {
     parent: root, style: { display: "flex", height: "100%" }, tabindex: "0", onkeydown:
       (e, { key: k, altKey: a, ctrlKey: c, shiftKey: s } = e) => (k + a + c + s !== "`truefalsefalse"
         ? 0 : shflag = (shflag ? hide() : show(), !shflag), e.stopPropagation())
-  }), txtlist = dom("div", { parent: topdiv }, e => style(e, { boxSizing: "border-box" },
+  }), txtlist = dom("div", { parent: topdiv, class: "editor-list" }, e => style(e, { boxSizing: "border-box" },
     { transition: shtrans }, shflag ? { borderRight: "1px solid black" } : {},
+    { MsOverflowStyle: "none", scrollbarWidth: "none" },
     { width: shflag ? "50%" : 0, position: "relative", overflow: "auto" }))
   const framediv = dom("div", { parent: topdiv }, e =>
     style(e, { width: shflag ? "50%" : "100%", transition: shtrans, overflow: "hidden" }))
   const html = dom("div", { parent: framediv }, e => style(e, shflag ? { transform: `scale(0.5)` } : {},
-    { width: "100vw", height: "100vh", transition: shtrans, transformOrigin: "top left" }))
+    { width: "100vw", height: "100vh", transition: shtrans, transformOrigin: "top left", overflow: "auto" }))
 
   const show = (p = 0.5) => (
     style(txtlist, { width: p * 100 + "%", borderRight: "1px solid black" }),
@@ -101,7 +103,7 @@ const fullrepl = async (demo, shflag = true) => {
 
   const newdata = (v = "") => ({ uuid: uuid(), value: v })
   let data = [].map(newdata)//; data = maprg(10, i => newdata("return " + i))
-  let pos = 0, curr = 0, $, $$ = { name: "env.js - 101" }, $$$, order, elms
+  let pos = 0, curr = 0, $, $$ = { name }, $$$, order, elms
 
   const valid = i => 0 <= i && i < data.length
   const focus = (e, c = e.children[0].clientHeight, h = txtlist.clientHeight,
@@ -118,7 +120,10 @@ const fullrepl = async (demo, shflag = true) => {
     if (!valid(i)) { return false } try {
       elms[data[i].uuid].style.background = scolor.working
       r = await exec(env())(data[i].value), curr++, wrtdata(data[i], r)
-    } catch (e) { wrtdata(data[i], e.stack, "error"); return false } return true
+    } catch (e) {
+      if (e === skip) { curr++; return true }
+      wrtdata(data[i], e.stack, "error"); return false
+    } return true
   }; let body
 
   const update = () => (!data || data.length === 0 ? data = [newdata()] : 0,
@@ -131,7 +136,7 @@ const fullrepl = async (demo, shflag = true) => {
     elms[uuid].children[1].textContent = stringify(result))
   const uposition = (h = 0, i = 0) => forof(data, ({ uuid }, e = elms[uuid]) => (
     style(e, { top: h, zIndex: String(i++) }), h += e.getBoundingClientRect().height))
-  const uheight = (e, l = 1) => { e.style.height = "", e.style.height = `calc(${l}em + 20px)` }
+  const uheight = (e, l = 1) => { e.style.height = "", e.style.height = `calc(${l}em + 2px)` }
   const ustate = () => forof(data, ({ state: s, uuid }) => elms[uuid].style.background = scolor[s] ?? "")
   const clrdata = d => (delete d.result, delete d.state)
   const wrtdata = (d, r, s = "executed") => (d.result = r, d.state = s)
@@ -144,17 +149,25 @@ const fullrepl = async (demo, shflag = true) => {
     if (valid(curr) && data[curr].state !== "error") { await step() }
     if (curr === l && data[l - 1].value !== "") { data.push(newdata()) }
     update(), move(Math.min(curr, data.length - 1))
-  }, backward = async _ => (await exectill(curr - 2), move(curr))
-  const exectill = async i => {
-    if (!valid(i) && i !== -1) { return } if (curr > i) { _cstate(), curr = 0, reset() }
+  }, backward = async _ => (await exectill(curr - 2, { reset: false }), move(curr))
+  const exectill = async (i, { reset: r = true, hard = false } = {}) => {
+    if (!valid(i) && i !== -1) { return }
+    if (curr > i || hard) { _cstate(), curr = 0, r ? reset(hard) : 0 }
     while (curr <= i && await step()) { } update(), move(i)
   }, _cstate = (m = 0) => forrg(data.length, (i, d = data[i]) =>
     i >= m && d.state !== "error" ? clrdata(d) : 0)
-  const cstate = async (m = 0) => (_cstate(m), curr > m ? await exectill(m - 1) : 0)
+  const cstate = async (m = 0, o = { reset: false }) =>
+    (_cstate(m), curr > m ? await exectill(m - 1, o) : 0)
 
-  const reset = () => (html.innerHTML = "", body = dom("div", { parent: html }), $ = {}, $$$ =
-    { dom, style, load, read, erase, save, repls: () => repls, fullrepl })
-  const load = async (n = $$.name) => (data = (await read(n)).map(newdata),
+  const skip = Symbol("skip ex")
+  const reset = (hard = false) => (html.innerHTML = "",
+    body = dom("div", { parent: html }), $ = {}, hard ? $$ = { name } : 0, $$$ = {
+      log, dom, style, load, read, erase, save, repls: () => repls, fullrepl,
+      keybind, bindkey, moverel, swaprel, add, del, forward, backward, exectill,
+      skip: (f, r = f()) => { if (r) throw skip }
+    })
+  const load = async (n = $$.name) => (
+    data = (isstr(n) ? await read(n) : n).map(newdata),
     reset(), update(), move(data.length - 1))
   const read = async (n, p = srk + "/" + n) => await idb.get(p) ?? []
   const erase = async (n, p = srk + "/" + n) => (repls.del(n),
@@ -170,16 +183,18 @@ const fullrepl = async (demo, shflag = true) => {
     f = keybind[k + [a, c, s].map(b => b ? "t" : "f").join("")] ?? keybind[k]) =>
     (f ? p = !f(uuid) : 0, p ? e.preventDefault() : 0)
 
-  const exectoid = uuid => exectill(order[uuid])
+  const exectoid = (uuid, o) => exectill(order[uuid], o)
   bindkey(_ => { moverel(-1) }, "ArrowUp ctrl", "PageUp")
   bindkey(_ => { moverel(+1) }, "ArrowDown ctrl", "PageDown")
   bindkey(_ => { swaprel(_, -1) }, "ArrowUp ctrl shift", "PageUp shift")
   bindkey(_ => { swaprel(_, +1) }, "ArrowDown ctrl shift", "PageDown shift")
   bindkey(_ => { add(_) }, "Insert shift")
   bindkey(_ => { del(_) }, "Delete shift")
-  bindkey(_ => { forward() }, ..."alt ctrl shift".split(" ").map(v => "Enter " + v), "Tab")
-  bindkey(_ => { backward() }, "Enter ctrl shift", "shift Tab")
-  bindkey(_ => { exectoid(_) }, "e alt")
+  bindkey(_ => { forward() }, "shift Enter", "Tab")
+  bindkey(_ => { backward() }, "ctrl Enter", "shift Tab")
+  bindkey(_ => { exectoid(_, { reset: false }) }, "e alt")
+  bindkey(_ => { exectoid(_) }, "d alt")
+  bindkey(_ => { exectoid(_, { hard: true }) }, "R alt shift ctrl")
   bindkey(_ => { save() }, "s ctrl")
   bindkey(_ => { }, "Alt any", "Tab any", "ArrowLeft alt", "ArrowRight alt")
 
@@ -190,11 +205,14 @@ const fullrepl = async (demo, shflag = true) => {
       oninput: async (e, t = e.target, v = t.value) => (
         uheight(t, v.split(/\r?\n/).length), clrdata(data[order[uuid]]),
         await cstate(order[uuid]), data[order[uuid]].value = v, update(), move(order[uuid])),
-    }, uheight), dom("pre", { class: "repl-item-result" })]
+    }, e => uheight(e, value.split(/\r?\n/).length)),
+    dom("pre", { class: "repl-item-result" })]
   })
 
   const idb = store("envjs"), srk = "saved_repl"
-  const repls = await idb.get(srk) ?? new Set(); await load()
+  const repls = await idb.get(srk) ?? new Set()
+  await load(JSON.parse(await (await fetch("101.json")).text()))
+  await exectoid(data[data.length-4].uuid)
 }
 
 style(document.body, { margin: 0, height: "100vh" })
