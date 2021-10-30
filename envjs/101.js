@@ -77,7 +77,7 @@ const fullrepl = async (demo, { shflag = true, name = "env.js - 101" } = {}) => 
   css(".repl-item", { display: "block", position: "absolute", margin: 0, border: 0, padding: 10 },
     { background: "#ddd", boxShadow: "inset white 0px 0px 20px 5px", resize: "none", width: "100%" },
     { transition: "all 0.5s cubic-bezier(.08,.82,.17,1) 0s", overflow: "hidden", boxSizing: "border-box" })
-  css(".repl-item-result", { margin: 0, fontSize: "0.5em", color: "#555" })
+  css(".repl-item-result", { margin: 0, fontSize: 12, color: "#555" })
   css(".no-scroll-bar::-webkit-scrollbar", { display: "none" })
   css(".no-scroll-bar", { MsOverflowStyle: "none", scrollbarWidth: "none" })
   const scolor = { executed: "#8f8fff", error: "#ff7b7b", working: "#ffff75" }
@@ -154,10 +154,12 @@ const fullrepl = async (demo, { shflag = true, name = "env.js - 101" } = {}) => 
     update(), focus ? move(Math.min(curr, data.length - 1)) : 0
   }, backward = async (focus = false) => (
     await exectill(curr - 2, { focus, reset: false }), focus ? move(curr) : 0)
-  const exectill = async (i, { reset: r = true, hard = false, focus = false } = {}) => {
+  const exectill = async (i, { reset: r = true, stop = null,
+    hard = false, focus = false } = {}) => {
     if (!valid(i) && i !== -1) { return }
     if (curr > i || hard) { _cstate(), curr = 0, r ? reset(hard) : 0 }
-    while (curr <= i && await step()) { } update(), focus ? move(i) : 0
+    while (curr <= i && await step() && (stop ? !stop(env()) : true)) { }
+    update(), focus ? move(i) : 0
   }, _cstate = (m = 0) => forrg(data.length, (i, d = data[i]) =>
     i >= m && d.state !== "error" ? clrdata(d) : 0)
   const cstate = async (m = 0, o = { reset: false }) =>
@@ -227,9 +229,10 @@ const fullrepl = async (demo, { shflag = true, name = "env.js - 101" } = {}) => 
   const idb = store("envjs"), srk = "saved_repl"
   const repls = await idb.get(srk) ?? new Set()
   await load(JSON.parse(await (await fetch("101.json")).text()))
-  await exectoid(data[data.length - 4].uuid)
+  await exectill(data.length - 1, { stop: o => o.$$.state == "init" })
+  await forward()
   // await load()
 }
 
 style(document.body, { margin: 0, height: "100vh" })
-fullrepl(document.body)
+fullrepl(document.body, { shflag: false })
