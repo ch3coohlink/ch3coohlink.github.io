@@ -228,11 +228,12 @@ const fullrepl = async (demo, { shflag = true, name = "env.js - 101" } = {}) => 
 
   const idb = store("envjs"), srk = "saved_repl"
   const repls = await idb.get(srk) ?? new Set()
-  await load(JSON.parse(await (await fetch("101.json")).text()))
+  if (dev) { await load() }
+  else { await load(JSON.parse(await (await fetch("101.json")).text())) }
   await exectill(data.length - 1, { stop: o => o.$$.state == "init" })
   await forward()
-  // await load()
 }
 
+const dev = !!new URL(window.location.href).searchParams.get("dev")
 style(document.body, { margin: 0, height: "100vh" })
-fullrepl(document.body, { shflag: false })
+fullrepl(document.body, { shflag: dev })
