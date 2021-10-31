@@ -206,7 +206,7 @@ const fullrepl = async (demo, { shflag = true, name = "env.js - 101" } = {}) => 
   bindkey(_ => { forward(true) }, "shift Enter", "Tab")
   bindkey(_ => { backward(true) }, "ctrl Enter", "shift Tab")
   bindkey(_ => { exectoid(_, { reset: false }) }, "e alt")
-  bindkey(_ => { exectoid(_) }, "d alt")
+  bindkey(_ => { exectill(data.length - 1, { reset: false }) }, "d alt")
   bindkey(_ => { exectoid(_, { hard: true }) }, "R alt shift ctrl")
   bindkey(_ => { save() }, "s ctrl")
   bindkey(_ => { togglert() }, "b ctrl")
@@ -231,7 +231,6 @@ const fullrepl = async (demo, { shflag = true, name = "env.js - 101" } = {}) => 
   if (dev) { await load() }
   else { await load(JSON.parse(await (await fetch("101.json")).text())) }
   await exectill(data.length - 1, { stop: o => o.$$.state == "init" })
-  await forward()
 }
 
 const dev = !!new URL(window.location.href).searchParams.get("dev")
