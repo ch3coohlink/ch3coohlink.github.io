@@ -63,7 +63,7 @@ const store = (name = "default", store = "default") => {
   return { get, set, del, clr, key, val }
 }
 
-const fullrepl = async (demo, { shflag = true, name = "env.js - 101" } = {}) => {
+const fullrepl = async (demo, { shflag = true, name = "", main = false } = {}) => {
   const root = demo.attachShadow({ mode: "open" })
   const csselm = dom("style", { parent: root }), px = v => isnum(v) ? `${v}px` : v
   const hyphenate = s => s.replace(/[A-Z]/g, m => `-${m.toLowerCase()}`)
@@ -73,7 +73,7 @@ const fullrepl = async (demo, { shflag = true, name = "env.js - 101" } = {}) => 
     { boxShadow: "inset #ffffff60 0px 0px 20px 5px" })
   css("textarea", { display: "block", boxSizing: "border-box", margin: 0, border: 0, padding: 0 },
     { background: "#00000000", resize: "none", width: "100%", overflow: "hidden", whiteSpace: "pre" },
-    { lineHeight: "1em", fontSize: "1em", fontFamily: "consolas, courier new, monospace" })
+    { lineHeight: 16, fontSize: 15, fontFamily: "consolas, courier new, monospace" })
   css(".repl-item", { display: "block", position: "absolute", margin: 0, border: 0, padding: 10 },
     { background: "#ddd", boxShadow: "inset white 0px 0px 20px 5px", resize: "none", width: "100%" },
     { transition: "all 0.5s cubic-bezier(.08,.82,.17,1) 0s", overflow: "hidden", boxSizing: "border-box" })
@@ -82,17 +82,17 @@ const fullrepl = async (demo, { shflag = true, name = "env.js - 101" } = {}) => 
   css(".no-scroll-bar", { MsOverflowStyle: "none", scrollbarWidth: "none" })
   const scolor = { executed: "#8f8fff", error: "#ff7b7b", working: "#ffff75" }
 
-  const shtrans = "all 0.3s", topdiv = dom("div", {
-    style: { display: "flex", height: "100%", background: "white" }, parent: root, tabindex: "0", onkeydown:
-      (e, { key: k, altKey: a, ctrlKey: c, shiftKey: s } = e) => (k + a + c + s !== "`truefalsefalse"
-        ? 0 : shflag = (shflag ? hide() : show(), !shflag), e.stopPropagation())
-  }), editordiv = dom("div", { parent: topdiv }, e => style(e, { boxSizing: "border-box" },
+  const stope = e => e.stopPropagation(), togglesh = (e, { key: k, altKey: a, ctrlKey: c, shiftKey: s } = e
+  ) => (k + a + c + s !== "`truefalsefalse" ? 0 : shflag = (shflag ? hide() : show(), !shflag), stope(e))
+  const shtrans = "all 0.3s", topdiv = dom("div", { onclick: stope, oncontextmenu: stope, parent: root }
+    , e => style(e, { display: "flex", height: "100%", background: "white", textAlign: "initial" }))
+  const editordiv = dom("div", { parent: topdiv }, e => style(e, { boxSizing: "border-box" },
     { transition: shtrans }, shflag ? { borderRight: "1px solid black" } : {},
     { width: shflag ? "50%" : 0, position: "relative", overflow: "hidden" }))
   const txtlist = dom("div", { parent: editordiv, class: "no-scroll-bar" }, e => style(e,
     { transition: shtrans, position: "relative", width: "100%", height: "100%" },
     { overflow: "auto" }))
-  const framediv = dom("div", { parent: topdiv }, e =>
+  const framediv = dom("div", { parent: topdiv, onkeydown: togglesh, tabindex: "0" }, e =>
     style(e, { width: shflag ? "50%" : "100%", transition: shtrans, overflow: "hidden" }))
   const html = dom("div", { parent: framediv }, e => style(e, shflag ? { transform: `scale(0.5)` } : {},
     { width: "100vw", height: "100vh", transition: shtrans, transformOrigin: "top left", overflow: "auto" }))
@@ -118,7 +118,7 @@ const fullrepl = async (demo, { shflag = true, name = "env.js - 101" } = {}) => 
     (data[a] = data[b], data[b] = t, await cstate(Math.min(a, b)), update()) : 0
   const swaprel = async (id, r, a = order[id], b = a + r) => (await swap(a, b), move(order[id]))
 
-  const env = () => ({ window: {}, document: { html, body }, ...$$$, $, $$, $$$, main: true })
+  const env = () => ({ window: {}, document: { html, body }, ...$$$, $, $$, $$$, main })
   const step = async (i = curr, r) => {
     if (!valid(i)) { return false } try {
       elms[data[i].uuid].style.background = scolor.working
@@ -138,8 +138,8 @@ const fullrepl = async (demo, { shflag = true, name = "env.js - 101" } = {}) => 
   const uresult = () => forof(data, ({ uuid, result }) =>
     elms[uuid].children[1].textContent = stringify(result))
   const uposition = (h = 0, i = 0) => forof(data, ({ uuid }, e = elms[uuid]) => (
-    style(e, { top: h, zIndex: String(i++) }), h += e.getBoundingClientRect().height))
-  const uheight = (e, l = 1) => { e.style.height = "", e.style.height = `calc(${l}em + 2px)` }
+    style(e, { top: h, zIndex: String(i++) }), h += e.clientHeight))
+  const uheight = (e, l = 1) => { e.style.height = "", e.style.height = `${l * 16 + 2}px` }
   const ustate = () => forof(data, ({ state: s, uuid }) => elms[uuid].style.background = scolor[s] ?? "")
   const clrdata = d => (delete d.result, delete d.state)
   const wrtdata = (d, r, s = "executed") => (d.result = r, d.state = s)
@@ -166,17 +166,16 @@ const fullrepl = async (demo, { shflag = true, name = "env.js - 101" } = {}) => 
     (_cstate(m), curr > m ? await exectill(m - 1, o) : 0)
 
   const skip = Symbol("skip execution")
-  const reset = (hard = false) => (html.innerHTML = "",
-    body = dom("div", { parent: html }), $ = {}, hard ? $$ = { name } : 0, $$$ = {
+  const reset = (hard = false) => (html.innerHTML = "", $ = {},
+    body = dom("div", { parent: html }), hard ? $$ = { name: $$.name } : 0, $$$ = {
       log, dom, style, load, read, erase, save, repls: () => repls, fullrepl,
       keybind, bindkey, moverel, swaprel, add, del, forward, backward, exectill,
       skip: (f, r = f()) => { if (r) throw skip }
     })
   const load = async (n = $$.name) => (
-    data = (isstr(n) ? await read(n) : n).map(newdata),
-    reset(), update(), move(data.length - 1))
+    data = (isstr(n) ? await read(n) : n).map(newdata), $$.name = n, reset(), update())
   const read = async (n, p = srk + "/" + n) => await idb.get(p) ?? []
-  const erase = async (n, p = srk + "/" + n) => (repls.del(n),
+  const erase = async (n, p = srk + "/" + n) => (repls.delete(n),
     await Promise.all([idb.set(srk, repls), idb.del(p)]))
   const save = async (n = $$.name, p = srk + "/" + n) => (repls.add(n),
     await Promise.all([idb.set(srk, repls), idb.set(p, data.map(d => d.value))]))
@@ -228,11 +227,15 @@ const fullrepl = async (demo, { shflag = true, name = "env.js - 101" } = {}) => 
 
   const idb = store("envjs"), srk = "saved_repl"
   const repls = await idb.get(srk) ?? new Set()
-  if (dev) { await load() }
-  else { await load(JSON.parse(await (await fetch("101.json")).text())) }
-  await exectill(data.length - 1, { stop: o => o.$$.state == "init" })
+  if (!dev) { await load(JSON.parse(await (await fetch("101.json")).text())) }
+  else { await load() } if (name === dname) {
+    await exectill(data.length - 1, { stop: o => o.$$.state == "init" })
+    move(data.length - 1)
+  }
+
 }
 
+const dname = "env.js - 101"
 const dev = !!new URL(window.location.href).searchParams.get("dev")
 style(document.body, { margin: 0, height: "100vh" })
-fullrepl(document.body, { shflag: dev })
+fullrepl(document.body, { shflag: dev, name: dname, main: true })
