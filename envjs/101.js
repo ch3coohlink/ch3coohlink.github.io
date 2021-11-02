@@ -94,15 +94,16 @@ const fullrepl = async (demo, { shflag = true, name = "", main = false } = {}) =
     { overflow: "auto" }))
   const framediv = dom("div", { parent: topdiv, onkeydown: togglesh, tabindex: "0" }, e =>
     style(e, { width: shflag ? "50%" : "100%", transition: shtrans, overflow: "hidden" }))
-  const html = dom("div", { parent: framediv }, e => style(e, shflag ? { transform: `scale(0.5)` } : {},
-    { width: "100vw", height: "100vh", transition: shtrans, transformOrigin: "top left", overflow: "auto" }))
+  const html = dom("div", { parent: framediv }, e => style(e,
+    shflag ? { transform: `scale(0.5)` } : {}, { width: shflag ? "200%" : "100%" },
+    { height: "100%", transition: shtrans, transformOrigin: "top left", overflow: "auto" }))
 
   const show = (p = 0.5) => (
     style(editordiv, { width: p * 100 + "%", borderRight: "1px solid black" }),
     style(framediv, { width: (1 - p) * 100 + "%" }),
-    style(html, { transform: `scale(${1 - p})` }))
+    style(html, { transform: `scale(${1 - p})`, width: 100 / (1 - p) + "%" }))
   const hide = () => (style(editordiv, { width: 0, borderRight: "" }),
-    style(framediv, { width: "100%" }), style(html, { transform: "" }))
+    style(framediv, { width: "100%" }), style(html, { transform: "", width: "100%" }))
 
   const newdata = (v = "") => ({ uuid: uuid(), value: v })
   let data = [].map(newdata)//; data = maprg(10, i => newdata("return " + i))
