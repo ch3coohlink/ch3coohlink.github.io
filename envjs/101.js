@@ -119,7 +119,11 @@ const fullrepl = async (demo, { shflag = true, name = "", main = false } = {}) =
     (data[a] = data[b], data[b] = t, await cstate(Math.min(a, b)), update()) : 0
   const swaprel = async (id, r, a = order[id], b = a + r) => (await swap(a, b), move(order[id]))
 
-  const env = () => ({ window: {}, document: { html, body }, ...$$$, $, $$, $$$, main })
+  const env = () => ({
+    navigator, window: {},
+    document: { html, body, createElement: document.createElement.bind(document) },
+    ...$$$, $, $$, $$$, main
+  })
   const step = async (i = curr, r) => {
     if (!valid(i)) { return false } try {
       elms[data[i].uuid].style.background = scolor.working
@@ -169,7 +173,7 @@ const fullrepl = async (demo, { shflag = true, name = "", main = false } = {}) =
   const skip = Symbol("skip execution")
   const reset = (hard = false) => (html.innerHTML = "", $ = {},
     body = dom("div", { parent: html }), hard ? $$ = { name: $$.name } : 0, $$$ = {
-      log, dom, style, load, read, erase, save, repls: () => repls, fullrepl,
+      idb, show, hide, log, dom, style, load, read, erase, save, repls: () => repls, fullrepl,
       keybind, bindkey, moverel, swaprel, add, del, forward, backward, exectill,
       skip: (f, r = f()) => { if (r) throw skip }
     })
