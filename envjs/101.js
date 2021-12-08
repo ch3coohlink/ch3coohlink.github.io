@@ -43,7 +43,7 @@ const _dom = cases((e, v, k) => (e[k] = v, isfct(v) ? 0 : e.setAttribute(k, v)),
 const dom = (n, o = {}, f = _ => { }, e = isstr(n) ? document.createElement(n) : n) =>
   (forin(o, (v, k) => v ? _dom(k, e, v, k) : 0), f(e), e)
 const exec = (e, a = [], n = (forin(e, (_, k) => a.push(k)), a.join(", "))) => async c =>
-  await new Function(`"use strict";\nreturn async ({ ${n} }) => { \n${c}\n }`)()(e)
+  await new Function(`"use strict";\nreturn async ({ ${n} }) => {{\n${c}\n}}`)()(e)
 const sleep = n => new Promise(r => setTimeout(r, n))
 
 const rnd8 = () => Math.random().toString(16).slice(2, 10)
@@ -63,7 +63,7 @@ const store = (name = "default", store = "default") => {
   return { get, set, del, clr, key, val }
 }
 
-const fullrepl = async (demo, { shflag = true, name = "", main = false } = {}) => {
+const fullrepl = async (demo, { dev = false, shflag = dev, name = "", main = false } = {}) => {
   const root = demo.attachShadow({ mode: "open" })
   const csselm = dom("style", { parent: root }), px = v => isnum(v) ? `${v}px` : v
   const hyphenate = s => s.replace(/[A-Z]/g, m => `-${m.toLowerCase()}`)
@@ -107,7 +107,7 @@ const fullrepl = async (demo, { shflag = true, name = "", main = false } = {}) =
 
   const newdata = (v = "") => ({ uuid: uuid(), value: v })
   let data = [].map(newdata)//; data = maprg(10, i => newdata("return " + i))
-  let pos = 0, curr = 0, $, $$ = { name }, $$$, order, elms
+  let pos = 0, curr = 0, $, $$ = { name }, order, elms
 
   const valid = i => 0 <= i && i < data.length
   const focus = (e, c = e.children[0].clientHeight, h = txtlist.clientHeight,
@@ -119,11 +119,9 @@ const fullrepl = async (demo, { shflag = true, name = "", main = false } = {}) =
     (data[a] = data[b], data[b] = t, await cstate(Math.min(a, b)), update()) : 0
   const swaprel = async (id, r, a = order[id], b = a + r) => (await swap(a, b), move(order[id]))
 
-  const env = () => ({
-    navigator, window: {},
-    document: { html, body, createElement: document.createElement.bind(document) },
-    ...$$$, $, $$, $$$, main
-  })
+  const fakedoc = {}; forin(document, (v, k) => fakedoc[k] = isfct(v) ? v.bind(document) : v), fakedoc.html = html
+  // TODO : fake window
+  const env = () => ({ navigator, window: {}, document: fakedoc, ...$, $, $$, main })
   const step = async (i = curr, r) => {
     if (!valid(i)) { return false } try {
       elms[data[i].uuid].style.background = scolor.working
@@ -132,7 +130,7 @@ const fullrepl = async (demo, { shflag = true, name = "", main = false } = {}) =
       if (e === skip) { curr++; return true }
       wrtdata(data[i], e.stack, "error"); return false
     } return true
-  }; let body
+  }
 
   const update = () => (!data || data.length === 0 ? data = [newdata()] : 0,
     order = {}, elms = {}, forrg(data.length, (i, l = data[i]) => order[l.uuid] = i),
@@ -171,14 +169,14 @@ const fullrepl = async (demo, { shflag = true, name = "", main = false } = {}) =
     (_cstate(m), curr > m ? await exectill(m - 1, o) : 0)
 
   const skip = Symbol("skip execution")
-  const reset = (hard = false) => (html.innerHTML = "", $ = {},
-    body = dom("div", { parent: html }), hard ? $$ = { name: $$.name } : 0, $$$ = {
+  const reset = (hard = false) => (html.innerHTML = "", curr = 0,
+    fakedoc.body = dom("div", { parent: html }), hard ? $$ = { name: $$.name } : 0, $ = {
       idb, show, hide, log, dom, style, load, read, erase, save, repls: () => repls, fullrepl,
       keybind, bindkey, moverel, swaprel, add, del, forward, backward, exectill,
       skip: (f, r = f()) => { if (r) throw skip }
     })
   const load = async (n = $$.name) => (
-    data = (isstr(n) ? await read(n) : n).map(newdata), $$.name = n, reset(), update())
+    data = (isstr(n) ? ($$.name = n, await read(n)) : n).map(newdata), reset(), update())
   const read = async (n, p = srk + "/" + n) => await idb.get(p) ?? []
   const erase = async (n, p = srk + "/" + n) => (repls.delete(n),
     await Promise.all([idb.set(srk, repls), idb.del(p)]))
@@ -233,14 +231,17 @@ const fullrepl = async (demo, { shflag = true, name = "", main = false } = {}) =
   const idb = store("envjs"), srk = "saved_repl"
   const repls = await idb.get(srk) ?? new Set()
   if (!dev) { await load(JSON.parse(await (await fetch("101.json")).text())) }
-  else { await load() } if (name === dname) {
+  else { await load() } if (name === "env.js - 101") {
     await exectill(data.length - 1, { stop: o => o.$$.state == "init" })
     move(data.length - 1)
   }
 
 }
 
-const dname = "env.js - 101"
-const dev = !!new URL(window.location.href).searchParams.get("dev")
+const pa = new URL(window.location.href).searchParams
 style(document.body, { margin: 0, height: "100vh" })
-fullrepl(document.body, { shflag: dev, name: dname, main: true })
+fullrepl(document.body, {
+  dev: !!pa.get("dev"),
+  name: pa.get("name") ?? "env.js - 101",
+  main: true
+})
