@@ -22,7 +22,7 @@ $.uuid = (a = rnd8(), b = rnd8()) => [rnd8(), a.slice(0, 4)
   , a.slice(4), b.slice(0, 4), b.slice(4) + rnd8()].join("-")
 
 bindall(document); const text = document.createTextNode, _elm = document.createElement
-const attr = cases((e, v, k) => (e[k] = v, isfct(v) ? 0 : e.setAttribute(k, v)),
+const attr = cases((e, v, k, o = e[k]) => o === v ? 0 : e[k] = v,
   ["class", (e, v) => e.className = isarr(v) ? v.join(" ") : v],
   ["child", (e, v) => e.append(...asarr(v).map(v => isstr(v) ? text(v) : v))],
   ["tag", _ => { }], ["style", (e, v) => style(e, ...asarr(v))])
@@ -33,7 +33,8 @@ $.dom = (o = {}, p, n = o.tag ?? "div") => elm(n, o, p ? p.append.bind(p) : 0)
 const px = v => isnum(v) ? `${v}px` : v
 const hyphenate = s => s.replace(/[A-Z]/g, m => `-${m.toLowerCase()}`)
 const content = s => Object.keys(s).reduce((p, k) => p + `${hyphenate(k)}: ${px(s[k])}; `, "")
-$.createcss = e => (r, ...s) => e.sheet.insertRule(`${r} { ${s.map(v => content(v)).join(" ")}}`)
+$.createcss = e => (e = (e.tagName === "STYLE" ? e : dom({}, e, "style")),
+  (r, ...s) => e.sheet.insertRule(`${r} { ${s.map(v => content(v)).join(" ")}}`))
 
 const ra = requestAnimationFrame, ca = cancelAnimationFrame
 const si = setInterval, ci = clearInterval
@@ -53,8 +54,10 @@ $.asfct = async (u, f) => (f = genc(await load(u)), async (a = {},
   e = $, o = scope(e)) => (forin(a, (v, k) => o[k] = v), await f(o)()))
 $.setdef = (o, k, v) => o.hasOwnProperty(k) && !isnth(o[k]) ? 0 : o[k] = v
 
-const loadlist = "./idb.js ./env.js ./sandbox.js";
-[$.idb, $.envjs, $.sandbox] = await Promise.all(loadlist.split(" ").map(v => asfct(v)))
+const loadlist = "./idb.js ./env.js ./sandbox.js ./react.js";
+[$.idb, $.envjs, $.sandbox, $.react] =
+  await Promise.all(loadlist.split(" ").map(v => asfct(v)))
+await react({})
 
 const peerjs = async () => (
   (await asfct("../external/peerjs.min.js"))(),
@@ -67,9 +70,10 @@ $.query = {}; _q.forEach((v, k) => query[k] = v === "false"
 
 style(document.documentElement, { height: "100%" })
 style(document.body, { margin: 0, height: "100%" })
-$.rootsdbx = await sandbox({ root: document.body })
-
-style(rootsdbx.document.documentElement, { height: "100%" })
-style(rootsdbx.document.body, { margin: 0, height: "100%" })
-const root = dom({ style: { height: "100%" } }, rootsdbx.document.body)
-await envjs({ root }, rootsdbx)
+with (await sandbox({ root: document.body })) {
+  style(document.documentElement, { height: "100%" })
+  style(document.body, { margin: 0, height: "100%" })
+  $.schedule = ((f = () => (requestAnimationFrame(f), forof(s, v => v()),
+    s = new Set), s = new Set) => (f(), s.add.bind(s)))()
+  $.rootenv = await envjs({ root: document.body }, $)
+}

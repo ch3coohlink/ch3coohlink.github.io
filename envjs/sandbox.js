@@ -26,24 +26,7 @@ $.setTimeout = (f, t) => (_t.add(f), st(f, t))
 $.clearTimeout = f => (_t.delete(f), ct(f))
 
 // dispatch all window event
-$.eventkey = `onsearch onappinstalled onbeforeinstallprompt
-onbeforexrselect onabort onblur oncancel oncanplay oncanplaythrough onchange
-onclick onclose oncontextmenu oncuechange ondblclick ondrag ondragend
-ondragenter ondragleave ondragover ondragstart ondrop ondurationchange
-onemptied onended onerror onfocus onformdata oninput oninvalid onkeydown
-onkeypress onkeyup onload onloadeddata onloadedmetadata onloadstart onmousedown
-onmouseenter onmouseleave onmousemove onmouseout onmouseover onmouseup onmousewheel
-onpause onplay onplaying onprogress onratechange onreset onresize onscroll onseeked
-onseeking onselect onstalled onsubmit onsuspend ontimeupdate ontoggle onvolumechange
-onwaiting onwebkitanimationend onwebkitanimationiteration onwebkitanimationstart
-onwebkittransitionend onwheel onauxclick ongotpointercapture onlostpointercapture
-onpointerdown onpointermove onpointerup onpointercancel onpointerover onpointerout
-onpointerenter onpointerleave onselectstart onselectionchange onanimationend
-onanimationiteration onanimationstart ontransitionrun ontransitionstart ontransitionend
-ontransitioncancel onafterprint onbeforeprint onbeforeunload onhashchange onlanguagechange
-onmessage onmessageerror onoffline ononline onpagehide onpageshow onpopstate
-onrejectionhandled onstorage onunhandledrejection onunload ondevicemotion
-ondeviceorientation ondeviceorientationabsolute onpointerrawupdate`.split(/\s/)
+$.eventkey = `onsearch onappinstalled onbeforeinstallprompt onbeforexrselect onabort onblur oncancel oncanplay oncanplaythrough onchange onclick onclose oncontextmenu oncuechange ondblclick ondrag ondragend ondragenter ondragleave ondragover ondragstart ondrop ondurationchange onemptied onended onerror onfocus onformdata oninput oninvalid onkeydown onkeypress onkeyup onload onloadeddata onloadedmetadata onloadstart onmousedown onmouseenter onmouseleave onmousemove onmouseout onmouseover onmouseup onmousewheel onpause onplay onplaying onprogress onratechange onreset onresize onscroll onseeked onseeking onselect onstalled onsubmit onsuspend ontimeupdate ontoggle onvolumechange onwaiting onwebkitanimationend onwebkitanimationiteration onwebkitanimationstart onwebkittransitionend onwheel onauxclick ongotpointercapture onlostpointercapture onpointerdown onpointermove onpointerup onpointercancel onpointerover onpointerout onpointerenter onpointerleave onselectstart onselectionchange onanimationend onanimationiteration onanimationstart ontransitionrun ontransitionstart ontransitionend ontransitioncancel onafterprint onbeforeprint onbeforeunload onhashchange onlanguagechange onmessage onmessageerror onoffline ononline onpagehide onpageshow onpopstate onrejectionhandled onstorage onunhandledrejection onunload ondevicemotion ondeviceorientation ondeviceorientationabsolute onpointerrawupdate`.split(/\s/)
 $.eventname = eventkey.map(v => v.slice(2))
 
 $.listeners = {}, $.handler = {}
@@ -83,7 +66,8 @@ const _ = Object.assign(scope(Object.getPrototypeOf($)), {
   requestAnimationFrame, cancelAnimationFrame,
   setInterval, clearInterval, setTimeout, clearTimeout
 })
-Object.defineProperty(_, "window", { get: () => _ })
+Object.defineProperty(_, "window", { value: _ })
+Object.defineProperty(_, "$", { value: _ })
 forof(eventkey, k => Object.defineProperty(_, k,
   { get: () => handler[k], set: v => handler[k] = v }))
 return _

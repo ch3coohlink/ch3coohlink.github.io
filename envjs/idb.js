@@ -11,9 +11,7 @@ $.action = (type, cb) => dbp.then(db =>
     t.onabort = t.onerror = () => j(t.error),
     cb(t.objectStore(store)))))
 
-$._ = null
-$.ro = f => action("readonly", f)
-$.rw = f => action("readwrite", f)
+const _ = null, ro = f => action("readonly", f), rw = f => action("readwrite", f)
 $.key = (r = _) => ro(s => s.getAllKeys().onsuccess = e => r = e.target.result).then(() => r)
 $.val = (r = _) => ro(s => s.getAll().onsuccess = e => r = e.target.result).then(() => r)
 $.get = (k, r = _) => ro(s => r = s.get(k)).then(() => r.result)
@@ -21,4 +19,4 @@ $.clr = () => rw(s => s.clear())
 $.set = (k, v) => rw(s => s.put(v, k))
 $.del = k => rw(s => s.delete(k))
 
-return { ...$ }
+const rt = { ...$ }; delete rt.dbp, delete rt.action; return rt
