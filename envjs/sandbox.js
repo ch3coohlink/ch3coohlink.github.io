@@ -31,7 +31,7 @@ $.eventname = eventkey.map(v => v.slice(2))
 
 $.listeners = {}, $.handler = {}
 $.addEventListener = (t, l) => {
-  const s = listeners[t]; if (!s) { listeners[t] = new Set } s.add(l)
+  let s = listeners[t]; if (!s) { s = listeners[t] = new Set } s.add(l)
 }
 $.removeEventListener = (t, l) => {
   const s = listeners[t]; if (s) { s.delete(l) }
@@ -55,7 +55,7 @@ $.destroy = () => {
 // warp a window interface
 // (maybe proxy is not a good choice here)
 // (P.S bad news! proxy do not work with "with" keyword )
-const _ = Object.assign(scope(Object.getPrototypeOf($)), {
+const _ = assign(scope(proto($)), {
   document: new Proxy(document, {
     get: (t, k) => {
       if (k === "documentElement") { return html }
@@ -66,8 +66,7 @@ const _ = Object.assign(scope(Object.getPrototypeOf($)), {
   requestAnimationFrame, cancelAnimationFrame,
   setInterval, clearInterval, setTimeout, clearTimeout
 })
-Object.defineProperty(_, "window", { value: _ })
-Object.defineProperty(_, "$", { value: _ })
-forof(eventkey, k => Object.defineProperty(_, k,
-  { get: () => handler[k], set: v => handler[k] = v }))
+property(_, "window", { value: _ })
+property(_, "$", { value: _ })
+forof(eventkey, k => property(_, k, { set: v => handler[k] = v }))
 return _

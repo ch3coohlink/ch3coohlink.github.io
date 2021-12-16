@@ -14,18 +14,18 @@ $.forof = (o, f) => { for (const v of o) f(v) }
 $.cases = (h, ...t) => ((m, d) => (c, ...a) => m.has(c) ? m.get(c)(...a) : d(...a))(new Map(t), h)
 $.panic = e => { throw isstr(e) ? Error(e) : e }
 
+$.proto = Object.getPrototypeOf, $.property = Object.defineProperty, $.assign = Object.assign
+$.extract = (o, s, r = {}) => (forof(s.split(" "), k => r[k] = o[k]), r)
 $.bindall = o => forin(o, (v, k) => isfct(v) ? o[k] = v.bind(o) : 0)
-$.style = (e, ...s) => (forof(s, s =>
-  forin(s, (v, k) => e.style[k] = isnum(v) ? `${v}px` : v)), e)
-const rnd8 = () => Math.random().toString(16).slice(2, 10)
-$.uuid = (a = rnd8(), b = rnd8()) => [rnd8(), a.slice(0, 4)
-  , a.slice(4), b.slice(0, 4), b.slice(4) + rnd8()].join("-")
 
 bindall(document); const text = document.createTextNode, _elm = document.createElement
 const attr = cases((e, v, k, o = e[k]) => o === v ? 0 : e[k] = v,
   ["class", (e, v) => e.className = isarr(v) ? v.join(" ") : v],
   ["child", (e, v) => e.append(...asarr(v).map(v => isstr(v) ? text(v) : v))],
   ["tag", _ => { }], ["style", (e, v) => style(e, ...asarr(v))])
+$.style = (e, ...s) => (forof(s, s => forin(s, (v, k, n = isnum(v) ? `${v}px` : v) =>
+  k === "height" ? (e.style.height = "", e.style.height = n) // dirty hack for height property
+    : e.style[k] === n ? 0 : e.style[k] = n)), e)
 $.elm = (e, o = {}, f) => (isstr(e) ? e = _elm(e) : 0,
   forin(o, (v, k) => attr(k, e, v, k)), f ? f(e) : 0, e)
 $.dom = (o = {}, p, n = o.tag ?? "div") => elm(n, o, p ? p.append.bind(p) : 0)
@@ -52,7 +52,6 @@ const _l = {}, load = async (u, l = _l[u]) => l ? l : _l[u] = await (await fetch
 $.scope = (o, e = Object.create(o)) => Object.defineProperty(e, "$", { value: e })
 $.asfct = async (u, f) => (f = genc(await load(u)), async (a = {},
   e = $, o = scope(e)) => (forin(a, (v, k) => o[k] = v), await f(o)()))
-$.setdef = (o, k, v) => o.hasOwnProperty(k) && !isnth(o[k]) ? 0 : o[k] = v
 
 const loadlist = "./idb.js ./env.js ./sandbox.js ./react.js";
 [$.idb, $.envjs, $.sandbox, $.react] =
@@ -73,7 +72,18 @@ style(document.body, { margin: 0, height: "100%" })
 with (await sandbox({ root: document.body })) {
   style(document.documentElement, { height: "100%" })
   style(document.body, { margin: 0, height: "100%" })
-  $.schedule = ((f = () => (requestAnimationFrame(f), forof(s, v => v()),
-    s = new Set), s = new Set) => (f(), s.add.bind(s)))()
-  $.rootenv = await envjs({ root: document.body }, $)
+
+  $.schedule = ((f = (t, o = m) => (requestAnimationFrame(f), m = new Map
+    , forof(o, ([f, r]) => (f(), r()))), m = new Map) => (f(),
+      (f, r, p = new Promise(s => r = s)) => (m.set(f, r), p)))()
+
+  const _drag = new Map
+  addEventListener("pointermove", e => forof(_drag,
+    ([_, { b, m }]) => b ? m?.(e, e.view.window) : 0))
+  addEventListener("pointerup", e => forof(_drag,
+    ([_, v]) => (v.b = false, v.u?.(e, e.view.window))))
+  $.deldrag = _drag.delete.bind(_drag), $.adddrag = (o, m, u) => (
+    _drag.set(o, { b: false, m, u }), () => _drag.get(o).b = true)
+
+  $.rootenv = await envjs({ root: document.body }, window)
 }

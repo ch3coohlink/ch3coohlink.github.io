@@ -1,5 +1,5 @@
-setdef($, "name", "default")
-setdef($, "store", "default")
+$.name ??= "default"
+$.store ??= "default"
 
 $.dbp = new Promise((res, rej, r = indexedDB.open(name)) => (
   r.onsuccess = () => res(r.result),
