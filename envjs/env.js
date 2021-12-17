@@ -1,4 +1,4 @@
-$.data ??= rarr(...maprg(100, i => i + "\n" + i))
+$.data ??= rarr(...maprg(100, i => `log(${i})`))
 $.edtscale ??= 0.5, $.exescale ??= 0.5
 $.focus = 0
 $.view = {}
@@ -14,7 +14,7 @@ $.repleditor = d => {
 }
 
 $.texteditor = (d, i) => {
-  const e = view[d[suid]] ?? dom({}, null, "textarea")
+  const e = view[d[suid]] ?? dom({}, 0, "textarea")
   style(e, { top: d.top, zIndex: "" + i, height: d.height })
   d.oninput ??= _ => (d.v = e.value, schedule(() => repleditor(data)))
   d.onfocus ??= _ => $.focus = e.i
@@ -30,61 +30,32 @@ css("textarea", { display: "block", boxSizing: "border-box" },
   { lineHeight: 16, fontSize: 15, fontFamily: "consolas, courier new, monospace" })
 css(".no-scroll-bar::-webkit-scrollbar", { display: "none" })
 css(".no-scroll-bar", { MsOverflowStyle: "none", scrollbarWidth: "none" })
-css(".stripe-background", { backgroundImage: `linear-gradient(-45deg, #ffffff33 25%, #00000000 25%, #00000000 50%, #ffffff33 50%, #ffffff33 75%, #00000000 75%, #00000000)`, backgroundColor: "#bbb", backgroundSize: "20px 20px" })
-css(".stripe-background-2", { backgroundImage: `linear-gradient(45deg, #ffffff33 25%, #00000000 25%, #00000000 50%, #ffffff33 50%, #ffffff33 75%, #00000000 75%, #00000000)`, backgroundSize: "20px 20px" })
-css(".resizer:hover", { background: "#00000066" })
-css(".resizer", { transition: "background 0.3s", position: "absolute" })
-css(".noflow", { position: "relative", overflow: "hidden", display: "flex" })
+const sz = 20, ac = "#ffffff33", bc = "#00000000", stp = d => "linear-gradient(" +
+  `${d}deg, ${ac} 25%, ${bc} 25%, ${bc} 50%, ${ac} 50%, ${ac} 75%, ${bc} 75%, ${bc})`
+css(".stripe-background", { backgroundImage: stp(45), backgroundSize: `${sz}px ${sz}px` })
+css(".stripe-background-2", { backgroundImage: stp(-45), backgroundSize: `${sz}px ${sz}px` })
 
 $.warp = dom({ class: "noflow", style: { height: "100%", touchAction: "none" } }, shadow)
 $.edtdiv = repleditor(data), $.execdiv = dom({ class: "stripe-background noflow" }, warp)
-style(execdiv, { flexDirection: "column" })
+style(execdiv, { flexDirection: "column", backgroundColor: "#bbb" })
 $.appdiv = dom({}, execdiv), $.sdbxdiv = dom({}, appdiv)
 $.dbgdiv = dom({ class: "stripe-background-2" }, execdiv)
-style(appdiv, { height: "50%", position: "relative", overflow: "hidden" })
-style(dbgdiv, { height: "50%", position: "relative", overflow: "auto" })
+style(appdiv, { position: "relative", overflow: "hidden" })
+style(dbgdiv, { position: "relative", overflow: "auto" })
 
-$.setusersize = us => ($.usersize = us, resize()), $.resize = () => {
-  const [tx, ty] = $.usersize ?? [warp.clientWidth, warp.clientHeight]
-  const [rx, ry] = [appdiv.clientWidth, appdiv.clientHeight]
-  const scale = (x, [tl, rl] = x ? [tx, rx] : [ty, ry]) => rl / tl
-  let x = tx >= ty, s = scale(x); (!x ? rx < tx * s : ry < ty * s)
-    ? s = scale(x = !x) : 0; const t = (!x ? rx - tx * s : ry - ty * s) / 2
-  style(sdbxdiv, { width: tx, height: ty, background: "white" })
-  style(sdbxdiv, { transform: `translate${!x ? "X" : "Y"}(${t}px) scale(${s})` })
-  style(sdbxdiv, { transformOrigin: "left top", position: "absolute" })
-}; new ResizeObserver(resize).observe(appdiv)
+await envjs_resize({}, 0, $)
 
-const resizebar_width = 17.5, rbw = resizebar_width, pct = s => s * 100 + "%"
-const noselect = w => w.getSelection().removeAllRanges()
-const toclose = (s, i, a = Infinity) => (s === 0 || s === 1 ? 0.5 : (forof([0, 0.5, 1]
-  .map(v => [v, Math.abs(s - v)]), ([v, c]) => a > c ? (a = c, i = v) : 0), i))
+$.step = async (i = execat, d = data[i]) => {
+  if (!d) return false; try { await gencode(d.v)(sdbx)() }
+  catch (e) { log(e); return false } $.execat++; return true
+}, $.stepback = async (i = execat - 1) => (refresh(), await runtill(i))
+$.runtill = async i => { while (execat < i && await step()); }
+$.refresh = async () => ($.sdbx?.destroy?.(), $.execat = 0,
+  $.sdbx = await sandbox({ root: sdbxdiv }, proto($))), await refresh()
 
-$.edtrb = dom({ class: "resizer" }), edtdiv.after(edtrb)
-style(edtrb, { width: rbw, height: "100%", cursor: "col-resize", zIndex: "98" })
-$.rszedt = (s = edtscale, l = (e = 2) => `calc(${pct(s)} - ${rbw / e}px)`) => (
-  $.edtscale = s, style(edtdiv, { width: pct(s) }), style(allrb, { left: l(2 / ars) }),
-  style(edtrb, { left: l() }), style(execdiv, { width: pct(1 - s) }))
-edtrb.onpointerdown = adddrag(edtrb, (e, w) => (noselect(w), rszedt(mn(mx(e.x, 0) / w.innerWidth, 1))))
-edtrb.ondblclick = () => rszedt(edtscale === 0.5 ? 0 : toclose(edtscale))
-
-$.exerb = dom({ class: "resizer" }), appdiv.after(exerb)
-style(exerb, { width: "100%", height: rbw, cursor: "row-resize", zIndex: "97" })
-$.rszexe = (s = exescale, t = (e = 2) => `calc(${pct(s)} - ${rbw / e}px)`) => (
-  $.exescale = s, style(appdiv, { height: pct(s) }), style(allrb, { top: t(2 / ars) }),
-  style(exerb, { top: t() }), style(dbgdiv, { height: pct(1 - s) }))
-exerb.onpointerdown = adddrag(exerb, (e, w) => (noselect(w), rszexe(mn(mx(e.y, 0) / w.innerHeight, 1))))
-exerb.ondblclick = () => rszexe(exescale === 0.5 ? 1 : toclose(exescale))
-
-$.allrb = dom({ class: "resizer" }), edtrb.after(allrb), $.ars = 2
-style(allrb, { width: rbw * ars, height: rbw * ars, cursor: "all-scroll", zIndex: "99" })
-allrb.onpointerdown = adddrag(allrb, (e, w) => (noselect(w),
-  rszedt(mn(mx(e.x, 0) / w.innerWidth, 1)), rszexe(mn(mx(e.y, 0) / w.innerHeight, 1))))
-allrb.ondblclick = () => (edtrb.ondblclick(), exerb.ondblclick())
-
-const _tstyle = { transition: "all 0.3s ease-in-out 0s" }
-style(edtdiv, _tstyle), style(execdiv, _tstyle)
-style(appdiv, _tstyle), style(dbgdiv, _tstyle)
-
-rszedt(edtscale), rszexe(exescale)
-$.sdbx = await sandbox({ root: sdbxdiv }, proto($))
+style(dbgdiv, { userSelect: "none" })
+css(".button", { display: "inline", margin: 5, padding: 10, background: "white", borderRadius: 10 })
+dom({ child: "⏮", onclick: () => refresh(), class: "button" }, dbgdiv)
+dom({ child: "◀", onclick: () => stepback(), class: "button" }, dbgdiv)
+dom({ child: "▶", onclick: () => step(), class: "button" }, dbgdiv)
+dom({ child: "⏭", onclick: () => stepback(Infinity), class: "button" }, dbgdiv)

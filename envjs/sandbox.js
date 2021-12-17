@@ -45,7 +45,7 @@ forof(eventname, t => window.addEventListener(t, dispatcher[t] = dispatch(t)))
 
 // clear everything inside sandbox
 $.destroy = () => {
-  shadow.remove()
+  root.innerHTML = ""
   forin(dispatcher, (v, k) => { window.removeEventListener(k, v) })
   forof(_a, cancelAnimationFrame)
   forof(_i, clearInterval)
@@ -55,6 +55,7 @@ $.destroy = () => {
 // warp a window interface
 // (maybe proxy is not a good choice here)
 // (P.S bad news! proxy do not work with "with" keyword )
+// (P.P.S not very sure about this, need more test )
 const _ = assign(scope(proto($)), {
   document: new Proxy(document, {
     get: (t, k) => {

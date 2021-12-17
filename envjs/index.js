@@ -47,14 +47,14 @@ $.clearInterval = f => { ci(_i.get(f)), _i.delete(f) }
 $.setTimeout = (f, t) => { _t.set(f, st(f, t)) }
 $.clearTimeout = f => { ct(_t.get(f)), _t.delete(f) }
 
-const genc = c => Function("$", `with ($) { return async () => {\n"use strict";\n${c}\n} }`)
+$.gencode = c => Function("$", `with ($) { return async () => {\n"use strict";\n${c}\n} }`)
 const _l = {}, load = async (u, l = _l[u]) => l ? l : _l[u] = await (await fetch(u)).text()
 $.scope = (o, e = Object.create(o)) => Object.defineProperty(e, "$", { value: e })
-$.asfct = async (u, f) => (f = genc(await load(u)), async (a = {},
+$.asfct = async (u, f) => (f = gencode(await load(u)), async (a = {},
   e = $, o = scope(e)) => (forin(a, (v, k) => o[k] = v), await f(o)()))
 
-const loadlist = "./idb.js ./env.js ./sandbox.js ./react.js";
-[$.idb, $.envjs, $.sandbox, $.react] =
+const loadlist = `./idb.js ./env.js ./sandbox.js ./react.js ./envjs/resize.js`;
+[$.idb, $.envjs, $.sandbox, $.react, $.envjs_resize] =
   await Promise.all(loadlist.split(" ").map(v => asfct(v)))
 await react({})
 
