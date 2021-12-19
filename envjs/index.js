@@ -53,9 +53,10 @@ $.scope = (o, e = Object.create(o)) => Object.defineProperty(e, "$", { value: e 
 $.asfct = async (u, f) => (f = gencode(await load(u)), async (a = {},
   e = $, o = scope(e)) => (forin(a, (v, k) => o[k] = v), await f(o)()))
 
-const loadlist = `./idb.js ./env.js ./sandbox.js ./react.js ./envjs/resize.js`;
-[$.idb, $.envjs, $.sandbox, $.react, $.envjs_resize] =
-  await Promise.all(loadlist.split(" ").map(v => asfct(v)))
+const loadlist = `./idb.js ./env.js ./sandbox.js ./react.js
+./envjs/resize.js ./envjs/exec.js`;
+[$.idb, $.envjs, $.sandbox, $.react, $.envjs_resize, $.envjs_exec] =
+  await Promise.all(loadlist.split(/\s/).map(v => asfct(v)))
 await react({})
 
 const peerjs = async () => (
@@ -73,15 +74,21 @@ with (await sandbox({ root: document.body })) {
   style(document.documentElement, { height: "100%" })
   style(document.body, { margin: 0, height: "100%" })
 
-  $.schedule = ((f = (t, o = m) => (requestAnimationFrame(f), m = new Map
-    , forof(o, ([f, r]) => (f(), r()))), m = new Map) => (f(),
-      (f, r, p = new Promise(s => r = s)) => (m.set(f, r), p)))()
+  {
+    let m = new Map, f = (t, o = m) => (
+      requestAnimationFrame(f), m = new Map, forof(o, ([_, { f, r, j }]
+      ) => { try { f() } catch (e) { j(e) } r() }))
+    $.schedule = (u, f) => {
+      let r, j, p = new Promise((a, b) => (r = a, j = b))
+      m.set(u, { f, r, j }); return p
+    }, f()
+  }
 
   const _drag = new Map
   addEventListener("pointermove", e => forof(_drag,
     ([_, { b, m }]) => b ? m?.(e, e.view.window) : 0))
   addEventListener("pointerup", e => forof(_drag,
-    ([_, v]) => (v.b = false, v.u?.(e, e.view.window))))
+    ([_, v]) => v.b ? (v.b = false, v.u?.(e, e.view.window)) : 0))
   $.deldrag = _drag.delete.bind(_drag), $.adddrag = (o, m, u) => (
     _drag.set(o, { b: false, m, u }), () => _drag.get(o).b = true)
 

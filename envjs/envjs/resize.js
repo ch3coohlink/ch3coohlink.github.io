@@ -14,7 +14,7 @@ $.setusersize = us => ($.usersize = us, resize()), $.resize = () => {
 }; new ResizeObserver(resize).observe(appdiv)
 
 const resizebar_width = 16, rbw = resizebar_width, pct = s => s * 100 + "%"
-const noselect = w => w.getSelection().removeAllRanges()
+$.noselect = w => w.getSelection().removeAllRanges()
 const toclose = (s, i, a = Infinity) => (s === 0 || s === 1 ? 0.5 : (forof([0, 0.5, 1]
   .map(v => [v, Math.abs(s - v)]), ([v, c]) => a > c ? (a = c, i = v) : 0), i))
 

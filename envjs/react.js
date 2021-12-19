@@ -22,8 +22,8 @@ const ap = proto([]), addid = v => {
   slice(s = 0, e = this.length) { return maprg(mn(e, this.length), i => this[i], mx(s, 0)) }
 } g.rarr = (...a) => new ReactArray(...a), g.suid = Symbol("uuid")
 
-g.updarr = (data, view, elm, item, keeporder = true) => {
-  const order = {}, worder = [], target = elm.childNodes
+g.updarr = (data, elm, item, keeporder = true) => {
+  const order = {}, worder = [], target = elm.childNodes, view = {}
 
   let quick = data.length === target.length
   forrg(data.length, (i, u = data[i][suid]) => u in order
@@ -31,8 +31,7 @@ g.updarr = (data, view, elm, item, keeporder = true) => {
     : (order[u] = i, !quick ? 0 : target[i][suid] === u ? 0 : quick = false))
 
   if (quick) { return } forof(target, (e, u = e[suid]) => u in view
-    ? (view[u] === e ? 0 : panic("duplicate uuid in dom"))
-    : u in order ? view[u] = e : (e.remove(), delete view[u]))
+    ? panic("duplicate uuid in dom") : u in order ? view[u] = e : e.remove())
 
   if (data.length === target.length) { return } forrg(data.length,
     (i, d = data[i], u = d[suid], e) => u in view ? 0
