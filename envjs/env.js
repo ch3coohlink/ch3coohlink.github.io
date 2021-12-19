@@ -1,5 +1,5 @@
 $.data ??= rarr(...maprg(100, i => `(${i})`))
-$.edtscale ??= 1, $.exescale ??= 0.5, $.focus ??= 0
+$.edtscale ??= 0.5, $.exescale ??= 0.5, $.focus ??= 0
 
 { // Execution model
   const te = (d, i) => schedule("steprepl" + i, () => texteditor(d, i))
