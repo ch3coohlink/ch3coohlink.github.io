@@ -16,8 +16,9 @@ const ap = proto([]), addid = v => {
   if (!v[suid]) { v[suid] = uuid() } return v
 }; class ReactArray extends Array {
   constructor(...a) { super(); this.push(...a) } splice(s, d, ...a) {
+    if (s < 0) { console.error(s, d, `this.length = ${s}`) }
     const r = this.slice(s + d), dl = this.slice(s, s + d)
-    this.length = s, this.push(...a, ...r); return dl
+    this.length = mx(s, 0), this.push(...a, ...r); return dl
   } push(...a) { return ap.push.call(this, ...a.map(addid)) }
   slice(s = 0, e = this.length) { return maprg(mn(e, this.length), i => this[i], mx(s, 0)) }
 } g.rarr = (...a) => new ReactArray(...a), g.suid = Symbol("uuid")
