@@ -6,14 +6,20 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>env.js</title>
   <script>
-    (async $ => (Object.defineProperty($, "$", { value: $ }),
-      Function("$", 'with ($) { return async () => {\n' +
-        `${await (await fetch("./index.js")).text()}\n} }`)($)()))({})
-    /*      WARP EVERYTHING INTO DYNAMIC SCOPE JAVASCRIPT      */
+    const dp = Object.defineProperty, ld = "boot envjs sandbox brwspec"
+    const $ = {}, _ = new Proxy($, { get: (t, k) => k in t ? t[k] : window[k] })
+    const code = c => `with($) { return (() => {\n"use strict"\n${c}\n})()}`
+    "$ window globalThis self".split(" ").forEach(n => dp($, n, { value: _ }))
+    const bindall = o => forin(o, (v, k) => typeof v === "function" ? o[k] = v.bind(o) : 0)
+    const forin = (o, f) => { for (const k in o) f(o[k], k) }; bindall(window)
+    window.$ = $, Promise.all(ld.split(" ").map(async n => $[n] = Function("$", code(await
+      (await fetch(`./js/${n}.js`)).text())))).then(() => ($.loadlist = ld, $.boot(_)))
   </script>
 </head>
 
 <body>
+  <!-- this div prevent an empty text node from generating -->
+  <div></div>
 </body>
 
 </html>

@@ -1,0 +1,54 @@
+const bindall = o => forin(o, (v, k) => isfct(v) ? o[k] = v.bind(o) : 0)
+$.log = console.log, $.clear = console.clear, bindall(document)
+
+const text = document.createTextNode, celm = {}, cns = document.createElementNS
+const csvg = n => cns("http://www.w3.org/2000/svg", n), dm = () => { }
+forof(`a script style title`.split(" "), v => celm[v] = document.createElement)
+forof(`abbr address area article aside audio b base bdi bdo blockquote body br button canvas caption cite code col colgroup data datalist dd del details dfn dialog dir div dl dt em embed fieldset figcaption figure font footer form frame frameset h1 h2 h3 h4 h5 h6 head header hgroup hr html i iframe img input ins kbd label legend li link main map mark marquee menu meta meter nav noscript object ol optgroup option output p param picture pre progress q rp rt ruby s samp section select slot small source span strong sub summary sup table tbody td template textarea tfoot th thead time tr track u ul var video wbr`.split(" "), v => celm[v] = document.createElement)
+forof(`animate animateMotion animateTransform circle clipPath defs desc ellipse feBlend feColorMatrix feComponentTransfer feComposite feConvolveMatrix feDiffuseLighting feDisplacementMap feDistantLight feDropShadow feFlood feFuncA feFuncB feFuncG feFuncR feGaussianBlur feImage feMerge feMergeNode feMorphology feOffset fePointLight feSpecularLighting feSpotLight feTile feTurbulence filter foreignObject g image line linearGradient marker mask metadata mpath path pattern polygon polyline radialGradient rect set stop svg switch symbol text textPath tspan use view`.split(" "), v => celm[v] = csvg)
+const _elm = (n, [s, t] = n.split("/")) => !t ? (n in celm ? celm[n](n)
+  : panic(`tag "${n}" is not valid`)) : s === "svg" ? csvg(t) : document.createElement(t)
+
+const cutht = (a, b) => {
+  let al = a.length, bl = b.length, l = Math.min(al, bl), s = 0, e = al, t = bl, x, y
+  for (; ; s++) { if (s >= l || a[s] !== b[s]) break } for (; ; e--, t--) {
+    if ((x = e - 1) <= s || (y = t - 1) <= s || a[x] !== b[y]) break
+  } return [s, e, t]
+}
+const sdiff = (n, p, ko = true) => {
+  let [s, e, t] = cutht(n, p), o = new Map, r = new Set, d = () => panic("duplication")
+  forrg(e, (i, v = n[i]) => o.has(v) ? d() : o.set(v, i), s); let w = []
+  forrg(t, (i, v = p[i]) => !o.has(v) ? w.push(i) : r.has(v) ? d() : r.add(v), s)
+  forof(w, i => p.splice(i, 1)), forrg(e, (i, v = n[i]) => r.has(v) ? 0 : p.splice(i, 0, v), s)
+  ko ? (w = [], forrg(e, (i, a = n[i], b = p[i]) => a === b ? 0 : w.unshift([i, o.get(b), b]), s),
+    forof(w, ([i]) => p.splice(i, 1)), w = w.sort(([, a], [, b]) => a - b),
+    forof(w, ([, i, v]) => p.splice(i, 0, v))) : 0
+}
+const domarr = (e, d = e.childNodes, f =
+  (i, c, a) => c ? e.removeChild(d[i]) : e.insertBefore(a, d[i])
+) => new Proxy({}, { get: (_, k) => k === "splice" ? f : d[k] })
+
+const asda = v => asarr(v).map(v => isstr(v) ? text(v) : v)
+const attr = cases((e, v, k, o = e[k]) => o === v ? 0 : e[k] = v,
+  ["class", (e, v) => e.className = isarr(v) ? v.join(" ") : v],
+  ["child", (e, v) => sdiff(asda(v), domarr(e))],
+  ["append", (e, v) => e.append(...asda(v))],
+  ["style", (e, v) => style(e, ...asarr(v))], ["tag", dm])
+$.style = (e, ...s) => (forof(s, s => forin(s, (v, k, n = isnum(v) ? `${v}px` : v) =>
+  k === "height" ? (e.style.height = "", e.style.height = n)
+    : e.style[k] === n ? 0 : e.style[k] = n)), e) // ⬆ dirty hack for height property
+$.elm = (e, o = {}, f) => (isstr(e) ? e = _elm(e) : 0,
+  forin(o, (v, k) => attr(k, e, v, k)), f ? f(e) : 0, e)
+$.dom = (o = {}, p, n = o.tag ?? "div") => elm(n, o, p ? p.append.bind(p) : 0)
+
+const hyph = s => s.replace(/[A-Z]/g, m => `-${m.toLowerCase()}`)
+const px = v => isnum(v) ? `${v}px` : v, rule = s => Object.keys(s)
+  .reduce((p, k) => p + `${hyph(k)}: ${px(s[k])}; `, "")
+$.createcss = e => (e = (e.tagName === "STYLE" ? e : dom({}, e, "style")),
+  (r, ...s) => e.sheet.insertRule(`${r} { ${s.map(v => rule(v)).join(" ")}}`))
+
+const dfrag = document.createDocumentFragment
+$.dsplice = (p, i, c, ...n) => ((d = p.childNodes, rm = [], l = d.length
+  , f = dfrag(), s = i < 0 ? l + i : i, e = isnum(c) ? s + c : l) => (
+  forrg(e, () => d[s] ? rm.push(p.removeChild(d[s])) : 0, s),
+  forof(n, e => f.appendChild(e)), p.insertBefore(f, d[s]), rm))()
