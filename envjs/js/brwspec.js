@@ -29,16 +29,18 @@ const domarr = (e, d = e.childNodes, f =
 ) => new Proxy({}, { get: (_, k) => k === "splice" ? f : d[k] })
 
 const asda = v => asarr(v).map(v => isstr(v) ? text(v) : v)
-const attr = cases((e, v, k, o = e[k]) => o === v ? 0 : e[k] = v,
-  ["class", (e, v) => e.className = isarr(v) ? v.join(" ") : v],
-  ["child", (e, v) => sdiff(asda(v), domarr(e))],
-  ["append", (e, v) => e.append(...asda(v))],
-  ["style", (e, v) => style(e, ...asarr(v))], ["tag", dm])
+const attr = [["class", (e, v) => e.className = isarr(v) ? v.join(" ") : v],
+["child", (e, v, _, o) => sdiff(asda(v), domarr(e), o.keeporder)],
+["append", (e, v) => e.append(...asda(v))], ["keeporder", dm],
+["style", (e, v) => style(e, ...asarr(v))], ["tag", dm]]
+const htmlattr = cases((e, v, k) => e[k] === v ? 0 : e[k] = v, ...attr)
+const svgspa = new Set("viewBox".split(" ")), svgattr = cases((e, v, k) =>
+  e.setAttributeNS(null, svgspa.has(k) ? k : hyph(k), v), ...attr)
 $.style = (e, ...s) => (forof(s, s => forin(s, (v, k, n = isnum(v) ? `${v}px` : v) =>
   k === "height" ? (e.style.height = "", e.style.height = n)
     : e.style[k] === n ? 0 : e.style[k] = n)), e) // ⬆ dirty hack for height property
-$.elm = (e, o = {}, f) => (isstr(e) ? e = _elm(e) : 0,
-  forin(o, (v, k) => attr(k, e, v, k)), f ? f(e) : 0, e)
+$.elm = (e, o = {}, f, a) => (isstr(e) ? e = _elm(e) : 0, a = e instanceof SVGElement
+  ? svgattr : htmlattr, forin(o, (v, k) => a(k, e, v, k, o)), f ? f(e) : 0, e)
 $.dom = (o = {}, p, n = o.tag ?? "div") => elm(n, o, p ? p.append.bind(p) : 0)
 
 const hyph = s => s.replace(/[A-Z]/g, m => `-${m.toLowerCase()}`)

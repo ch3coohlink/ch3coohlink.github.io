@@ -31,7 +31,8 @@ const string_editor = d => {
   const edt = dom({ tag: "input", value: d.v, oninput, spellcheck: false })
   elm(d.e, { append: [edt] }), d.d = dom({ child: d.v }), style(edt, { width: "100%" })
 }
-const change_tag = (t, o, n = dom({ tag: t })) => (o.before(n), o.remove(), n)
+const change_tag = (t, o, n = dom({ tag: t })) => (
+  o.before(n), n.append(...o.childNodes), o.remove(), n)
 const tag_editor = d => {
   const oninput = () => d.d.textContent = text.value
   const changetag = (_, n = tag.value) => d.d.tagName.toLowerCase() === n
@@ -99,14 +100,14 @@ const tree_item = f => (add, remove, swap) => (v, s, i = 0) => {
     ([data[i], data[i + d]] = [data[i + d], data[i]], sync()) : 0
   const item = tree_item(f)(cadd, cremove, cswap)
   const sync = () => (forrg(data.length, i => data[i].i = i),
-    elm(cdiv, { child: data.map(v => v.e) }), elm(d.d, { child: data.map(v => v.d) }))
+    elm(cdiv, { child: data.map(v => v.e) }), elm(c.d, { child: data.map(v => v.d) }))
   const data = isarr(v) ? v.map(v => item(v, d.s, i + 1)) : []
   const cdiv = dom({ style: { paddingLeft: 5, background: "#0000004a" } })
-  const c = isarr(v) ? { v: "", s: d.s } : { ...d }
-  c.e = dom({ style: { display: "flex" } }), c.d = d.d = dom(), f(c), elm(c.e, { append })
-  d.e = dom({ child: [c.e, cdiv] })
+  const c = isarr(v) ? { v: "", s: d.s } : { ...d }; c.e = dom({ style: { display: "flex" } })
+  c.d = dom(), f(c), elm(c.e, { append }), d.e = dom({ child: [c.e, cdiv] })
   style(d.e, { transition: "all 0.3s", transform: "translateX(1000px)", opacity: "0" })
-  setTimeout(() => { style(d.e, { transform: "", opacity: "" }) }, 40); return d
+  setTimeout(() => { style(d.e, { transform: "", opacity: "" }) }, 40)
+  setTimeout(() => sync()), property(d, "d", { get: () => c.d }); return d
 }
 
 const br = () => dom({ tag: "br" })
@@ -120,7 +121,7 @@ dom({
     "让我们来写一个制作网页的工具。", br(),
     "（本文假设读者能够编写JavaScript，了解DOM的基本操作）", br(),
     "（请在电脑上查看本页面）", br(),
-    dom({ tag: "h2", child: "1.沙盒与dom函数" }),
+    dom({ tag: "h2", child: "1. 沙盒与dom函数" }),
     "下面提供了一个简单的JavaScript运行环境：左边输入代码，右边展示对应的网页结果。", br(),
     "dom这个函数是预先准备好的，它的使用方法如下面几个例子所示：", br(),
     `1. 这个例子将创建一个内容为"hello world"的div标签，将其插入到document.body元素中`, br(),
@@ -187,7 +188,13 @@ style: {
 }`], array_item(dom_editor), () => "", 300),
     "借助上面的这个编辑器，我们已经可以编辑任何", dom({ child: "数组形式", tag: "b" }), "的DOM了，", br(),
     "很自然地，我们会想把这种编辑方式拓展到树形结构：", br(),
-    array_editor([], tree_item(dom_editor), () => "", 300)
+    array_editor([], tree_item(dom_editor), () => "", 300),
+    "(TODO：缺用例，编辑器初始化逻辑需要修改)", br(),
+    dom({ tag: "h2", child: "3. 自定义标签，动态作用域" }),
+    "一个有用的GUI程序除了DOM结构以及样式之外，最重要的还是要通过脚本具有相应的行为。", br(),
+    "那么，要如何把DOM编辑与JavaScript结合起来？", br(),
+    "一种可能的方法是将每个编辑的DOM片段保存下来，定义为一个自定义标签，以对其进行组合或拓展。", br(),
+    "下面是一个自定义标签编辑器：", br(),
   ]
 }, body)
 
