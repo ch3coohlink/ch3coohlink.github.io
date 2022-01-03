@@ -46,6 +46,7 @@ const px = v => isnum(v) ? `${v}px` : v, rule = s => Object.keys(s)
   .reduce((p, k) => p + `${hyph(k)}: ${px(s[k])}; `, "")
 $.createcss = e => (e = (e.tagName === "STYLE" ? e : dom({}, e, "style")),
   (r, ...s) => e.sheet.insertRule(`${r} { ${s.map(v => rule(v)).join(" ")}}`))
+$.css = createcss(document.head)
 
 const dfrag = document.createDocumentFragment
 $.dsplice = (p, i, c, ...n) => ((d = p.childNodes, rm = [], l = d.length

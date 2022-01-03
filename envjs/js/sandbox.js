@@ -44,7 +44,8 @@ addEventListener("pointerup", e => forof(dragm,
   ([_, v], { b, u } = v) => b ? (v.b = false, u?.(e, e.view.window)) : 0))
 
 // warp a window interface
-const w = {}, _ = new Proxy(w, { get: (t, k) => k in t ? t[k] : $[k] })
+const w = {}, _ = w // this proxy not work as the one in index.html, mysterious
+// new Proxy(w, { get: (t, k) => k in t ? t[k] : $[k] }) // really, why?
 forof("$ window globalThis self".split(" "), n => property(w, n, { value: _ }))
 const get = (t, k) => k === "documentElement" ? html : k === "body" ? body : t[k]
 assign(w, { document: new Proxy(document, { get }), destroy, css })
