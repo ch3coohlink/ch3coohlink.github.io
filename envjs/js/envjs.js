@@ -29,24 +29,26 @@ const jsenv = (f, o) => {
 const string_editor = d => {
   const oninput = e => d.d.textContent = e.target.value
   const edt = dom({ tag: "input", value: d.v, oninput, spellcheck: false })
-  elm(d.e, { append: [edt] }), d.d = dom({ child: d.v }), style(edt, { width: "100%" })
+  elm(d.e, { child: edt }), d.d = dom({ child: d.v }), style(edt, { width: "100%" })
 }
 const change_tag = (t, o, n = dom({ tag: t })) => (
   o.before(n), n.append(...o.childNodes), o.remove(), n)
 const tag_editor = d => {
   const oninput = () => d.d.textContent = text.value
   const changetag = (_, n = tag.value) => d.d.tagName.toLowerCase() === n
-    ? 0 : elm(d.d = change_tag(n, d.d), { append: text.value })
+    ? 0 : elm(d.d = change_tag(n, d.d), { child: text.value })
   const tag = dom({ tag: "input", value: d.v[0], oninput: changetag })
   const text = dom({ tag: "input", value: d.v[1], oninput, spellcheck: false })
   elm(tag, { spellcheck: false, style: { width: 60 } }), style(text, { width: "100%" })
-  elm(d.e, { append: [tag, text] }), changetag(0, d.v[0])
+  elm(d.e, { child: [tag, text] }), changetag(0, d.v[0])
 }
 const dom_editor = d => {
-  const resize = () => style(ctn, { height: js.value.split(/\r?\n/).length * 16 + 4 })
+  const resize = () => style(ctn, { height: js.value.split(/\r?\n/).length * 16 + 8 })
   const updateelm = (c = js.value) => {
-    const o = Function("$", `with($){\nreturn {\n${c}\n}\n}`)(d.s()), t = o.tag ?? "div"
-    if (d.d.tagName.toLowerCase() !== t) d.d = change_tag(t, d.d); elm(d.d, deletep(o, "tag"))
+    const o = Function("$", `with($){\nreturn {\n${c}\n}\n}`)(d.s())
+    const t = o.tag ?? "div"; o.diff ??= true
+    if (d.d.tagName.toLowerCase() !== t) { d.d = change_tag(t, d.d) }
+    elm(d.d, deletep(o, "tag"))
   }, oninput = () => (resize(), updateelm())
   const js = dom({ tag: "textarea", value: d.v, oninput, spellcheck: false, class: "nool" })
   style(js, { resize: "none", width: "100%", padding: 0, lineHeight: 16 },
@@ -54,17 +56,17 @@ const dom_editor = d => {
     { height: "100%", display: "block" }) // all these hassle to fixup a little padding problem...
   elm(js, { onfocus: () => style(ctn, { outline: "auto 1px" }) })
   elm(js, { onblur: () => style(ctn, { outline: "" }) })
-  const ctn = style(dom({ append: js }), { width: "100%", padding: 2, lineHeight: 16 },
-    { boxSizing: "border-box", border: "grey 0.5px solid", minHeight: 24 })
-  elm(d.e, { append: ctn }), setTimeout(oninput, 10)
+  const ctn = style(dom({ child: js }), { width: "100%", padding: 2, lineHeight: 16 },
+    { boxSizing: "border-box", border: d.bd ?? "grey 0.5px solid", minHeight: 24 })
+  elm(d.e, { child: ctn }), setTimeout(oninput, 10)
 }
 const array_item = f => (add, remove, swap) => (v, s) => {
-  const d = { v, s }, append = [
+  const d = { v, s }, child = [
     dom({ tag: "button", child: "⬆", style: { width: 30 }, onclick: () => swap(d.i, -1) }),
     dom({ tag: "button", child: "⬇", style: { width: 30 }, onclick: () => swap(d.i, +1) }),
     dom({ tag: "button", child: "+", style: { width: 30 }, onclick: () => add(d.i) }),
     dom({ tag: "button", child: "-", style: { width: 30 }, onclick: () => remove(d.i) })]
-  d.e = dom(), d.d = dom(), f(d), elm(d.e, { append }), style(d.e,
+  d.e = dom(), d.d = dom(), f(d), elm(d.e, { child }), style(d.e,
     { display: "flex", transition: "all 0.3s" },
     { transform: "translateX(1000px)", opacity: "0" })
   setTimeout(() => { style(d.e, { transform: "", opacity: "" }) }, 40); return d
@@ -76,8 +78,8 @@ const array_editor = (a = [], citem = array_item(string_editor), def = () => "",
     ([data[i], data[i + d]] = [data[i + d], data[i]], sync()) : 0
   let sdbx, edt, hst, item = citem(add, remove, swap), sync = () => (
     forrg(data.length, i => data[i].i = i),
-    elm(edt, { child: data.map(v => v.e) }),
-    elm(sdbx.document.body, { child: data.map(v => v.d) }))
+    elm(edt, { child: data.map(v => v.e), diff: true }),
+    elm(sdbx.document.body, { child: data.map(v => v.d), diff: true }))
   const data = (a.length === 0 ? a.push(def()) : 0, a.map(v => item(v, () => sdbx)))
   const ret = dom({ child: [edt = dom(), hst = dom()] })
   style(ret, { display: "flex", overflow: "hidden", height: h, whiteSpace: "pre" })
@@ -88,7 +90,7 @@ const array_editor = (a = [], citem = array_item(string_editor), def = () => "",
   return ret
 }
 const tree_item = f => (add, remove, swap) => (v, s, i = 0) => {
-  const d = { v, s }, append = [
+  const d = { v, s }, child = [
     dom({ tag: "button", child: "⬆", style: { width: 30 }, onclick: () => swap(d.i, -1) }),
     dom({ tag: "button", child: "⬇", style: { width: 30 }, onclick: () => swap(d.i, +1) }),
     dom({ tag: "button", child: "⫟", style: { width: 30 }, onclick: () => cadd(-1) }),
@@ -100,11 +102,12 @@ const tree_item = f => (add, remove, swap) => (v, s, i = 0) => {
     ([data[i], data[i + d]] = [data[i + d], data[i]], sync()) : 0
   const item = tree_item(f)(cadd, cremove, cswap)
   const sync = () => (forrg(data.length, i => data[i].i = i),
-    elm(cdiv, { child: data.map(v => v.e) }), elm(c.d, { child: data.map(v => v.d) }))
+    elm(cdiv, { child: data.map(v => v.e), diff: true }),
+    elm(c.d, { child: data.map(v => v.d), diff: true }))
   const data = isarr(v) ? v.map(v => item(v, d.s, i + 1)) : []
-  const cdiv = dom({ style: { paddingLeft: 5, background: "#0000004a" } })
-  const c = isarr(v) ? { v: "", s: d.s } : { ...d }; c.e = dom({ style: { display: "flex" } })
-  c.d = dom(), f(c), elm(c.e, { append }), d.e = dom({ child: [c.e, cdiv] })
+  const cdiv = dom({ style: { paddingLeft: 5 } }), c = { v: isarr(v) ? "" : v, s: d.s, bd: "" }
+  c.e = dom({ style: { display: "flex" } }), c.d = dom(), f(c), elm(c.e, { child })
+  d.e = dom({ child: [c.e, cdiv] }), style(d.e, { background: "#11111120" })
   style(d.e, { transition: "all 0.3s", transform: "translateX(1000px)", opacity: "0" })
   setTimeout(() => { style(d.e, { transform: "", opacity: "" }) }, 40)
   setTimeout(() => sync()), property(d, "d", { get: () => c.d }); return d
@@ -115,7 +118,7 @@ style(body, { margin: 80, lineHeight: "2em" })
 style(body, { display: "flex", flexDirection: "column", alignItems: "center" })
 css(".nool:focus", { outline: "none" }), css(".wtol:focus", { outline: "solid" })
 dom({
-  style: { width: 900 }, child: [
+  style: { minWidth: 600 }, child: [
     dom({ tag: "h1", child: "文学编程示例-网页开发工具" }),
     dom({ style: { textAlign: "right" }, child: "幻想软件研究@12/30/2021" }),
     "让我们来写一个制作网页的工具。", br(),

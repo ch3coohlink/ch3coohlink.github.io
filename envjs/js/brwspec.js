@@ -30,12 +30,10 @@ const domarr = (e, d = e.childNodes, f =
 
 const asda = v => asarr(v).map(v => isstr(v) ? text(v) : v)
 const attr = [["class", (e, v) => e.className = isarr(v) ? v.join(" ") : v],
-["child", (e, v, _, o) => sdiff(asda(v), domarr(e), o.keeporder)],
-["append", (e, v) => e.append(...asda(v))], ["keeporder", dm],
-["style", (e, v) => style(e, ...asarr(v))], ["tag", dm]]
+["child", (e, v, _, o) => o.diff ? sdiff(asda(v), domarr(e), o.keeporder) : e.append(...asda(v))],
+["style", (e, v) => style(e, ...asarr(v))], ..."diff keeporder tag".split(" ").map(v => [v, dm])]
 const htmlattr = cases((e, v, k) => e[k] === v ? 0 : e[k] = v, ...attr)
-const svgspa = new Set("viewBox".split(" ")), svgattr = cases((e, v, k) =>
-  e.setAttributeNS(null, svgspa.has(k) ? k : hyph(k), v), ...attr)
+const svgattr = cases((e, v, k) => e.setAttributeNS(null, k, v), ...attr)
 $.style = (e, ...s) => (forof(s, s => forin(s, (v, k, n = isnum(v) ? `${v}px` : v) =>
   k === "height" ? (e.style.height = "", e.style.height = n)
     : e.style[k] === n ? 0 : e.style[k] = n)), e) // ⬆ dirty hack for height property
