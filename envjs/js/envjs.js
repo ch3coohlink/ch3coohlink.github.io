@@ -201,4 +201,4 @@ style: {
   ]
 }, body)
 
-window.scrollTo(0, document.body.scrollHeight)
+scrollTo(0, document.body.scrollHeight) // debug
