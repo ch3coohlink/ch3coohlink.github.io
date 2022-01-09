@@ -1,14 +1,6 @@
 const bindall = o => forin(o, (v, k) => isfct(v) ? o[k] = v.bind(o) : 0)
 $.log = console.log, $.clear = console.clear, bindall(document)
 
-const text = document.createTextNode, celm = {}, cns = document.createElementNS
-const csvg = n => cns("http://www.w3.org/2000/svg", n), dm = () => { }
-forof(`a script style title`.split(" "), v => celm[v] = document.createElement)
-forof(`abbr address area article aside audio b base bdi bdo blockquote body br button canvas caption cite code col colgroup data datalist dd del details dfn dialog dir div dl dt em embed fieldset figcaption figure font footer form frame frameset h1 h2 h3 h4 h5 h6 head header hgroup hr html i iframe img input ins kbd label legend li link main map mark marquee menu meta meter nav noscript object ol optgroup option output p param picture pre progress q rp rt ruby s samp section select slot small source span strong sub summary sup table tbody td template textarea tfoot th thead time tr track u ul var video wbr`.split(" "), v => celm[v] = document.createElement)
-forof(`animate animateMotion animateTransform circle clipPath defs desc ellipse feBlend feColorMatrix feComponentTransfer feComposite feConvolveMatrix feDiffuseLighting feDisplacementMap feDistantLight feDropShadow feFlood feFuncA feFuncB feFuncG feFuncR feGaussianBlur feImage feMerge feMergeNode feMorphology feOffset fePointLight feSpecularLighting feSpotLight feTile feTurbulence filter foreignObject g image line linearGradient marker mask metadata mpath path pattern polygon polyline radialGradient rect set stop svg switch symbol text textPath tspan use view`.split(" "), v => celm[v] = csvg)
-const _elm = (n, [s, t] = n.split("/")) => !t ? (n in celm ? celm[n](n)
-  : panic(`tag "${n}" is not valid`)) : s === "svg" ? csvg(t) : document.createElement(t)
-
 const cutht = (a, b) => {
   let al = a.length, bl = b.length, l = Math.min(al, bl), s = 0, e = al, t = bl, x, y
   for (; ; s++) { if (s >= l || a[s] !== b[s]) break } for (; ; e--, t--) {
@@ -40,6 +32,19 @@ $.style = (e, ...s) => (forof(s, s => forin(s, (v, k, n = isnum(v) ? `${v}px` : 
 $.elm = (e, o = {}, f, a) => (isstr(e) ? e = _elm(e) : 0, a = e instanceof SVGElement
   ? svgattr : htmlattr, forin(o, (v, k) => a(k, e, v, k, o)), f ? f(e) : 0, e)
 $.dom = (o = {}, p, n = o.tag ?? "div") => elm(n, o, p ? p.append.bind(p) : 0)
+
+const text = document.createTextNode, celm = {}, cns = document.createElementNS
+const csvg = n => cns("http://www.w3.org/2000/svg", n), dm = () => { }
+forof(`a script style title`.split(" "), v => celm[v] = document.createElement)
+forof(`abbr address area article aside audio b base bdi bdo blockquote body br button canvas caption cite code col colgroup data datalist dd del details dfn dialog dir div dl dt em embed fieldset figcaption figure font footer form frame frameset h1 h2 h3 h4 h5 h6 head header hgroup hr html i iframe img input ins kbd label legend li link main map mark marquee menu meta meter nav noscript object ol optgroup option output p param picture pre progress q rp rt ruby s samp section select slot small source span strong sub summary sup table tbody td template textarea tfoot th thead time tr track u ul var video wbr`.split(" "), v => celm[v] = document.createElement)
+forof(`animate animateMotion animateTransform circle clipPath defs desc ellipse feBlend feColorMatrix feComponentTransfer feComposite feConvolveMatrix feDiffuseLighting feDisplacementMap feDistantLight feDropShadow feFlood feFuncA feFuncB feFuncG feFuncR feGaussianBlur feImage feMerge feMergeNode feMorphology feOffset fePointLight feSpecularLighting feSpotLight feTile feTurbulence filter foreignObject g image line linearGradient marker mask metadata mpath path pattern polygon polyline radialGradient rect set stop svg switch symbol text textPath tspan use view`.split(" "), v => celm[v] = csvg)
+const crte = (n, o, f = n => panic(`tag "${n}" is not valid`)) => n in o ? o[n](n) : f(n)
+const _elm = (n, [s, t] = n.split("/")) => !t ?
+  crte(n, celm, n => crte(n, ctag)) : s === "svg" ? csvg(t) : crte(n, ctag)
+const ctag = {}; dom.register = (n, f) => ctag[n] = f
+
+$.swaptag = (t, o, n = dom({ tag: t })) => (
+  o.before(n), n.append(...o.childNodes), o.remove(), n)
 
 const hyph = s => s.replace(/[A-Z]/g, m => `-${m.toLowerCase()}`)
 const px = v => isnum(v) ? `${v}px` : v, rule = s => Object.keys(s)
