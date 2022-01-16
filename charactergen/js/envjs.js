@@ -47,13 +47,18 @@ dom({
       oninput: () => setth(def)
     }),
     "这是个按钮，按一下生成一个角色：",
-    $.exec = dom({ tag: "button", child: "▶", onclick: mkone }), br(),
+    dom({ tag: "button", child: "▶", onclick: mkone }), br(),
     "这是仿真运行指示灯，如果它是绿色的，表明仿真还在运行，如果它是红色的，说明你的仿真出了点问题：",
     $.rnlt = dom({ class: "indicator" }), br(),
     "如果你想强行终止一次仿真，按这个按钮：",
-    $.exec = dom({ tag: "button", child: "◼", onclick: () => stopsim() }), br(),
+    dom({ tag: "button", child: "◼", onclick: () => stopsim() }), br(),
     "这是显示仿真结果的地方，使用print函数把信息打印出来：",
     $.sdbx = dom({ class: "result" }),
+    "使用复位按钮重置编辑区的内容（会删除保存的内容，慎点）：",
+    dom({
+      tag: "button", child: "R", style: { color: "red" },
+      onclick: () => store.del(schgd.k).then(() => schgd.get()).then(v => (def.value = v, setth(def)))
+    }), br(),
   ]
 }, body)
 
