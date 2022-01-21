@@ -69,5 +69,5 @@ $.clearNow = i => delete task[i]
 // Due to implementation restriction
 // SpeechRecognition should be created only once
 let osr = $.SpeechRecognition ?? $.webkitSpeechRecognition, sr
-$.initspeech2text = () => sr ??= (sr = new osr(),
-  addEventListener("beforeunload", () => sr.stop()), sr)
+$.initspeech2text = () => sr ??= (sr = new osr(), addEventListener(
+  "beforeunload", () => (sr.onend = void 0, sr.stop())), sr)
