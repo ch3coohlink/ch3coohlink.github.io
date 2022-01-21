@@ -1,5 +1,5 @@
 // This is by no mean a secure sandbox.
-$.stdlib ??= true, $.extralib ??= true, $.extra ??= {}
+$.stdlib ??= true, $.extralib ??= false, $.extra ??= {}
 
 // dom element
 $.html = dom({}), $.shadow = html.attachShadow({ mode: "open" })
@@ -61,7 +61,7 @@ stdlib ? (assign(w, { isnum, isstr, isudf, isobj, isfct, isbgi }),
   assign(w, { proto, property, assign, deletep, create, extract, exclude, scope }),
   assign(w, { log, clear, dom, elm, style, createcss, dsplice, swaptag })) : 0
 
-// extra function
+// extra function (TODO: these thing leak!)
 if (extralib) {
   // extension function: schedule
   let m = new Map, f = (t, o = m) => (requestAnimationFrame(f), m = new Map, forof(
