@@ -2,11 +2,12 @@
 $.stdlib ??= true, $.extralib ??= true, $.extra ??= {}
 
 // dom element
-$.html = dom({ tag: "html", lang: "en" })
-$.head = dom({}, html, "head"), $.body = dom({}, html, "body")
+$.html = dom({}), $.shadow = html.attachShadow({ mode: "open" })
+$.head = dom({}, shadow, "head"), $.body = dom({}, shadow)
+$.css = createcss(head)
 
 // clear everything inside sandbox
-const destroy = () => (forof(clr, f => f()),
+const destroy = () => (forof(clr, f => f()), clrac(),
   forin(ds, (v, k) => or(k, v)), ro?.disconnect())
 
 // everything that not gc should be concerned
@@ -19,6 +20,10 @@ const pack = (n, [a, b] = n.split(" "), m = new WeakMap, d = new Set
 const clr = [pack("requestIdleCallback cancelIdleCallback")
   , pack("requestAnimationFrame cancelAnimationFrame"), pack("setNow clearNow")
   , pack("setTimeout clearTimeout"), pack("setInterval clearInterval")]
+
+// ok, web audio not gc
+const oac = $.AudioContext, acs = [], clrac = () => forof(acs, v => v.close())
+$.AudioContext = function () { const r = new oac(); acs.push(r); return r }
 
 // dispatch all window event
 const en = `search appinstalled beforeinstallprompt beforexrselect abort blur cancel canplay canplaythrough change click close contextmenu cuechange dblclick drag dragend dragenter dragleave dragover dragstart drop durationchange emptied ended error focus formdata input invalid keydown keypress keyup load loadeddata loadedmetadata loadstart mousedown mouseenter mouseleave mousemove mouseout mouseover mouseup mousewheel pause play playing progress ratechange reset resize scroll seeked seeking select stalled submit suspend timeupdate toggle volumechange waiting webkitanimationend webkitanimationiteration webkitanimationstart webkittransitionend wheel auxclick gotpointercapture lostpointercapture pointerdown pointermove pointerup pointercancel pointerover pointerout pointerenter pointerleave selectstart selectionchange animationend animationiteration animationstart transitionrun transitionstart transitionend transitioncancel afterprint beforeprint beforeunload hashchange languagechange message messageerror offline online pagehide pageshow popstate rejectionhandled storage unhandledrejection unload devicemotion deviceorientation deviceorientationabsolute pointerrawupdate`.split(" ")
@@ -40,17 +45,19 @@ forof("$ window globalThis self".split(" "), n => property(w, n, { value: _ }))
 
 // document and other warp function
 const get = (t, k) => k in t ? t[k] : document[k]
-const _d = { documentElement: html, head, body }
-assign(w, { document: new Proxy(_d, { get }), destroy, css })
+assign(w, { document: new Proxy({ documentElement: html, head, body }, { get }) })
 assign(w, { setInterval, clearInterval, setTimeout, clearTimeout })
 assign(w, { requestAnimationFrame, cancelAnimationFrame, setNow, clearNow })
 assign(w, { requestIdleCallback, cancelIdleCallback })
 assign(w, { addEventListener, removeEventListener })
 
+assign(w, { SpeechRecognition: void 0, webkitSpeechRecognition: void 0 })
+assign(w, { destroy, css, initspeech2text, AudioContext })
+
 // common utility
 stdlib ? (assign(w, { isnum, isstr, isudf, isobj, isfct, isbgi }),
   assign(w, { isnth, isnul, asarr, isarr, isnumstr }),
-  assign(w, { forrg, maprg, forin, forof, cases, panic }),
+  assign(w, { forrg, maprg, forin, forof, cases, trycatch, panic }),
   assign(w, { proto, property, assign, deletep, create, extract, exclude, scope }),
   assign(w, { log, clear, dom, elm, style, createcss, dsplice, swaptag })) : 0
 

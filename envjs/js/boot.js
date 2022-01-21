@@ -10,6 +10,7 @@ $.maprg = (e, f, s, d, a = []) => (forrg(e, i => a.push(f(i)), s, d), a)
 $.forin = (o, f) => { for (const k in o) f(o[k], k) }
 $.forof = (o, f) => { for (const v of o) f(v) }
 $.cases = (h, ...t) => ((m, d) => (c, ...a) => m.has(c) ? m.get(c)(...a) : d(...a))(new Map(t), h)
+$.trycatch = (t, c, f) => { try { t() } catch (e) { c?.(e) } finally { f?.() } }
 $.panic = e => { throw isstr(e) ? Error(e) : e }
 
 $.proto = Object.getPrototypeOf, $.property = Object.defineProperty

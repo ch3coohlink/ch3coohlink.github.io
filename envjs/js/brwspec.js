@@ -65,3 +65,9 @@ addEventListener("message", ({ data }) => isstr(data) &&
 const run = i => { try { task[i]?.() } finally { delete task[i] } }
 $.setNow = f => (task[i] = f, postMessage(pfx + i, "*"), i++)
 $.clearNow = i => delete task[i]
+
+// Due to implementation restriction
+// SpeechRecognition should be created only once
+let osr = $.SpeechRecognition ?? $.webkitSpeechRecognition, sr
+$.initspeech2text = () => sr ??= (sr = new osr(),
+  addEventListener("beforeunload", () => sr.stop()), sr)
