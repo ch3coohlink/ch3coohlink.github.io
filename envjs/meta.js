@@ -1,16 +1,16 @@
 const $ = {}
+$.fct2str = (f, s = String(f)) => {
+  const t = s.slice(s.indexOf("{") + 1, s.lastIndexOf("}"))
+  const a = t.split(/\r?\n/); if (a[0] === "" && a.length > 1) a.shift()
+  const n = a[0].match(/^[\s]+/)?.[0].length ?? 0
+  return a.map(v => v.slice(n)).join("\r\n").trim()
+}
+$.htmltext = s => {
+  const text = document.createTextNode(s)
+  const div = document.createElement("div")
+  div.append(text); return div.innerHTML
+}
 with ($) {
-  $.fct2str = (f, s = String(f)) => {
-    const t = s.slice(s.indexOf("{") + 1, s.lastIndexOf("}"))
-    const a = t.split(/\r?\n/); if (a[0] === "" && a.length > 1) a.shift()
-    const n = a[0].match(/^[\s]+/)?.[0].length ?? 0
-    return a.map(v => v.slice(n)).join("\r\n").trim()
-  }
-  $.htmltext = s => {
-    const text = document.createTextNode(s)
-    const div = document.createElement("div")
-    div.append(text); return div.innerHTML
-  }
   $.code = f => (f(), "<pre>" + htmltext(fct2str(f)) + "</pre>")
   document.body.innerHTML = `
 <style>
@@ -27,7 +27,7 @@ pre, .log {
   white-space: pre-wrap;
   background: #1d191d;
   color: #cbd3d2;
-  margin: 0.2em 0;
+  margin: 0.4em 0;
   padding: 0.2em 0;
   padding-left: 1em;
 }
@@ -48,8 +48,7 @@ pre, .log {
 </style>
 <h1>文学编程工具元页面</h1>
 <div class="right">ch3coohlink@2022</div>
-这个页面的内容是通过文学编程方法开发文学编程工具，因而是一种元页面。 <br>
-具体一些来讲，目前我的文学编程工具中有一个很关键的组件是JS沙盒，而我很难在沙盒的内部去测试沙盒的功能，所以有了这个页面。
+这个页面的内容是通过文学编程方法开发文学编程工具，因而被称为元页面。 <br>
 <h2>全局环境</h2>
 这个文档中的代码会有一些和常规的js不同的地方，让我提前解释一下：
 <pre>const $ = {}
@@ -68,42 +67,27 @@ with ($) {
   c // 1
   $.c // -1
 }</pre>
-<h2>文学编程最小工具</h2>
-本段旨在创建一个最小的文学编程工具组合，减轻一些编写本文档的繁琐之处。
+之所以这样做，是为了让分段的代码可以共享一个全局名称空间。<br>
+比如上面的例子里，我就可以将对a和b的定义放在两个不同的代码段里。<br>
+<h2>（极其简陋的）文学编程工具函数</h2>
+本段旨在创建一些工具函数，减轻一点编写本文档的繁琐之处。
 <div class="spbar"></div>
-它包含一个将函数体转化为字符串的函数，该函数会对文本开头的缩进做一些处理：
-<pre>const fct2str = ${fct2str.toString()}</pre>
+我们需要一个将函数体转化为字符串的函数，该函数会对文本开头的缩进做一些处理：
+<pre>$.fct2str = ${fct2str.toString()}</pre>
 ${htmltext("一个转义HTML实体的函数：")}
-<pre>const htmltext = ${htmltext.toString()}</pre>
+<pre>$.htmltext = ${htmltext.toString()}</pre>
 以及一个执行输入的函数并返回其代码的函数：
-<pre>const code = ${htmltext(code.toString())}</pre>
+<pre>$.code = ${htmltext(code.toString())}</pre>
 之后就可以使用
 <pre>code(() => {/*函数体会被运行，同时内容也会被显示出来*/})</pre>
 的形式编写代码了。
-<div class="spbar"></div>
-P.S. 由于需要打印测试结果，因此需要在代码块里提供打印功能，为此增加一个函数test：
-${code(() => {
-    const r = crypto.getRandomValues.bind(crypto)
-    $.getid = (l = 32) => [...r(new Uint8Array(l))].map(v => (v % 16).toString(16)).join("")
-    const rpkey = (o, f, t = {}) => {
-      for (const k in o) { t[k] = [k in $, $[k]], $[k] = o[k] } f()
-      for (const k in o) { t[k][0] ? $[k] = t[k][1] : delete $[k] }
-    }
-    $.code = (f, extra = "") => {
-      const fs = fct2str(f), id = getid()
-      setTimeout(() => {
-        const d = document.getElementById(id)
-        const log = (...a) => d.innerText += a.join("")
-        rpkey({ log }, f)
-      })
-      return `<pre>${htmltext(fs)}</pre><div class="log" id="${id}"></div>`
-    }
-    $.test = f => isfct(f) ? log(f() ? "\u2714" : "\u274c", " ", f, "\n")
-      : log("\u2757 test must be a function\n")
-  })}
 <h2>JS基础库</h2>
-这个部分包含了对JavaScript功能的封装，为后面编写沙盒做好准备。<br>
-首先是一些和类型相关的函数：
+这个部分包含了一些语言基础功能的封装，会使代码非常具有我的风格。<br>
+（读者可以先跳过这个部分的内容，如果有需要再在这里查找函数）<br>
+<br>
+调试功能：
+${code(() => { $.log = console.log })}
+一些和类型相关的函数：
 ${code(() => {
     $.isnum = o => typeof o == "number", $.isfct = o => typeof o == "function"
     $.isstr = o => typeof o == "string", $.isbgi = o => typeof o == "bigint"
@@ -112,47 +96,7 @@ ${code(() => {
     $.isarr = Array.isArray, $.asarr = v => isarr(v) ? v : [v]
     $.isnumstr = s => isstr(s) && !isNaN(Number(s))
   })}
-简单测试一下：
-${code(() => {
-    test(() => isnum(1) === true)
-    test(() => isnum(NaN) === true)
-    test(() => isnum({}) === false)
-    test(() => isfct(() => { }) === true)
-    test(() => isfct({}) === false)
-    test(() => isstr("") === true)
-    test(() => isstr({}) === false)
-    test(() => isbgi(100n) === true)
-    test(() => isbgi(100) === false)
-    test(() => isbgi({}) === false)
-    test(() => isudf(undefined) === true)
-    test(() => isudf(null) === false)
-    test(() => isudf(NaN) === false)
-    test(() => isudf({}) === false)
-    test(() => isnul(null) === true)
-    test(() => isnul(undefined) === false)
-    test(() => isnul(NaN) === false)
-    test(() => isnul({}) === false)
-    test(() => isnth(null) === true)
-    test(() => isnth(undefined) === true)
-    test(() => isnth(NaN) === false)
-    test(() => isnth({}) === false)
-    test(() => isobj({}) === true)
-    test(() => isobj(null) === false)
-    test(() => isobj(undefined) === false)
-    test(() => isarr([]) === true)
-    test(() => isarr(new Uint8Array(10)) === false)
-    test(() => isarr({ 0: 1, length: 1 }) === false)
-    test(() => isarr({ 0: 1, length: 0 }) === false)
-    test(() => isarr({ length: 0 }) === false)
-    test(() => asarr(123).join("") === "123")
-    test(() => asarr([123]).join("") === "123")
-    test(() => isnumstr("1234") === true)
-    test(() => isnumstr("1234.123") === true)
-    test(() => isnumstr("1.324e123") === true)
-    test(() => isnumstr("1234notanything") === false)
-    test(() => isnumstr(123) === false)
-  })}
-然后是一些控制流函数：
+一些控制流函数：
 ${code(() => {
     $.forrg = (e, f, s = 0, d = 1) => { for (let i = s; d > 0 ? i < e : i > e; i += d) f(i) }
     $.maprg = (e, f, s, d, a = []) => (forrg(e, i => a.push(f(i)), s, d), a)
@@ -162,11 +106,7 @@ ${code(() => {
     $.trycatch = (t, c, f) => { try { t() } catch (e) { c?.(e) } finally { f?.() } }
     $.panic = e => { throw isstr(e) ? Error(e) : e }
   })}
-我一直很好奇它们的效率和实际手写的控制流有多大区别，现在可以进行一些测试了：
-${code(() => {
-
-  })}
-还有一些对object的操作函数：
+一些对object的操作函数：
 ${code(() => {
     $.proto = Object.getPrototypeOf, $.property = Object.defineProperty
     $.assign = Object.assign, $.create = Object.create
@@ -176,21 +116,60 @@ ${code(() => {
     $.scope = (o, e = create(o)) => property(e, "$", { value: e })
     $.bindall = (o, f) => forin(o, (v, k) => isfct(v) ? o[k] = v.bind(o) : f ? f(v, k) : 0)
   })}
-${code(() => { })}
-<h2>浏览器沙箱</h2>
-下面测试浏览器沙箱的内存泄露状况
+一个生成随机id的函数
 ${code(() => {
-    // everything that not gc should be concerned
-    // (so maybe add URL.createObjectURL etc...)
-    $.pack = (n, [a, b] = n.split(" "), m = new WeakMap, d = new Set
-      , r = $[a], c = $[b], rg = new FinalizationRegistry(d.delete.bind(d))) => (
-      $[a] = (f, t) => (i => (rg.register(f, i), m.has(f)
-        ? d.delete(m.get(f)) : 0, m.set(f, i), d.add(i), i))(r(f, t)),
-      $[b] = i => (c(i), d.delete(i)), () => forof(d, $[b]))
-    pack("requestAnimationFrame cancelAnimationFrame")
+    const r = crypto.getRandomValues.bind(crypto)
+    $.genid = (l = 32, b = 16) => [...r(new Uint8Array(l))]
+      .map(v => (v % b).toString(b)).join("")
   })}
+<h2>封闭运行环境</h2>
+在正式编程之前，先明确文学编程工具的最基本要素。<br>
+<div class="spbar"></div>
+要实现文学编程，首先要有一个封闭的程序运行环境，所谓封闭，是指：<br>
 ${code(() => {
-
+    const $ = {}
+    with ($) {
+      //这里的$覆盖了整个文档最顶层定义的$
+      // 此时调用 console.log($) 输出 {}
+      $.a = 1
+      // 此时调用 console.log($) 输出 {a: 1}
+      // 由于这个大括号内的代码无法对外界造成影响
+      // 因此可以称为是封闭的
+    }
   })}
+像上面的代码，不论运行多少次，对全局的环境都不造成任何影响。<br>
+一个封闭的程序运行环境，就是要做到让其中的代码不论如何运行，都不会影响到外面。<br>
+<div class="spbar"></div>
+一个最简陋的封闭环境就像上面给出的例子那样，用同名的$变量覆盖掉外部的$，实现了一个局部名称空间。<br>
+但这样做有一个很严重的问题，浏览器环境里有很多具有副作用的API，对这些API的调用是可以修改到全局环境的。<br>
+举例而言，现在我们没有提供任何对DOM功能的包装，也就是说每一段代码都是对整个文档的DOM进行全局修改的，这显然不符合我们对封闭环境的期望。<br>
+<br>
+为了解决这个问题，我们需要为每段代码提供一个封闭的浏览器API环境，就好像这些代码运行在一个小页面里那样。
+<div class="spbar"></div>
+目前的code函数是无法实现这个功能的，因为它根本不包含一个局部的DOM环境，让我们修改一下它的定义：
+${($.temp = () => {
+      $.codesrc = (fs, id) => `with($) { const $ = {};
+        $.root = document.getElementById("${id}"); with ($) {\n${fs}\n}}`
+      $.codert = (fs, id) => "<pre>" + htmltext(fs) + `</pre><div id="${id}"></div>`
+      $.code = f => {
+        const fs = fct2str(f), id = genid(16, 36)
+        setTimeout(new Function(codesrc(fs, id)))
+        return codert(fs, id)
+      }
+    }, temp(), "<pre>" + htmltext(fct2str(temp)) + "</pre>")}
+现在每个代码段都拥有一个独立的div作为页面的根节点了，在代码中使用root访问它。<br>
+下面的例子将在创建的子页面中添加一条信息：
+${code(() => {
+      const p = document.createElement("span")
+      p.textContent = "这条信息存在于子页面中!"
+      p.style.color = "red"
+      root.append(p)
+    })}
+<div class="spbar"></div>
 `
 }
+// 启动时滑至页面底部（开发用）
+setTimeout(() => {
+  const html = document.documentElement
+  html.scroll(0, html.scrollHeight + 1000)
+}, 100);
