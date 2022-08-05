@@ -1,0 +1,419 @@
+<h1>文学编程实践3</h1>
+<div class="right">◆ ch3coohlink@2022</div>
+###code
+"纪念第三次尝试 2022/07/30"
+###
+不知不觉间7月份也要结束了，这个项目已经被搁置了挺长时间，想着差不多是时候重新开始，于是接着之前的进度写了一整天……<br>
+啊！不行！无论如何都写不下去！到了这一步，必须承认之前的思路是有问题的。<br>
+我尝试使用文学编程方法去编写文学编程工具，但在JavaScript的规则限制之下，这需要做很多不必要的妥协。<br>
+人的精力是宝贵的，为这些无关紧要的细节浪费时间实在不值得，所以我选择再次推到重来，虽然这么说，但前两次尝试所积累下来的经验还是很有价值的，现在的我比以往任何时候都更专注于有价值的目标，我有这种感觉。<br>
+失败是成功之母，让我再尝试一次。<br><div class="spbar"></div>
+<h2>起点</h2>
+现在你看到的这篇文档，是用一种这样的手法写成的：<br>
+我编写了一个文件，里面混合了文本段和代码段，然后用一段脚本去解析它。<br>
+如果遇到文本段，那么将文本直接添加到页面的html代码当中。<br>
+如果遇到代码段，那么首先将代码的文本放到html文档里，接着执行这段代码。<br>
+<div class="spbar"></div>
+具体实现了一些什么功能呢？<br><br>
+首先它实现了文章内容和代码的混编，这一点无需解释了。
+<br>
+其次它实现了一个全局名称空间：
+###code
+$ // $ 就是全局名称空间的名字
+$.a = 1 // 这是定义a变量
+$.a // 这样可以访问到a
+a // 但其实不用$.也可以，因为我用了with代码块
+###
+全局名称空间的作用域是跨越代码段的：
+###code
+a // 这里仍然可以访问到a
+delete $.a // 这样就可以删除a的定义，之后再访问a会造成引用错误
+###
+再次它创建了一个独立的DOM环境，让每段代码可以在DOM中添加需要的元素：
+###code
+const p = document.createElement("div")
+p.style.border = "black solid 1px"
+p.style.textAlign = "center"
+p.style.padding = "1em"
+p.textContent = "这个元素存在于独立的dom环境里"
+root.append(p)
+###
+<div class="spbar"></div>
+实现其实非常简单，只要看了解析脚本就能明白（让我用一点代码把它打印在这里，不过并不是很建议读，因为它只是支持这篇文章运作的一个最小系统，而实际的系统要在这篇文章里完成）。<br>
+###code
+const p = document.createElement("pre")
+let text = document.getElementById("bootscript").textContent
+p.style.fontFamily = `consolas, monospace, Apple Color Emoji, Segoe UI Emoji`
+p.style.border = "black solid 1px"
+p.style.whiteSpace = "pre-wrap"
+p.textContent = text
+root.append(p)
+###
+我的计划是以这种机制作为起点，编写一个可用性更高的文学编程系统。<br>
+这个系统的设计核心在于，它其实是一个文本的数据库，各种不同功能的文本被打上标签，在合适的地方被展示出来。
+<div class="spbar"></div>
+<h2>JS基础库</h2>
+这一段包含一些非常基本的语言功能，读者可以跳过。<br>
+一些类型相关函数：
+###code
+$.isnum = o => typeof o == "number", $.isfct = o => typeof o == "function"
+$.isstr = o => typeof o == "string", $.isbgi = o => typeof o == "bigint"
+$.isudf = o => o === undefined, $.isnth = o => isudf(o) || isnul(o)
+$.isobj = o => !!o && typeof o == "object", $.isnul = o => o === null
+$.isarr = Array.isArray, $.asarr = v => isarr(v) ? v : [v]
+$.isnumstr = s => isstr(s) && !isNaN(Number(s))
+###
+调试工具:
+###code
+$.log = (v, ...a) => (console.log(v, ...a), a.length > 0 ? [v, ...a]: v)
+###
+杂项:
+###code
+$.bindall = o => {
+  for(const k in o) {
+    const v = o[k]
+    isfct(v) ? o[k] = v.bind(o) : 0
+  } return o
+}
+$.assign = Object.assign
+$.dfrag = t => document.createRange().createContextualFragment(t)
+###
+<div class="spbar"></div>
+<h2>文本编辑</h2>
+在开始这节内容之前，首先编写一个帮助函数，用于简化DOM元素的创建：
+###code
+// 内联样式辅助函数
+$.style = (e, ...ss) => {
+  for(const s of ss) {
+    for(const k in s) {
+      let v = s[k]; isnum(v) ? v = `${v}px` : 0
+      if(e.style[k] !== v) { e.style[k] = v }
+    }
+  } return e
+}
+###code
+const elm = document.createElement.bind(document)
+$.dom = (o = {}, p, n = o.tag ?? "div") => {
+  const e = elm(n); for(const k in o) {
+    const v = o[k]; switch(k) {
+      case "class": e.className = isarr(v) ? v.join(" ") : v ; break;
+      case "child": e.append(...asarr(v)); break;
+      case "style": style(e, ...asarr(v)); break;
+      default: e[k] !== v ? e[k] = v : 0; break;
+    }
+  } if(p) { p.append(e) } return e
+}
+###
+用例：
+###code
+root.append(dom({child:"和之前的例子一样的元素，代码是不是精炼了很多?", style:
+  {border:"black solid 1px", textAlign:"center", padding:"1em"}}))
+###
+更多用法可以在后面的使用过程中看到。
+<div class="spbar"></div>
+之前提到，文学编程系统的本质是一个文本数据库，那么首先我们要录入文本。<br>
+下面的代码实现了一个简单的文本编辑器，和默认的textarea有一些样式上的区别，并且会自动适应文本高度：
+###code
+const fit = e => (e.style.height = "auto", e.style.height = e.scrollHeight + "px")
+const ta = dom({tag:"textarea", placeholder: "点击这里编辑文本",
+  oninput: () => fit(ta), style: { boxSizing:"border-box",
+    fontSize: "1em", resize: "none", overflow:"hidden", border:"black 1px solid",
+    width:"100%", margin: "0.4em 0", padding: "0.2em 0.2em 0.3em 1em",
+    fontFamily: `consolas, monospace, Apple Color Emoji, Segoe UI Emoji` } })
+root.append(dfrag(`<style>textarea:focus {outline: none}</style>`), ta), fit(ta)
+###
+<div class="spbar"></div>
+现在我们可以编辑一段文本了，但很明显，只有一段文本是不够的，我们需要设计一种机制进行大量文本片段的编辑<br>
+像vscode这样的文本编辑器会有一种类似于浏览器标签的机制用来编辑不同的文件，但照搬这种设计未必适合文学编程。<br>
+这是因为，文学编程的文本之间存在着很强的关联，我们需要同时修改所有这些文本。<br>
+为了做到这一点，我们可以实现一个文本列表，允许用户添加/删除/修改这些文本。<br>
+下面的伪代码描述了如何实现这个文本列表的GUI。<br>
+###code
+// 存在一个文本列表和一个DOM列表
+const texts = [], doms = []
+// 对于文本列表的所有变化，都要表现在DOM列表上
+const update = () => {/*更新doms中每个元素的值*/}
+// 当文本列表发生变化，调用update函数进行更新
+###
+这个更新的机制可以简陋也可以复杂。<br>
+最简陋的情形毫无疑问是：对于每次文本列表的任何变化，都删掉所有的DOM元素并替换成新的。<br>
+但现实中这样做不仅有性能上的问题，对于textarea这样具有一定自身状态的元素而言，也会破坏掉这些状态。<br>
+所以这里我采用一种稍微复杂一些的策略，其基本概念是：快速比较列表中发生变化的部分，同时最小化对DOM的修改。<br>
+具体实现还是要看代码，不过如果你已经理解了上面的更新机制的话，它的实现其实只是细节，跳过也可以。<br>
+###code
+// 这个函数用于找出数组开头和结尾相同的部分
+$.cutheadtail = (a, b) => {
+  let al = a.length, bl = b.length, l = Math.min(al, bl), s = 0, e = al, t = bl, x, y
+  for (;;s++) { if (s >= l || a[s] !== b[s]) { break } }
+  for (;;e--, t--) { if ((x = e - 1) <= s || (y = t - 1) <= s || a[x] !== b[y]) { break } }
+  return [s, e, t]
+}
+###code
+let d = () => { throw "duplication" }
+$.simpdiff = (n, p, keeporder = true) => {
+  let [s, e, t] = cutheadtail(n, p), o = new Map, r = new Set, w = []
+
+  for(let i = s; i < e; i++) { let v = n[i]; o.has(v) ? d() : o.set(v, i) }
+  for(let i = s; i < t; i++) { let v = p[i]; !o.has(v) ? w.unshift(i) : r.has(v) ? d() : r.add(v) }
+
+  for(let i of w) { p.splice(i, 1) }
+  for(let i = s; i < e; i++) { let v = n[i]; r.has(v) ? 0 : p.splice(i, 0, v) }
+
+  if(keeporder) {
+    w = []
+    for(let i = s; i < e; i++){ let a = n[i], b = p[i]; a === b ? 0 : w.unshift([i, o.get(b), b]) }
+    for(let [i] of w) { p.splice(i, 1) }
+    w = w.sort(([, a], [, b]) => a - b)
+    for(let [, i, v] of w) { p.splice(i, 0, v) }
+  }
+}
+###code
+// 为了将上述函数用在dom元素上，再做一层包装
+//（注意到这里的splice并不具备完整功能，这是因为diff函数里只需要单独添加删除，我偷了一点懒）
+$.domarr = (e, d = e.childNodes) => {
+  const splice = (i, c, a) => c ? e.removeChild(d[i]) : e.insertBefore(a, d[i])
+  return new Proxy({}, { get: (_, k) => k === "splice" ? splice : d[k] })
+}
+###
+上面实现了一个diff函数，它的功能是输入两个数组，将第二个数组最小化修改成第一个数组（是的，这个功能完全不像diff，但我也没想到更好的名字了）。<br>
+让我做一个例子演示它的用法（同时检验其正确性）：
+###code
+const list = [...new Array(25)].map((v, i) => i + 1)
+const doms = list.map(i => dom({child:i, tag:"span"}))
+const container = dom({child:doms, style:{display:"inline"}})
+const bt = dom({child:"打乱", tag:"button", onclick:() => {
+    const {random, ceil} = Math, r = n => ceil(random() * n)
+    const ds = [...doms], l = r(ds.length), result = []
+    for(let i = 0; i < l; i++) { // 产生一个随机长度，随机顺序的新DOM序列
+      let c = r(ds.length) - 1
+      result.push(ds[c]), ds.splice(c, 1)
+    } const ca = domarr(container) // 对HTML元素使用前需要包装一下
+    simpdiff(result, ca) // 默认保证顺序，如果不需要保证顺序那么多加一个参数false
+    for(let i = 0; i < result.length; i++) { if(result[i] !== ca[i]) {throw "order wrong!"} }
+  }})
+root.append(dfrag(`<style>
+button { margin: 0.1em; padding: 0 0.5em; border: gray 1px solid; border-radius: 0.1em; font-size: 1em; }
+button:hover { background: #ddd; cursor: pointer; }
+span { display: inline-block; margin: 0.1em; width: 2em; text-align: center; border: black 1px solid}
+</style>`), bt, container)
+###
+<br>
+如上所示，simpdiff完全符合我们对update函数的要求，不论数组发生了多大的变化，它都能保证数组顺序的正确性并尽可能少地破坏元素的状态。<br>
+而在数组发生较小变化的情况下，它也能尽快找出发生变化的部分，不至于消耗过多的性能（对于一般的情况确实如此，但有一种最坏的情况是交换数组的头尾，那会导致对整个数组都进行完整的分析，不过就算是那样，复杂度也仍是O(n)，我暂时是不打算改进了）。<br>
+<div class="spbar"></div>
+回到对文本列表的实现上来，现在很容易实现一个随时响应变化的文本列表GUI：
+###code
+const nt = (text="") => ({text, elm:dom({tag:"span", child:text})})
+const list = [nt("假设这是一个文本编辑器"), nt("假设这是另一个文本编辑器")]
+const container = dom() // 每次列表发生变化，调用下面这一行就可以实现对文本列表的更新
+simpdiff(list.map(v => v.elm), domarr(container))
+root.append(dfrag(`<style>span { display: block; margin: 0.1em 0; width: 100%;
+text-align: center; border: black 1px solid; box-sizing: border-box;}</style>`), container)
+###
+<br>
+如果把这个例子里的假元素替换成真正的文本编辑器，并添加一些新建删除文本的功能，这个文本列表似乎就完成了。<br>
+但，具体要怎么做？<br>
+之前我们实现了一个文本编辑器，但它仅仅是一段代码，而非一个函数，没有办法把它嵌入到这里的文本列表中。<br>
+只有当我们可以拿到对应的源码，我们才有机会把它创建成一个函数，要怎么做到这件事情呢？。<br>
+其实现有的机制就足够完成这件事情了：我可以在html文档里用pre标签编写一段代码（并不会运行），那么在实际的代码段中就可以拿到它的文本，之后想要怎们运行它就可以由我们自由控制了。<br>
+来实际尝试一下这个过程，这是一段不会自动运行的代码：
+<pre id="test_load_code_0">$.a = 1</pre>
+而这段代码将加载运行它：
+###code
+$.textbyid = id => document.getElementById(id).textContent
+$.tofunc = src => new Function("$", `with($){${src}}return $`)
+
+const result = tofunc(textbyid("test_load_code_0"))({})
+root.append(dom({child:"上述代码将一个空的全局环境修改成了：" + JSON.stringify(result)}))
+###
+<div class="spbar"></div>
+回到文本编辑器的情形，首先把代码拷贝过来，稍加修改，按上面的方法放在文档当中：
+<pre id="text_editor_0" class="text_editor_1">$.text ??= ""
+const fit = e => (e.style.height = "auto", e.style.height = e.scrollHeight + "px")
+$.ta = dom({tag:"textarea", placeholder: "点击这里编辑文本", value: text,
+  oninput: () => fit(ta), style: { boxSizing:"border-box",
+    fontSize: "1em", resize: "none", overflow:"hidden", border:"black 1px solid",
+    width:"100%", margin: "0", padding: "0.2em 0.2em 0.3em 1em",
+    fontFamily: `consolas, monospace, Apple Color Emoji, Segoe UI Emoji` } })
+root.append(dom({tag:"style", child:`textarea:focus {outline: none}`}), ta)
+setTimeout(() => fit(ta))
+</pre>
+同样进行加载：
+###code
+$.texteditor = tofunc(textbyid("text_editor_0"))
+texteditor(Object.create($))
+texteditor(Object.create($))
+###
+可以看到成功创建了两个文本编辑器。<br>
+不过有一点小问题，上面的文本编辑器代码设计的时候是运作在一个独立的dom环境当中的，而这个例子里的两个文本编辑器共用了同一个dom环境，由于文本编辑器里自带了一小段样式代码，也就是说同样的样式表存在两个，这虽然不算什么太大的问题，但考虑到解决起来也很简单，这里还是再完善一下：<br>
+###code
+$.obj = Object.create
+$.exec = (f, rt, o = obj($)) => {
+  o.root = rt.attachShadow?.({mode:"open"}) ?? rt
+  f(o); return o
+}
+const div = dom(); root.append(div); exec(texteditor, div)
+###
+这样额外传入一个普通html元素就可以在其内部创建封闭的dom环境了。
+<div class="spbar"></div>
+现在可以完成文本列表了吗？让我们再尝试一次。
+###code
+const nt = (text="", elm=dom({ tag:"span" }), o=assign(obj($))) =>
+  exec(texteditor, elm, assign(obj($), {text, elm}))
+const list = [nt("这是一个文本编辑器"), nt("这是另一个文本编辑器")]
+const container = dom() // 每次列表发生变化，调用下面这一行就可以实现对文本列表的更新
+simpdiff(list.map(v => v.elm), domarr(container))
+root.append(container)
+###
+很好！两个对应文本列表的文本编辑器被创建出来了，距离可用的文本列表又进了一步。<br>
+<div class="spbar"></div>
+下面让我们进一步思考一下如何实现添加删除文本的功能。<br>
+首先第一个问题是，要怎么在每个文本编辑器内部增加添加删除按钮呢？<br>
+而如果有了按钮，又要如何实现对文本列表本身的修改呢？<br>
+这些问题本身要实现起来都是简单的，但是我希望有一种组合性更强的方案。<br>
+具体来说，我不希望改动之前写好的文本编辑器的代码，而是只在它的基础上增加一些新的内容。<br>
+要如何做到这一点？<br>
+前面我们通过把代码放在html文档里，实现了对代码的加载和调用，那么现在我们要调用多段代码，也可以使用相同的方法。<br>
+下面同样给出一个例子，下面的两个pre标签都具有名称为 "test_load_code_1" 的 class：
+<pre class="test_load_code_1">$.a = 1</pre>
+<pre class="test_load_code_1">$.b = a + 1</pre>
+通过class获取标签内容，然后拼接为函数进行调用：
+###code
+const _tbc = name => [...document.getElementsByClassName(name)].map(v => v.textContent)
+$.textbyclass = (...names) => [].concat(...names.map(v => _tbc(v)))
+$.tofunc = src => new Function("$", "with($){ " +
+  asarr(src).map(v => `{\n${v}}`).join(" ") + " }return $")
+
+const result = tofunc(textbyclass("test_load_code_1"))({})
+root.append(dom({child:"上述代码将一个空的全局环境修改成了：" + JSON.stringify(result)}))
+###
+<div class="spbar"></div>
+回到上一小节的问题，为了拓展文本编辑器，我们首先给先前的文本编辑器代码加上一个className。<br>
+接着编写几段具有相同className的拓展代码：
+<pre class="text_editor_1">
+// 添加删除按钮
+style(ta, {minHeight:62}); root.append(dom({tag:"style", child:`
+button:hover { background: #ddd; cursor: pointer; }
+button {height:20px; font-size:16px; border:none;}`}))
+const div = dom({ style:{display:"flex", flexFlow:"column",
+  alignSelf:"stretch", userSelect:"none", border: "black 1px solid",
+  borderLeft: "none", justifyContent: "space-between"} }, root)
+$.addupbt = dom({tag:"button", child:"+"}, div)
+$.delbt = dom({tag:"button", child:"⨉", style:{fontSize:10}}, div)
+$.adddwbt = dom({tag:"button", child:"+"}, div)
+</pre><pre class="text_editor_1">
+// 拖拽条
+const div = dom({style:{alignSelf:"stretch", background:"#eee", cursor:"grab",
+  border:"black 1px solid", borderRight:"none", userSelect:"none"}})
+dom({tag:"span", child:"≡", style:{padding:"0.2em",
+  position:"relative", top:"calc(50% - 0.7em)"}}, div)
+root.insertBefore(div, ta)
+</pre>
+再将它们组合起来：
+###code
+$.texteditor = tofunc(textbyclass("text_editor_1"))
+exec(texteditor, dom({style:{display:"flex", margin:"0.4em 0"}}, root))
+###
+成功了！说明我们确实可以在不修改原本代码的情况下修改文本编辑器的外观。<br>
+<div class="spbar"></div>
+接下来尝试实现文本列表的行为。<br>
+回想一下上面实现文本编辑器的过程，我们将文本编辑器实现为了一个组件，从而可以在其他代码环境中复用它。<br>
+这里我希望将文本列表也实现为一个组件，所以仍然选择将代码写在HTML中进行调用：<br>
+<pre class="text_editor_list_0">
+$.newtext = (text="", elm = dom()) => (
+  style(elm, {display:"flex", margin:"0.4em 0"}),
+  exec(texteditor, elm, assign(obj($), {text, elm})))
+$.list = []
+$.update = () => {
+  if(list.length === 0) { list.push(newtext("")) }
+  for(let i = 0, l = list.length; i < l; i++) { list[i].order = i }
+  simpdiff(list.map(v => v.elm), domarr(container)) }
+$.add = (i, t = newtext()) => (list.splice(i, 0, t), update())
+$.del = i => (list.splice(i, 1), update())
+$.container = dom(); update(); root.append(container)
+</pre>同时为编辑器添加一些简单的行为：<pre class="text_editor_1">
+addupbt.onclick = () => add(order)
+delbt.onclick = () => del(order)
+adddwbt.onclick = () => add(order+1)
+ta.addEventListener("input", () => $.text = ta.value)
+</pre>
+加载运行：
+###code
+$.texteditor = tofunc(textbyclass("text_editor_1"))
+###code
+$.textlist = tofunc(textbyclass("text_editor_list_0"))
+const tl = exec(textlist, root, obj($))
+tl.list[0].ta.value = tl.list[0].text = 
+  `试试右边的按钮，从上至下分别是：\n1. 在上方新建文本\n2. 删除当前文本\n3. 在下方新建文本`
+###
+文本列表的基本功能已经完成了，试试看！<br>
+<div class="spbar"></div>
+<h2>阶段总结</h2>
+上一节实现的程序功能并不复杂，但是我觉得已经展现了文学编程的流程以及一些核心概念。<br>
+和Knuth的文学编程不同，在我的设计里，动态语言随时修改程序定义的能力才是文学编程得以实现的基础。<br>
+依托这种能力，不断地编写小的例子程序，并按文本顺序更新程序定义，才是我所定义的文学编程的关键。<br>
+分条列出一些核心理念：
+<ul>
+<li>利用动态语言特性，不断修改程序定义，实现功能的拓展</li>
+<li>多写例子程序，多迭代，提升文档的交互价值</li>
+<li>
+  描述问题，描述设计目标，最后编码
+  <ul><li>但编码完成之前不要做进一步设计</li></ul>
+</li>
+<li>程序的模块化，重视组合性</li>
+  <ul>
+    <li>
+      从文本层面重新构造函数，从而取得比一般编程手段更高的组合性<br>
+      （关于这一点后面会有更多的展示）
+    </li>
+  </ul>
+</ul>
+<div class="spbar"></div>
+针对上一小节提出的核心理念，下面开始讨论工具的具体设计目标。<br>
+<ul>
+  <li>
+  从前文的编程中可以观察到，文本层面的重组是一个非常关键的功能。<br>
+  在这篇文档的实践当中，通过把代码编写在HTML文档中，使用className或id获得其内容，实现了对代码的重新组合。<br>
+  而前文又提到，文学编程系统本质上是一个文本数据库，在上述的实践里，就是用HTML文档充当了这个数据库。<br>
+  <ul>
+    <li>现在我思考的问题是：这种机制是否足够？</li>
+    <li>设计新机制之前总是需要考虑，这种新机制是否能带来足够大的收益。</li>
+    <li>如果要设计更完善的文本数据库，我需要能够举例出至少一个具体的使用场景，并对这种机制的优势进行论证。</li>
+    <ul>
+      <li>记录一个值得思考的场景：<br>
+      有时希望拓展一个class下的模块，而当前的模式就能够支持按对应class的出现顺序进行加载。<br>
+      比如说上面的文本编辑器那里，第一次加载text_editor_1这个模块的时候和第二次加载的时候实际上加载出的代码是不一样的。<br>
+      </li>
+    </ul>
+  </ul>
+  </li>
+</ul>
+<div class="spbar"></div>
+额外列出一些可以改进的点：
+<ul>
+  <li>文档加载时不能正确恢复到上次阅读的位置
+    <ul><li>需要手动记录阅读位置，等文档加载完成再手动恢复</li></ul>
+  </li>
+  <li>文档编写的顺序可能并非读者阅读最合适的顺序，应当允许将代码提取出来，重组为一个更合适的阅读顺序
+    <ul>
+      <li>甚至是允许非线性的阅读，比如文字冒险游戏式的阅读</li>
+      <li>需要工具辅助重新排列文本</li>
+    </ul>
+  </li>
+  <li>服务端代码也可以写在这个文档中，只需要在服务端添加一个监视本文件变化的脚本并持续刷新服务器即可</li>
+</ul>
+<div class="spbar"></div>
+<h2>拖拽系统</h2>
+这个似乎并不值得单独拿出来作为一章，但我想把章节分得更细一些。<br>
+前面实现的文本列表，虽然有拖拽条，但并不能通过拖拽修改顺序。<br>
+所以下面就来实现拖拽功能，但最好是先把问题想得抽象一点，先来试验一下，在浏览器中实现拖拽系统需要哪些机制。<br>
+下面是一个列表：
+<pre class="drag_demo_0">
+const shd = dom({}, root).attachShadow({mode:"open"})
+shd.append(dom({tag:"style", child: `span { display:inline-block; margin:0.2em;
+  border:1px solid black; padding:0.5em; width:1.5em; text-align:center }`}))
+shd.append(...[...Array(10)].map((_, i) =>
+  dom({tag:"span", child:"ABCDEFGHIJKLMNOPQRSTUVWXYZ"[i%26]})))
+</pre>
+###code
+tofunc(textbyclass("drag_demo_0"))(obj($))

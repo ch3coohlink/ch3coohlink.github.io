@@ -2,25 +2,120 @@
 <html lang="en">
 
 <head>
-  <meta charset="UTF-8">
+  <meta content-type: application/octet-stream; charset=utf-8>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>env.js</title>
-  <script>
-    delete window.webkitStorageInfo // get rid of annoying deprecation warning
-    const dp = Object.defineProperty, ld = "boot envjs sandbox brwspec wgl idb"
-    const $ = {}, _ = new Proxy($, { get: (t, k) => k in t ? t[k] : window[k] })
-    const code = c => `with($) { return (() => {\n"use strict"\n${c}\n})()}`
-    "$ window globalThis self".split(" ").forEach(n => dp($, n, { value: _ }))
-    const bindall = o => forin(o, (v, k) => typeof v === "function" ? o[k] = v.bind(o) : 0)
-    const forin = (o, f) => { for (const k in o) f(o[k], k) }; bindall(window)
-    window.$ = $, Promise.all(ld.split(" ").map(async n => $[n] = Function("$", code(await
-      (await fetch(`./js/${n}.js`)).text())))).then(() => ($.loadlist = ld, $.boot(_)))
+  <style>
+    body {
+      min-width: 400px;
+      max-width: 1000px;
+      margin: 50px auto 500px auto;
+      padding: 0 1em;
+    }
+
+    pre,
+    .log {
+      line-height: 20px;
+      font-size: 1em;
+      font-family: consolas, monospace, Apple Color Emoji, Segoe UI Emoji;
+      white-space: pre-wrap;
+      overflow-wrap: break-word;
+      background: #ddd;
+      color: black;
+      margin: 0.4em 0;
+      padding: 0.2em 0.2em 0.3em 1em;
+      min-height: 1em;
+    }
+
+    pre.server_code {
+      color: rgb(56, 15, 51);
+      background: #cbd3d2;
+    }
+
+    pre.exec_code {
+      color: #cbd3d2;
+      background: #1d191d;
+    }
+
+    .right {
+      text-align: right;
+      margin: 1em;
+    }
+
+    .spbar {
+      width: calc(100% - 2em);
+      margin: 1em;
+      height: 1px;
+      background-color: black;
+    }
+
+    .log {
+      background: #808080;
+      color: #e7e7e7;
+    }
+
+    h1 {
+      font-size: 3em;
+      text-align: center;
+    }
+
+    h2,
+    h3,
+    h4 {
+      padding-left: 0.5em;
+    }
+
+    ul {
+      margin: 0.4em 0
+    }
+  </style>
+  <script id="bootscript">
+    const $ = {}
+    fetch(`./index.dat`).then(p => p.text()).then(data => {
+      let state = "html", parts = []
+      for (const line of data.split(/\r?\n/)) {
+        if (line.startsWith("###")) {
+          state = line.slice(3).trim()
+          if (state.length === 0) state = "html"
+          parts.push({ state, data: [] })
+        } else {
+          if (parts.length === 0) parts.push({ state, data: [] })
+          parts[parts.length - 1].data.push(line)
+        }
+      }
+
+      const { body, documentElement: html } = document
+      const frag = t => document.createRange().createContextualFragment(t)
+
+      for (let { state, data } of parts) {
+        data = data.join("\n")
+
+        switch (state) {
+          case "code": {
+            const d = document.createElement("div")
+            const p = document.createElement("pre")
+            p.className = "exec_code"
+            $.root = d.attachShadow({ mode: "open" })
+            p.append(data), body.append(p, d)
+            try { new Function(`with($){\n${data}\n}`)() }
+            catch (e) { console.error(data + "\n", e) }
+          } break
+          case "server": {
+            const p = document.createElement("pre")
+            p.className = "server_code"
+            p.append(data), body.append(p)
+          } break
+          default: body.append(frag(data)); break
+        }
+      }
+
+      html.scroll(0, html.scrollHeight)
+    })
   </script>
 </head>
 
 <body>
-  <!-- this div prevent an empty text node from generating -->
-  <div></div>
+  <script>document.body.innerHTML = ""</script>
 </body>
 
 </html>
