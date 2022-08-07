@@ -1,4 +1,5 @@
 <h1>文学编程实践3</h1>
+<div class="sub-title">——文学编程软件的设计与开发</div>
 <div class="right">◆ ch3coohlink@2022</div>
 ###code
 "纪念第三次尝试 2022/07/30"
@@ -7,11 +8,21 @@
 啊！不行！无论如何都写不下去！到了这一步，必须承认之前的思路是有问题的。<br>
 我尝试使用文学编程方法去编写文学编程工具，但在JavaScript的规则限制之下，这需要做很多不必要的妥协。<br>
 人的精力是宝贵的，为这些无关紧要的细节浪费时间实在不值得，所以我选择再次推到重来，虽然这么说，但前两次尝试所积累下来的经验还是很有价值的，现在的我比以往任何时候都更专注于有价值的目标，我有这种感觉。<br>
-失败是成功之母，让我再尝试一次。<br><div class="spbar"></div>
+失败是成功之母，让我再尝试一次。<br>
+<div class="spbar"></div>
+<h2>刷新定位</h2>
+在编辑这篇文档的时候，会遇到一个问题就是每次刷新文档都会回到文本最开始的位置，这里简单的使用一个脚本在文档开始加载之后的100ms将文档定位到一个指定的位置上。
+###code
+setTimeout(() => {
+  const html = document.documentElement
+  html.scroll(0, html.scrollHeight * 0.0)
+}, 100)
+###
+<div class="spbar"></div>
 <h2>起点</h2>
 现在你看到的这篇文档，是用一种这样的手法写成的：<br>
 我编写了一个文件，里面混合了文本段和代码段，然后用一段脚本去解析它。<br>
-如果遇到文本段，那么将文本直接添加到页面的html代码当中。<br>
+如果遇到文本段，那么将文本直接添加到页面的html文档当中。<br>
 如果遇到代码段，那么首先将代码的文本放到html文档里，接着执行这段代码。<br>
 <div class="spbar"></div>
 具体实现了一些什么功能呢？<br><br>
@@ -415,3 +426,46 @@ shd.append(...[...Array(10)].map((_, i) =>
 tofunc(textbyclass("drag_demo_0"))(obj($))
 ###
 <h2>服务器通信</h2>
+下面将尝试将编程范围扩展到服务器端：
+首先我们需要准备一个服务器脚本用于：
+<ul>
+<li>提供http静态文件服务器</li>
+<li>加载ws库使后续可以运行websocket服务器</li>
+<li>监听这篇文档的变化</li>
+<li>提供全局变量 $</li>
+<li>提供一个作用域不受每次服务器刷新影响的变量 _</li>
+</ul>
+这里同样将文件内容打印出来：
+###code
+const root = $.root
+fetch(`./server.js`).then(p => p.text()).then(data => {
+  root.append(dom({tag:"pre", style:{
+    fontFamily : `consolas, monospace, Apple Color Emoji, Segoe UI Emoji`,
+    border : "black solid 1px", whiteSpace : "pre-wrap", padding: "1em 2em",
+  }, child: data}))
+})
+###
+初始化一个WebSocketServer服务器（注意对持久化变量_的运用）:
+###server
+const _lg = console.log; $.log = (v, ...a) => (_lg(v, ...a), v)
+###server
+$.wss = _.wss ??= new ws.WebSocketServer({port: 9000})
+if(_.wsf) { wss.removeListener("connection", _.wsf) }
+$.cns = _.cns ??= new Set()
+for(const c of cns) c.send("refresh"); cns.clear()
+wss.on("connection", _.wsf = ws => {
+  cns.add(ws)
+  ws.on("message", d => $.onmessage?.(ws, d))
+  ws.on("close", () => cns.delete(ws))
+  ws.onerror = console.error
+})
+###
+下面实现一个简单的利用websocket刷新页面的功能：
+###code
+$.ws = new WebSocket("ws://localhost:9000")
+ws.addEventListener("message", e => {
+  if(e.data === "refresh") { location.reload() }
+})
+###
+现在每次更新本文档都会同时刷新服务器和浏览器了。
+<div class="spbar"></div>

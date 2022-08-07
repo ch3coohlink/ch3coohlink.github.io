@@ -13,6 +13,11 @@
       padding: 0 1em;
     }
 
+    .sub-title {
+      padding-left: 60%;
+      font-size: 1.5em;
+    }
+
     pre,
     .log {
       line-height: 20px;
@@ -29,7 +34,7 @@
 
     pre.server_code {
       color: rgb(56, 15, 51);
-      background: #cbd3d2;
+      background: #efdff1;
     }
 
     pre.exec_code {
@@ -70,8 +75,9 @@
     }
   </style>
   <script id="bootscript">
-    const $ = {}
-    fetch(`./index.dat`).then(p => p.text()).then(data => {
+    const $ = {}; fetch(
+      new URLSearchParams(location.search).get("load") ?? "./index.dat"
+    ).then(p => p.text()).then(data => {
       let state = "html", parts = []
       for (const line of data.split(/\r?\n/)) {
         if (line.startsWith("###")) {
@@ -108,8 +114,6 @@
           default: body.append(frag(data)); break
         }
       }
-
-      html.scroll(0, html.scrollHeight)
     })
   </script>
 </head>

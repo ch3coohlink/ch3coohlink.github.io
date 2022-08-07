@@ -1,0 +1,30 @@
+<h1>文学编程实践4</h1>
+<div class="sub-title">——编曲软件</div>
+<div class="right">◆ ch3coohlink@2022</div>
+这篇文档将通过编曲软件的开发过程为文学编程工具的设计提供反馈。
+<div class="spbar"></div>
+一些基础设施代码：
+###code
+setTimeout(() => {
+  const html = document.documentElement
+  html.scroll(0, html.scrollHeight * 0.9 - 1000)
+}, 100)
+###code
+$.ws = new WebSocket("ws://localhost:9000")
+ws.addEventListener("message", e => {
+  if(e.data === "refresh") { location.reload() }
+})
+###code
+const _lg = console.log; $.log = (v, ...a) => (_lg(v, ...a), v)
+###code
+$.isnum = o => typeof o == "number", $.isfct = o => typeof o == "function"
+$.isstr = o => typeof o == "string", $.isbgi = o => typeof o == "bigint"
+$.isudf = o => o === undefined, $.isnth = o => isudf(o) || isnul(o)
+$.isobj = o => !!o && typeof o == "object", $.isnul = o => o === null
+$.isarr = Array.isArray, $.asarr = v => isarr(v) ? v : [v]
+$.isnumstr = s => isstr(s) && !isNaN(Number(s))
+###code
+$.proto = Object.getPrototypeOf, $.property = Object.defineProperty
+$.assign = Object.assign, $.create = Object.create
+###
+<div class="spbar"></div>
