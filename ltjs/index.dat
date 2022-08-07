@@ -413,3 +413,5 @@ shd.append(...[...Array(10)].map((_, i) =>
 </pre>
 ###code
 tofunc(textbyclass("drag_demo_0"))(obj($))
+###
+<h2>服务器通信</h2>
