@@ -78,25 +78,27 @@
     const $ = {}; fetch(
       new URLSearchParams(location.search).get("load") ?? "./index.dat"
     ).then(p => p.text()).then(data => {
-      let state = "html", parts = []
+      let type = "html", parts = []
       for (const line of data.split(/\r?\n/)) {
         if (line.startsWith("###")) {
-          state = line.slice(3).trim()
-          if (state.length === 0) state = "html"
-          parts.push({ state, data: [] })
+          type = line.slice(3).trim()
+          if (type.length === 0) type = "html"
+          parts.push({ type, data: [] })
         } else {
-          if (parts.length === 0) parts.push({ state, data: [] })
+          if (parts.length === 0) parts.push({ type, data: [] })
           parts[parts.length - 1].data.push(line)
         }
       }
 
       const { body, documentElement: html } = document
       const frag = t => document.createRange().createContextualFragment(t)
+      const userdatabase = new Map
+      $.defineNewType = userdatabase.set.bind(userdatabase)
 
-      for (let { state, data } of parts) {
+      for (let { type, data } of parts) {
         data = data.join("\n")
 
-        switch (state) {
+        switch (type) {
           case "code": {
             const d = document.createElement("div")
             const p = document.createElement("pre")
@@ -110,7 +112,11 @@
             p.className = "server_code"
             p.append(data), body.append(p)
           } break
-          default: body.append(frag(data)); break
+          default: {
+            if (userdatabase.has(type)) {
+              userdatabase.get(type)(data)
+            } else { body.append(frag(data)) }
+          } break
         }
       }
     })

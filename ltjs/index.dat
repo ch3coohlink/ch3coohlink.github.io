@@ -11,12 +11,12 @@
 失败是成功之母，让我再尝试一次。<br>
 <div class="spbar"></div>
 <h2>刷新定位</h2>
-在编辑这篇文档的时候，会遇到一个问题就是每次刷新文档都会回到文本最开始的位置，这里简单的使用一个脚本在文档开始加载之后的100ms将文档定位到一个指定的位置上。
+在编辑这篇文档的时候，会遇到一个问题就是每次刷新文档都会回到文本最开始的位置，这里简单的使用一个脚本在文档开始加载之后的200ms将文档定位到一个指定的位置上。
 ###code
 setTimeout(() => {
   const html = document.documentElement
-  html.scroll(0, html.scrollHeight * 0.0)
-}, 100)
+  html.scroll(0, 0)
+}, 200)
 ###
 <div class="spbar"></div>
 <h2>起点</h2>
@@ -409,6 +409,9 @@ tl.list[0].ta.value = tl.list[0].text =
     </ul>
   </li>
   <li>服务端代码也可以写在这个文档中，只需要在服务端添加一个监视本文件变化的脚本并持续刷新服务器即可</li>
+  <li>文本uuid</li>
+  <li>折叠</li>
+  <li>悬浮窗口</li>
 </ul>
 <div class="spbar"></div>
 <h2>拖拽系统</h2>

@@ -129,15 +129,18 @@ $.drawanl = (anl, cvs, whichdata="time", f = () => {
 ###code
 $.fitsize = cvs => (cvs.width = cvs.clientWidth * devicePixelRatio,
   cvs.height = cvs.clientHeight * devicePixelRatio, cvs)
-const root = style($.root, {display:"flex", position:"relative"})
-const cvsstyle = {margin:"0.2em", width:"50%"}
-drawanl(anl, fitsize(dom({tag:"canvas", style: cvsstyle}, root)), "time")
-drawanl(anl, fitsize(dom({tag:"canvas", style: cvsstyle}, root)), "freq")
+const root = style($.root, { position:"relative"})
+const cvsstyle = {boxSizing:"border-box", padding:"0.2em", width:"50%", height:200}
+const cvsa = dom({tag:"canvas", style: cvsstyle}, root)
+const cvsb = dom({tag:"canvas", style: cvsstyle}, root)
+drawanl(anl, fitsize(cvsa), "time")
+drawanl(anl, fitsize(cvsb), "freq")
 const bt = dom({ tag: "button", child: "📌", style: {
   position: "absolute", right: "-0.2em", width:"2.5em", height:"2.5em" },
   onclick: () => { if(bt.textContent === "📌") {
       bt.textContent = "↩", style(root, {position:"sticky", top:"0.2em"}) } else {
       bt.textContent = "📌", style(root, {position:"relative", top:""}) } } }, root)
+addEventListener("resize", () => (fitsize(cvsa), fitsize(cvsb)))
 bt.onclick()
 ###
 <br>修改一下之前的最小发声音例子，将其连接到分析器上：
