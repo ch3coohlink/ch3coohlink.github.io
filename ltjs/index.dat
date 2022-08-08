@@ -57,6 +57,7 @@ let text = document.getElementById("bootscript").textContent
 p.style.fontFamily = `consolas, monospace, Apple Color Emoji, Segoe UI Emoji`
 p.style.border = "black solid 1px"
 p.style.whiteSpace = "pre-wrap"
+p.style.background = "none"
 p.textContent = text
 root.append(p)
 ###
@@ -131,7 +132,7 @@ const ta = dom({tag:"textarea", placeholder: "点击这里编辑文本",
     fontSize: "1em", resize: "none", overflow:"hidden", border:"black 1px solid",
     width:"100%", margin: "0.4em 0", padding: "0.2em 0.2em 0.3em 1em",
     fontFamily: `consolas, monospace, Apple Color Emoji, Segoe UI Emoji` } })
-root.append(dfrag(`<style>textarea:focus {outline: none}</style>`), ta), fit(ta)
+root.attachShadow({mode:"open"}).append(dfrag(`<style>textarea:focus {outline: none}</style>`), ta), fit(ta)
 ###
 <div class="spbar"></div>
 现在我们可以编辑一段文本了，但很明显，只有一段文本是不够的，我们需要设计一种机制进行大量文本片段的编辑<br>
@@ -202,7 +203,7 @@ const bt = dom({child:"打乱", tag:"button", onclick:() => {
     simpdiff(result, ca) // 默认保证顺序，如果不需要保证顺序那么多加一个参数false
     for(let i = 0; i < result.length; i++) { if(result[i] !== ca[i]) {throw "order wrong!"} }
   }})
-root.append(dfrag(`<style>
+root.attachShadow({mode:"open"}).append(dfrag(`<style>
 button { margin: 0.1em; padding: 0 0.5em; border: gray 1px solid; border-radius: 0.1em; font-size: 1em; }
 button:hover { background: #ddd; cursor: pointer; }
 span { display: inline-block; margin: 0.1em; width: 2em; text-align: center; border: black 1px solid}
@@ -218,7 +219,7 @@ const nt = (text="") => ({text, elm:dom({tag:"span", child:text})})
 const list = [nt("假设这是一个文本编辑器"), nt("假设这是另一个文本编辑器")]
 const container = dom() // 每次列表发生变化，调用下面这一行就可以实现对文本列表的更新
 simpdiff(list.map(v => v.elm), domarr(container))
-root.append(dfrag(`<style>span { display: block; margin: 0.1em 0; width: 100%;
+root.attachShadow({mode:"open"}).append(dfrag(`<style>span { display: block; margin: 0.1em 0; width: 100%;
 text-align: center; border: black 1px solid; box-sizing: border-box;}</style>`), container)
 ###
 <br>
@@ -439,7 +440,7 @@ tofunc(textbyclass("drag_demo_0"))(obj($))
 ###code
 const root = $.root
 fetch(`./server.js`).then(p => p.text()).then(data => {
-  root.append(dom({tag:"pre", style:{
+  root.append(dom({tag:"pre", style:{ background: "none",
     fontFamily : `consolas, monospace, Apple Color Emoji, Segoe UI Emoji`,
     border : "black solid 1px", whiteSpace : "pre-wrap", padding: "1em 2em",
   }, child: data}))

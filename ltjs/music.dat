@@ -7,7 +7,7 @@
 ###code
 setTimeout(() => {
   const html = document.documentElement
-  html.scroll(0, html.scrollHeight * 0.9 - 1000)
+  html.scroll(0, 2600)
 }, 100)
 ###code
 $.ws = new WebSocket("ws://localhost:9000")
@@ -26,5 +26,165 @@ $.isnumstr = s => isstr(s) && !isNaN(Number(s))
 ###code
 $.proto = Object.getPrototypeOf, $.property = Object.defineProperty
 $.assign = Object.assign, $.create = Object.create
+###code
+$.style = (e, ...ss) => {
+  for(const s of ss) {
+    for(const k in s) {
+      let v = s[k]; isnum(v) ? v = `${v}px` : 0
+      if(e.style[k] !== v) { e.style[k] = v }
+    }
+  } return e
+}
+###code
+const elm = document.createElement.bind(document)
+$.dom = (o = {}, p, n = o.tag ?? "div") => {
+  const e = elm(n); for(const k in o) {
+    const v = o[k]; switch(k) {
+      case "class": e.className = isarr(v) ? v.join(" ") : v ; break;
+      case "child": e.append(...asarr(v)); break;
+      case "style": style(e, ...asarr(v)); break;
+      default: e[k] !== v ? e[k] = v : 0; break;
+    }
+  } if(p) { p.append(e) } return e
+}
+###code
+$.cutheadtail = (a, b) => {
+  let al = a.length, bl = b.length, l = Math.min(al, bl), s = 0, e = al, t = bl, x, y
+  for (;;s++) { if (s >= l || a[s] !== b[s]) { break } }
+  for (;;e--, t--) { if ((x = e - 1) <= s || (y = t - 1) <= s || a[x] !== b[y]) { break } }
+  return [s, e, t]
+}
+###code
+let d = () => { throw "duplication" }
+$.simpdiff = (n, p, keeporder = true) => {
+  let [s, e, t] = cutheadtail(n, p), o = new Map, r = new Set, w = []
+  for(let i = s; i < e; i++) { let v = n[i]; o.has(v) ? d() : o.set(v, i) }
+  for(let i = s; i < t; i++) { let v = p[i]; !o.has(v) ? w.unshift(i) : r.has(v) ? d() : r.add(v) }
+  for(let i of w) { p.splice(i, 1) }
+  for(let i = s; i < e; i++) { let v = n[i]; r.has(v) ? 0 : p.splice(i, 0, v) }
+  if(keeporder) {
+    w = []
+    for(let i = s; i < e; i++){ let a = n[i], b = p[i]; a === b ? 0 : w.unshift([i, o.get(b), b]) }
+    for(let [i] of w) { p.splice(i, 1) }
+    w = w.sort(([, a], [, b]) => a - b)
+    for(let [, i, v] of w) { p.splice(i, 0, v) }
+  }
+}
+###code
+$.domarr = (e, d = e.childNodes) => {
+  const splice = (i, c, a) => c ? e.removeChild(d[i]) : e.insertBefore(a, d[i])
+  return new Proxy({}, { get: (_, k) => k === "splice" ? splice : d[k] })
+}
 ###
 <div class="spbar"></div>
+<h2>音频基础</h2>
+创建音频上下文：
+###code
+$.ctx = new AudioContext()
+###
+最小的发声例子：
+###code
+root.append("播放一秒钟440Hz正弦波：", dom({
+  tag:"button", child:"\u25b6", onclick:() => {
+    const osc = ctx.createOscillator()
+    osc.frequency.value = 440
+    osc.connect(ctx.destination)
+    osc.start()
+    osc.stop(ctx.currentTime + 1)
+}}))
+###
+<br>创建分析器节点：
+###code
+$.anl = ctx.createAnalyser()
+anl.connect(ctx.destination)
+###
+增加一个滑条用来修改傅里叶分析的参数：
+###code
+const n = dom({tag:"span", child:anl.fftSize})
+const v = [256, 512, 1024, 2048, 4096, 8192, 16384]
+const i = dom({tag:"input", type:"range",
+  value:v.indexOf(2048), min:0, max:v.length-1, step:1,
+  oninput: e => { n.textContent = anl.fftSize = v[i.value]
+  log(anl.frequencyBinCount) } })
+root.append("设置分析器的fftSize：", i, n)
+###
+<br>绘制函数：
+###code
+$.drawanl = (anl, cvs, whichdata="time", f = () => {
+  requestAnimationFrame(f)
+  const length = anl.frequencyBinCount, ist = whichdata === "time"
+  const td = new Uint8Array(length), ctx = cvs.getContext("2d")
+  anl[ist ? "getByteTimeDomainData" : "getByteFrequencyData"](td)
+  const { width, height } = cvs, slice = width * 1.0 / length
+  ctx.fillStyle = "#ccc", ctx.fillRect(0, 0, width, height)
+  ctx.strokeStyle = "#111", ctx.beginPath()
+  for (let i = 0; i < length; i++) {
+    const v = (ist ? td[i] : 256 - td[i]) / 128
+    const x = i * slice, y = v * (height-20) / 2 + 10
+    ctx[i === 0 ? "moveTo" : "lineTo"](x, y)
+  } ctx.stroke()
+}) => f()
+###
+实际绘制出时域频域信息（增加了一个按钮帮助悬停可视化）：
+###code
+$.fitsize = cvs => (cvs.width = cvs.clientWidth * devicePixelRatio,
+  cvs.height = cvs.clientHeight * devicePixelRatio, cvs)
+const root = style($.root, {display:"flex", position:"relative"})
+const cvsstyle = {margin:"0.2em", width:"50%"}
+drawanl(anl, fitsize(dom({tag:"canvas", style: cvsstyle}, root)), "time")
+drawanl(anl, fitsize(dom({tag:"canvas", style: cvsstyle}, root)), "freq")
+const bt = dom({ tag: "button", child: "📌", style: {
+  position: "absolute", right: "-0.2em", width:"2.5em", height:"2.5em" },
+  onclick: () => { if(bt.textContent === "📌") {
+      bt.textContent = "↩", style(root, {position:"sticky", top:"0.2em"}) } else {
+      bt.textContent = "📌", style(root, {position:"relative", top:""}) } } }, root)
+bt.onclick()
+###
+<br>修改一下之前的最小发声音例子，将其连接到分析器上：
+###code
+root.append("播放一秒钟440Hz正弦波：", dom({
+  tag:"button", child:"\u25b6", onclick:() => {
+    const osc = ctx.createOscillator()
+    osc.frequency.value = 440
+    osc.connect(anl)
+    osc.start()
+    osc.stop(ctx.currentTime + 1)
+}}))
+###
+<pre>const t = 0.01
+const osc = ctx.createOscillator()
+const gain = ctx.createGain()
+
+osc.connect(gain)
+gain.connect(anl)
+
+// 先将音量设为0，在0.01秒之内过渡到1
+gain.gain.value = 0
+gain.gain.linearRampToValueAtTime(1, ctx.currentTime + t)
+
+osc.frequency.value = fr
+osc.start(st)
+
+// 返回一个用于停止播放的函数
+return () => {
+  const st = ctx.currentTime + t
+  gain.gain.value = gain.gain.value
+  gain.gain.linearRampToValueAtTime(0, st)
+  setTimeout(() => gain.disconnect(), t*1000+10)
+}</pre>
+<pre>const snarr = "A A# B C C# D D# E F F# G G#".split(" ")
+const num2sn = (i, k = i%12, h = Math.floor(i/12)) => sndict[k] + (k > 2 ? h+1 : h)
+const sndct = {}; forrg(88, i => sndct[num2sn(i)] = i)
+const parse = i => i.trim().split(/\s+/).map(v => v.toUpperCase())
+  .map(v => v in sndct ? sndct[v] : panic(`unknown sound name: "${v}"`))
+
+const bpm = 120, dt = 60 / bpm
+return (i, notes = parse(i)) => {
+  let t = ctx.currentTime, stop
+  const pollnote = () => {
+    while(t &lt;= ctx.currentTime + 0.1) {
+      const n = notes.shift(); if(!n) { stop?.(); return }
+      stop?.(), stop = playsoundat(n, t), t += dt // 停止上一个音，播放当前音
+    } setTimeout(pollnote, 50)
+  }; pollnote()
+}</pre>

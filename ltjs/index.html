@@ -100,8 +100,7 @@
           case "code": {
             const d = document.createElement("div")
             const p = document.createElement("pre")
-            p.className = "exec_code"
-            $.root = d.attachShadow({ mode: "open" })
+            p.className = "exec_code", $.root = d
             p.append(data), body.append(p, d)
             try { new Function(`with($){\n${data}\n}`)() }
             catch (e) { console.error(data + "\n", e) }
