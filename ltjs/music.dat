@@ -7,15 +7,15 @@
 ###code
 setTimeout(() => {
   const html = document.documentElement
-  html.scroll(0, 2600)
+  html.scroll(0, 6500)
 }, 100)
 ###code
 $.ws = new WebSocket("ws://localhost:9000")
+ws.addEventListener("close", console.log)
 ws.addEventListener("message", e => {
-  if(e.data === "refresh") { location.reload() }
-})
+  if(e.data === "refresh") { location.reload() } })
 ###code
-const _lg = console.log; $.log = (v, ...a) => (_lg(v, ...a), v)
+const _lg = console.log; $.log = (...a) => (_lg(...a), a[a.length - 1])
 ###code
 $.isnum = o => typeof o == "number", $.isfct = o => typeof o == "function"
 $.isstr = o => typeof o == "string", $.isbgi = o => typeof o == "bigint"
@@ -25,7 +25,7 @@ $.isarr = Array.isArray, $.asarr = v => isarr(v) ? v : [v]
 $.isnumstr = s => isstr(s) && !isNaN(Number(s))
 ###code
 $.proto = Object.getPrototypeOf, $.property = Object.defineProperty
-$.assign = Object.assign, $.create = Object.create
+$.assign = Object.assign, $.obj = $.create = Object.create
 ###code
 $.style = (e, ...ss) => {
   for(const s of ss) {
@@ -75,6 +75,18 @@ $.domarr = (e, d = e.childNodes) => {
   const splice = (i, c, a) => c ? e.removeChild(d[i]) : e.insertBefore(a, d[i])
   return new Proxy({}, { get: (_, k) => k === "splice" ? splice : d[k] })
 }
+###code
+const gebcn = document.getElementsByClassName.bind(document)
+const gebid = document.getElementById.bind(document)
+const tbc = name => [...gebcn(name)].map(v => v.textContent)
+const tbi = name => gebid(name).textContent
+$.textbyid = (...n) => n.map(tbi)
+$.textbyclass = (...names) => [].concat(...names.map(v => tbc(v)))
+$.tofunc = (...a) => new Function("$", "with($){ " +
+  [].concat(...a).map(v => `{\n${v}}`).join(" ") + " }return $")
+$.tofuncf = n => tofunc(textbyclass(n))
+$.exec = (f, o) => (f(o), o)
+$.execf = (n, ...a) => exec(tofunc(textbyclass(n)), ...a)
 ###
 <div class="spbar"></div>
 <h2>音频基础</h2>
@@ -98,16 +110,6 @@ root.append("播放一秒钟440Hz正弦波：", dom({
 $.anl = ctx.createAnalyser()
 anl.connect(ctx.destination)
 ###
-增加一个滑条用来修改傅里叶分析的参数：
-###code
-const n = dom({tag:"span", child:anl.fftSize})
-const v = [256, 512, 1024, 2048, 4096, 8192, 16384]
-const i = dom({tag:"input", type:"range",
-  value:v.indexOf(2048), min:0, max:v.length-1, step:1,
-  oninput: e => { n.textContent = anl.fftSize = v[i.value]
-  log(anl.frequencyBinCount) } })
-root.append("设置分析器的fftSize：", i, n)
-###
 <br>绘制函数：
 ###code
 $.drawanl = (anl, cvs, whichdata="time", f = () => {
@@ -125,12 +127,12 @@ $.drawanl = (anl, cvs, whichdata="time", f = () => {
   } ctx.stroke()
 }) => f()
 ###
-实际绘制出时域频域信息（增加了一个按钮帮助悬停可视化）：
+实际绘制时域和频域信息（增加了一个按钮帮助悬停可视化）：
 ###code
 $.fitsize = cvs => (cvs.width = cvs.clientWidth * devicePixelRatio,
   cvs.height = cvs.clientHeight * devicePixelRatio, cvs)
 const root = style($.root, { position:"relative"})
-const cvsstyle = {boxSizing:"border-box", padding:"0.2em", width:"50%", height:200}
+const cvsstyle = {boxSizing:"border-box", padding:"0.2em", width:"50%", height:100}
 const cvsa = dom({tag:"canvas", style: cvsstyle}, root)
 const cvsb = dom({tag:"canvas", style: cvsstyle}, root)
 drawanl(anl, fitsize(cvsa), "time")
@@ -141,12 +143,12 @@ const bt = dom({ tag: "button", child: "📌", style: {
       bt.textContent = "↩", style(root, {position:"sticky", top:"0.2em"}) } else {
       bt.textContent = "📌", style(root, {position:"relative", top:""}) } } }, root)
 addEventListener("resize", () => (fitsize(cvsa), fitsize(cvsb)))
-bt.onclick()
+//bt.onclick()
 ###
 <br>修改一下之前的最小发声音例子，将其连接到分析器上：
 ###code
-root.append("播放一秒钟440Hz正弦波：", dom({
-  tag:"button", child:"\u25b6", onclick:() => {
+root.append("现在播放声音可以看到时域和频域信息的可视化：", dom({
+  tag: "button", child: "\u25b6", onclick: () => {
     const osc = ctx.createOscillator()
     osc.frequency.value = 440
     osc.connect(anl)
@@ -154,27 +156,227 @@ root.append("播放一秒钟440Hz正弦波：", dom({
     osc.stop(ctx.currentTime + 1)
 }}))
 ###
-<pre>const t = 0.01
-const osc = ctx.createOscillator()
+<br>增加一个滑条用来修改傅里叶分析的参数：
+###code
+const n = dom({tag:"span", child:anl.fftSize})
+const v = [256, 512, 1024, 2048, 4096, 8192, 16384]
+const i = dom({tag:"input", type:"range",
+  value:v.indexOf(2048), min:0, max:v.length-1, step:1,
+  oninput: e => { n.textContent = anl.fftSize = v[i.value]
+  log(anl.frequencyBinCount) } })
+root.append("设置分析器的fftSize：", i, n)
+###
+<br>
+上面的代码有一个问题，就是在声音启动和结束的时候由于音量的突变会发出一个爆破音。
+下面的代码通过gain节点控制音量淡入淡出，从而消除了爆破音：
+###code
+root.append("这个声音节点在启动和停止时不会有爆破音：", dom({
+  tag: "button", child: "\u25b6", onclick: () => {
+    const t = 0.05
+    const osc = ctx.createOscillator()
+    const gain = ctx.createGain()
+
+    osc.connect(gain)
+    gain.connect(anl)
+
+    // 先将音量设为0，在0.01秒之内过渡到1
+    gain.gain.value = 0
+    gain.gain.linearRampToValueAtTime(1, ctx.currentTime + t)
+
+    osc.frequency.value = 440
+    osc.start()
+    
+    const st = ctx.currentTime + 1
+    gain.gain.value = gain.gain.value
+    gain.gain.setValueAtTime(1, st)
+    gain.gain.linearRampToValueAtTime(0, st + t)
+}}))
+###
+<br>至此我们应该对web audio的使用有了一定的概念。
+<div class="spbar"></div>
+<h2>音序器</h2>
+对于编曲软件而言，音序器是一个至关重要的组件，DAW里常见的钢琴卷帘和鼓机都是一种编辑音序的工具。<br>
+但现在我们先不讨论音序的编辑，而是只关注如何实现音序的播放。<br>
+抽象地说，音序就是一系列音频事件，而音序器的功能就是准时执行这些音频事件。<br>
+说得再粗暴一些，其实就是在一些特定的时间点运行一些特定的代码。<br>
+类似下面的伪代码：<br>
+<pre>
+setTimeout(event0, 0)
+setTimeout(event1, 10)
+setTimeout(event2, 30)
+//...
+</pre>
+理论上这段代码应该可以完成任务，但是很可惜，js的setTimeout函数没有这么高的精度，虽然我设置让它10ms之后执行event1，但是实际上可能到了十几毫秒event1这个函数才会被执行，这样的精度对于音频应用而言是不能忍受的。<br>
+要想以足够的时间精度触发音频事件，在web audio中，就需要提前进行计划。<br>
+用下面的伪代码理解一下：
+<pre>
+audionode0.start(0)
+audionode1.start(10)
+audionode2.start(30)
+//...
+</pre>
+这段代码和上面的区别在于，我们失去了执行任意函数的能力，只能对web audio给定的功能规划时间，但相对应的，我们得到了精确的计时。<br>
+现在想象一下，如果我们有一段音序，那么我们就可以在用户按下播放按钮的同时，将所有的音频事件都用上面的方式规划起来，那么机器就能正确地播放这段音序。<br>
+但这样做有个巨大的缺陷，一旦我们开始播放，就没有暂停的机会了，更别提要解除暂停重新播放，也就是说，上面这种简单的机制对于真正的音序器而言是不够用的，我们还要额外设计一个方案解决这个问题。<br>
+首先准备一些基础代码：
+<pre class="sequncer_0">
+$.now = () => ctx.currentTime
+$.loop = () => (requestAnimationFrame(loop), poll())
+$.seq = [], $.poll = () => {}, loop()
+</pre>
+这里准备了两样东西，一是seq数组，之后我们要把音序放在里面。<br>
+二是poll函数，这里使用requestAnimationFrame每次绘制调用一次poll。<br>
+我的计划是：每隔一段时间就用poll函数将最近需要被规划的事件规划到web audio的列表里，具体实现可以看代码：<br>
+<pre class="sequncer_0">
+$.scheduleT = 0.05, $.startT = 0, $.passT = 0
+$.playing = false, $.method = {}, $.poll = () => {
+  if(!playing) { return }
+  const n = now(), t = n - startT + passT
+  while(seq[0] && seq[0].time < (t + scheduleT)) {
+    const e = seq.shift()
+    method[e.type]?.(e, e.time - t + n)
+  }
+}
+</pre>
+最后提供一些简单的胶水函数：
+<pre class="sequncer_0">
+$.play = () => ($.playing = true, $.startT = now(), poll())
+$.pause = (t = now() - startT) => {
+  const n = now(); $.playing = false, $.passT += n - startT
+  method.stop({ type: "stop" }, n + scheduleT)
+}
+</pre>
+<pre class="sequncer_0", id="audiosource_0">
+$.osc = ctx.createOscillator()
 const gain = ctx.createGain()
-
-osc.connect(gain)
-gain.connect(anl)
-
-// 先将音量设为0，在0.01秒之内过渡到1
+osc.connect(gain), gain.connect(anl)
 gain.gain.value = 0
-gain.gain.linearRampToValueAtTime(1, ctx.currentTime + t)
-
-osc.frequency.value = fr
-osc.start(st)
-
-// 返回一个用于停止播放的函数
-return () => {
-  const st = ctx.currentTime + t
-  gain.gain.value = gain.gain.value
-  gain.gain.linearRampToValueAtTime(0, st)
-  setTimeout(() => gain.disconnect(), t*1000+10)
-}</pre>
+osc.frequency.value = 440
+const dt = 0.1; osc.start()
+method.start = (e, t) => {
+  gain.gain.setTargetAtTime(0, t, 0.5)
+  gain.gain.linearRampToValueAtTime(1, t + dt)
+}
+method.stop = (e, t) => {
+  if(gain.gain.value === 0) { return }
+  gain.gain.setTargetAtTime(1, t, 0.5)
+  gain.gain.linearRampToValueAtTime(0, t + dt)
+}
+</pre>
+写个简单的demo：
+###code
+const seq = execf("sequncer_0", obj($))
+const sa = t => ({type: "start", time: t})
+const sp = t => ({type: "stop", time: t})
+const test = () => {
+  try { seq.osc.start() } catch(e){  }
+  seq.passT = 0
+  seq.seq = [sa(1), sp(1.5), sa(2.5), sp(4), sa(4.5), sp(5)]
+  seq.play()
+  setTimeout(() => seq.pause(), 3000)
+  setTimeout(() => seq.play(), 4000)
+}
+root.append("按下按钮开始测试发声序列：", dom({tag:"button", child:"▶", onclick:test}))
+###
+<div class="spbar"></div>
+上面的demo实现了一个简单的音序器，并具有了播放和暂停的功能，但也暴露了新的问题：<br>
+<br>
+首先，由于我一开始假设每次播放都是从头放到尾，因此选择了一种不断从数组中删除已经处理过的事件的方法，但这其实是不符合音序器的实际需求的，我们的目标应该是允许音序器从任意时间点开始播放，所以这里需要设计更完善的机制。<br>
+<br>
+其次，在上面的demo中可以发现，一个声音可以被启动多次，也就是在前一个声音还没有收到结束事件的情况下，有可能收到对同一个声音的发声指令，需要考虑如何应对这种情形。<br>
+<div class="spbar"></div>
+先来解决第一个问题：
+<pre class="sequncer_1">
+$.now = () => ctx.currentTime
+$.loop = () => (requestAnimationFrame(loop), poll())
+$.seq = [], $.poll = () => {}, loop()
+</pre>
+<pre class="sequncer_1">
+$.scheT = 0.05, $.sequT = 0, $.starT = 0, $.paused = true, $.method = {}
+$.poll = () => { // 根据当前时间从音序数组中找到需要播放的音序区间
+  if(paused) { return } const nt = now(), t = nt - starT + sequT
+  for(let i = find(t), e = find(t + scheT); i < e; i++) {
+    const e = seq[i]; method[e.type]?.(e, e.time - t + nt) } }
+</pre>
+<pre class="sequncer_1">
+// 简单粗暴的搜索实现，后续可以替换为二分搜索
+$.find = (t, i = seq.findIndex(v => v.time > t)) => i < 0 ? seq.length : i
+</pre>
+<pre class="sequncer_1">
+$.play = (t = sequT) => ($.paused = false, $.sequT = t, $.starT = now(), poll())
+$.pause = (n = now()) => ($.sequT = n - starT,
+  $.paused = true, method.stop({type:"stop"}, n + scheT))
+</pre>
+使用和前一个demo完全相同的音源代码：
+###code
+const seq = exec(tofunc(textbyclass("sequncer_1"), textbyid("audiosource_0")), obj($))
+const sa = t => ({type: "start", time: t})
+const sp = t => ({type: "stop", time: t})
+seq.seq = [sa(1), sp(1.5), sa(2.5), sp(4), sa(4.5), sp(5)]
+const test = () => {
+  try { seq.osc.start() } catch(e){  }
+  seq.play(0)
+  setTimeout(() => seq.pause(), 3000)
+  setTimeout(() => seq.play(), 4000)
+}
+root.append("DEMO 2：", dom({tag:"button", child:"▶", onclick:test}))
+###
+<div class="spbar"></div>
+可以看到，这个demo的代码和之前有一些不同，最明显的地方是，不需要每次重置播放的内容和进度了，因为现在的play函数支持从任意时间点开始播放。<br>
+但还有一些不那么明显的变化，并且这种变化非常有趣：在这个demo中，poll函数的效果仅仅和设置的播放时间有关，所以它并不知道一个事件是否被触发过，也就是说，当设定的schedule_time比poll运行的间隔更长时，同一个事件会被触发多次。而神奇的地方在于，由于每次规划的音频事件触发时间都相同，所以即使触发多次也不会影响声音的正确播放。正因如此，我也没有第一时间发现这个bug，而是直到尝试打印一些信息的时候才注意到。<br>
+<br>
+后续可以通过记录已经规划到的时间来进行修正。<br>
+<div class="spbar"></div>
+接下来开始思考第二个问题，或者说，来实现一个更有意思的音源。<br>
+现在的音源除了开始发声和停止发声之外就什么都不能做，非常的无聊，让我们为它拓展一些功能。<br>
+###code
+const seq = exec(tofunc(textbyclass("sequncer_1"), textbyid("audiosource_0")), obj($))
+const sa = t => ({type: "start", time: t})
+const sp = t => ({type: "stop", time: t})
+seq.seq = [sa(1), sa(1.5), sa(2.5), sp(4), sa(4.5), sp(5)]
+const test = () => {
+  try { seq.osc.start() } catch(e){  }
+  seq.play(0)
+  setTimeout(() => seq.pause(), 3000)
+  setTimeout(() => seq.play(), 4000)
+}
+test()
+###
+<div class="spbar"></div>
+<pre class="sequncer_1">
+$.find = (t, s = 0, e = seq.length - 1) => {
+  if(s > e) return seq.length
+  let m = Math.floor()
+}
+let recursiveFunction = function (arr, x, start, end) {
+      
+    // Base Condition
+    if (start > end) return false;
+  
+    // Find the middle index
+    let mid=Math.floor((start + end)/2);
+  
+    // Compare mid with given key x
+    if (arr[mid]===x) return true;
+         
+    // If element at mid is greater than x,
+    // search in the left half of mid
+    if(arr[mid] > x)
+        return recursiveFunction(arr, x, start, mid-1);
+    else
+ 
+        // If element at mid is smaller than x,
+        // search in the right half of mid
+        return recursiveFunction(arr, x, mid+1, end);
+}
+</pre>
+###
+<div class="spbar"></div>
+<pre class="sequncer_0">
+$.error = e => { throw new Error(e) }
+$.notime = () => error("no time specified in audio event")
+</pre>
+###
 <pre>const snarr = "A A# B C C# D D# E F F# G G#".split(" ")
 const num2sn = (i, k = i%12, h = Math.floor(i/12)) => sndict[k] + (k > 2 ? h+1 : h)
 const sndct = {}; forrg(88, i => sndct[num2sn(i)] = i)

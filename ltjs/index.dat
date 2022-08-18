@@ -58,6 +58,7 @@ p.style.fontFamily = `consolas, monospace, Apple Color Emoji, Segoe UI Emoji`
 p.style.border = "black solid 1px"
 p.style.whiteSpace = "pre-wrap"
 p.style.background = "none"
+p.style.overflow = "hidden"
 p.textContent = text
 root.append(p)
 ###
@@ -409,9 +410,9 @@ tl.list[0].ta.value = tl.list[0].text =
     </ul>
   </li>
   <li>服务端代码也可以写在这个文档中，只需要在服务端添加一个监视本文件变化的脚本并持续刷新服务器即可</li>
-  <li>文本uuid</li>
-  <li>折叠</li>
-  <li>悬浮窗口</li>
+  <li>为每个文本指定一个uuid，从而将文本组合为其他类型的数据结构</li>
+  <li>代码折叠功能（甚至是按组折叠）</li>
+  <li>为悬浮窗口提供一个更合适的设计（目前使用position:sticky实现）</li>
 </ul>
 <div class="spbar"></div>
 <h2>拖拽系统</h2>
