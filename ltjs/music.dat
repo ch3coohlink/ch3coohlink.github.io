@@ -340,7 +340,6 @@ const test = () => {
   setTimeout(() => seq.pause(), 3000)
   setTimeout(() => seq.play(), 4000)
 }
-test()
 ###
 <div class="spbar"></div>
 <pre class="sequncer_1">
@@ -374,7 +373,7 @@ let recursiveFunction = function (arr, x, start, end) {
 <div class="spbar"></div>
 <pre class="sequncer_0">
 $.error = e => { throw new Error(e) }
-$.notime = () => error("no time specified in audio event")
+  $.notime = () => error("no time specified in audio event")
 </pre>
 ###
 <pre>const snarr = "A A# B C C# D D# E F F# G G#".split(" ")
