@@ -32,12 +32,12 @@
       min-height: 1em;
     }
 
-    pre.server_code {
+    .server_code {
       color: rgb(56, 15, 51);
       background: #efdff1;
     }
 
-    pre.exec_code {
+    .exec_code {
       color: #cbd3d2;
       background: #1d191d;
     }
@@ -102,15 +102,15 @@
       for (let { type, data } of parts) {
         data = data.join("\n")
 
-        switch (type) {
-          case "code": {
-            const d = document.createElement("div")
-            const p = document.createElement("pre")
-            p.className = "exec_code", $.root = d
-            p.append(data), body.append(p, d)
-            try { new Function(`with($){\n${data}\n}`)() }
-            catch (e) { console.error(data + "\n", e) }
-          } break
+        if (type.startsWith("code")) {
+          const cns = type.split(".").slice(1)
+          const d = document.createElement("div")
+          const p = document.createElement("pre")
+          p.className = ["exec_code", ...cns].join(" "), $.root = d
+          p.append(data), body.append(p, d)
+          try { new Function(`with($){\n${data}\n}`)() }
+          catch (e) { console.error(data + "\n", e) }
+        } else switch (type) {
           case "server": {
             const p = document.createElement("pre")
             p.className = "server_code"
