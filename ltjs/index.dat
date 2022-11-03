@@ -15,8 +15,8 @@
 ###code
 setTimeout(() => {
   const html = document.documentElement
-  html.scroll(0, 0)
-}, 200)
+  html.scroll(0, 17000)
+}, 400)
 ###
 <div class="spbar"></div>
 <h2>起点</h2>
@@ -230,7 +230,7 @@ text-align: center; border: black 1px solid; box-sizing: border-box;}</style>`),
 只有当我们可以拿到对应的源码，我们才有机会把它创建成一个函数，要怎么做到这件事情呢？。<br>
 其实现有的机制就足够完成这件事情了：我可以在html文档里用pre标签编写一段代码（并不会运行），那么在实际的代码段中就可以拿到它的文本，之后想要怎们运行它就可以由我们自由控制了。<br>
 来实际尝试一下这个过程，这是一段不会自动运行的代码：
-<pre id="test_load_code_0">$.a = 1</pre>
+<pre id="test_load_code_0", class="test_load_code_0">$.a = 1</pre>
 而这段代码将加载运行它：
 ###code
 $.textbyid = id => document.getElementById(id).textContent
@@ -295,7 +295,7 @@ root.append(container)
 const _tbc = name => [...document.getElementsByClassName(name)].map(v => v.textContent)
 $.textbyclass = (...names) => [].concat(...names.map(v => _tbc(v)))
 $.tofunc = src => new Function("$", "with($){ " +
-  asarr(src).map(v => `{\n${v}}`).join(" ") + " }return $")
+  asarr(src).map(v => `{\n${v}\n}`).join(" ") + " }return $")
 
 const result = tofunc(textbyclass("test_load_code_1"))({})
 root.append(dom({child:"上述代码将一个空的全局环境修改成了：" + JSON.stringify(result)}))
@@ -474,3 +474,303 @@ ws.addEventListener("message", e => {
 ###
 现在每次更新本文档都会同时刷新服务器和浏览器了。
 <div class="spbar"></div>
+<pre class = "code_editor_0">
+$.fg = "#cbd3d2", $.bg = "#1d191d"
+</pre>
+<pre class = "code_editor_0">
+const fit = e => (e.style.height = "auto", e.style.height = e.scrollHeight + "px")
+$.ta = dom({ tag: "textarea", placeholder: "", style: {
+  width: "100%", padding: "0.2em 0.2em 0.4em 1em", display: "block",
+  boxSizing: "border-box", resize: "none", fontSize: "1em",
+  fontFamily: "consolas, monospace, Apple Color Emoji, Segoe UI Emoji",
+  overflow: "hidden", color: fg, background: bg, border: "none"
+}, oninput: () => fit(ta), spellcheck: false })
+root.append(ta), fit(ta)
+</pre>
+<pre class = "code_editor_0">
+$.save = () => {}
+ta.addEventListener("keydown", e => {
+  if(e.key === "s" && e.ctrlKey)
+    e.preventDefault(), save() })
+</pre>
+<pre class = "code_editor_0">
+$.sandbox = dom({ class: "output",
+  style:{border:"1px solid "+bg, borderTop: "none", padding: 5 }})
+root.append(sandbox)
+</pre>
+<pre class = "code_editor_0">
+$.exec = () => {
+  sandbox.innerHTML = ""
+  tofunc(ta.value)(assign({}, {root: sandbox})) }
+$.save = () => exec()
+</pre>
+###code
+//dom({tag:"style", innerText:`.output:empty { display: none; }`}, root)
+###code
+style(root, { padding: 5, border: "solid 1px black", margin: "8px 0" })
+const ta = obj($)
+tofunc(textbyclass("code_editor_0"))(ta)
+ta.ta.value = `root.innerHTML = new Date().getTime()
+// 按Ctrl-S可以运行代码。`
+ta.exec()
+###
+上面的代码实现了一个非常简陋的单段代码执行环境。<br>
+每次运行，都会创建一个新的运行环境（并刷新附带的DOM环境）
+<div class="spbar"></div>
+<pre class = "code_editor_list_0">
+$.newtext = (text="") => (code_editor(assign(obj($),
+ {text, root:dom({style:{marginBottom:5}}, root)})))
+$.list = [], $.update = () => {
+  if(list.length === 0) { list.push(newtext("")) }
+  for(let i = 0, l = list.length; i < l; i++) { list[i].order = i }
+  simpdiff(list.map(v => v.root), domarr(container)) }
+$.add = (i, t = newtext()) => (list.splice(i, 0, t), update())
+$.del = i => (list.splice(i, 1), update())
+$.container = dom(); update(); root.append(container)
+</pre>
+###code 
+style(root, { padding: 5, border: "solid 1px black",
+  margin: "8px 0", paddingBottom: 0 })
+$.code_editor = tofunc(textbyclass("code_editor_0"))
+$.editor_list = tofunc(textbyclass("code_editor_list_0"))
+const el = editor_list(obj($))
+el.add(0)
+el.list[0].ta.value = `root.innerHTML = new Date().getTime()`
+el.list[1].ta.value = `root.innerHTML = new Date().getTime()`
+el.list[0].exec()
+el.list[1].exec()
+###
+一个简陋的代码列表实现。各个代码编辑器之间没有联系。
+<div class="spbar"></div>
+###code
+$.fitta = e => (e.style.height = "auto", e.style.height = e.scrollHeight + "px")
+###
+编辑器：
+<pre class = "code_editor_1">
+$.fg = "#cbd3d2", $.bg = "#1d191d"
+</pre>
+<pre class = "code_editor_1">
+$.ta = dom({ tag: "textarea", placeholder: "", style: {
+  width: "100%", padding: "0.2em 0.2em 0.4em 1em", display: "block",
+  boxSizing: "border-box", resize: "none", fontSize: "1em",
+  fontFamily: "consolas, monospace, Apple Color Emoji, Segoe UI Emoji",
+  overflow: "hidden", color: fg, background: bg, border: "none"
+}, oninput: () => fitta(ta), spellcheck: false })
+</pre>
+<pre class = "code_editor_1">
+$.save = exec
+ta.addEventListener("keydown", e => {
+  if(e.key === "s" && e.ctrlKey)
+    e.preventDefault(), save() })
+</pre>
+<pre class = "code_editor_1">
+$.sandbox = dom({ class: "output",
+  style:{border:"1px solid "+bg, borderTop: "none", padding: 5 }})
+</pre>
+<pre class = "code_editor_1">
+dom({child: [ta, sandbox]}, root)
+dom({tag:"button", child:"+", onclick: ()=>add(order) }, root)
+dom({tag:"button", child:"⨉", style:{fontSize:10}, onclick:()=>del(order) }, root)
+dom({tag:"button", child:"+", onclick: ()=>add(order+1) }, root)
+fitta(ta)
+</pre>
+列表：
+<pre class = "code_editor_list_1">
+$.tofunc = src => new Function("$", "root", `with($){\n${src}\n}return $`)
+</pre>
+<pre class = "code_editor_list_1">
+$.exec = ($ = {}) => {
+  for(const e of list) { e.sandbox.innerHTML = "" }
+  for(const e of list) { tofunc(e.ta.value)($, e.sandbox) } }
+</pre>
+<pre class = "code_editor_list_1">
+$.newtext = (text="") => (code_editor(assign(obj($),
+ {text, root:dom({style:{marginBottom:5}}, root)})))
+$.list = [], $.update = () => {
+  if(list.length === 0) { list.push(newtext("")) }
+  for(let i = 0, l = list.length; i < l; i++) { list[i].order = i }
+  simpdiff(list.map(v => v.root), domarr(container)) }
+$.add = (i, t = newtext()) => (list.splice(i, 0, t), update())
+$.del = i => (list.splice(i, 1), update())
+</pre>
+<pre class = "code_editor_list_1">
+$.container = dom(); update(); root.append(container)
+</pre>
+###code
+style(root, { padding: 5, border: "solid 1px black",
+  margin: "8px 0", paddingBottom: 0 })
+$.code_editor = tofunc(textbyclass("code_editor_1"))
+$.editor_list = tofunc(textbyclass("code_editor_list_1"))
+const el = editor_list(obj($))
+el.add(0)
+el.list[0].ta.value = `root.innerHTML = new Date().getTime()`
+el.list[1].ta.value = `root.innerHTML = new Date().getTime()`
+el.exec()
+###
+以上实现了一个所有代码段共同刷新的编辑器（并添加了增删按钮）。在任何一个编辑窗口保存代码都会刷新整个文档流。
+<div class="spbar"></div>
+下面为代码编辑器实现一个保存机制。<br>
+这里简单对indexedDB做一个封装，实现一个简单的存储机制。
+<pre class = "indexedDB_warper_0">
+$.name ??= "default", $.store ??= "default"
+</pre>
+<pre class = "indexedDB_warper_0">
+$.dbp = new Promise((res, rej, r = indexedDB.open(name)) => (
+  r.onsuccess = () => res(r.result),
+  r.onerror = () => rej(r.error),
+  r.onupgradeneeded = () => r.result.createObjectStore(store)))
+</pre>
+<pre class = "indexedDB_warper_0">
+$.action = (type, cb) => dbp.then(db =>
+  new Promise((r, j, t = db.transaction(store, type)) => (
+    t.oncomplete = () => r(),
+    t.onabort = t.onerror = () => j(t.error),
+    cb(t.objectStore(store)))))
+</pre>
+<pre class = "indexedDB_warper_0">
+$._ = null, $.ro = f => action("readonly", f), $.rw = f => action("readwrite", f)
+</pre>
+<pre class = "indexedDB_warper_0">
+$.key = (r = _) => ro(s => s.getAllKeys().onsuccess = e => r = e.target.result).then(() => r)
+$.val = (r = _) => ro(s => s.getAll().onsuccess = e => r = e.target.result).then(() => r)
+$.get = (k, p = false, r = _) => ro(s => r = s.get(k)).then(() => r.result
+  ?? fallback[k] ?? (p ? panic(`"${k}" not found on storage`) : void 0))
+$.clr = () => rw(s => s.clear())
+$.set = (k, v) => rw(s => s.put(v, k))
+$.del = k => rw(s => s.delete(k))
+$.def = json => $.fallback = JSON.parse(json)
+</pre>
+<pre class = "indexedDB_warper_0">
+$.fallback = {}, $.tojson = async (...a) => {
+  const ks = await key(), o = {}
+  await Promise.all(ks.map(k => get(k).then(r => o[k] = r)))
+  return JSON.stringify(o, ...a) }
+</pre>
+测试如下：
+###code
+$.indexdb = tofunc(textbyclass("indexedDB_warper_0"))
+const idb = indexdb({})
+idb.set("test_key", "test_value")
+  .then(() => idb.get("test_key"))
+  .then(v => v !== "test_value" ? alert("something wrong with idb") : 0)
+###
+<div class="spbar"></div>
+接下来将保存功能实现到编辑器中，从而实现对代码的持久化保存：<br>
+编辑器：
+<pre class = "code_editor_2">
+$.fg = "#cbd3d2", $.bg = "#1d191d"
+</pre>
+<pre class = "code_editor_2">
+$.ta = dom({ tag: "textarea", placeholder: "", style: {
+  width: "100%", padding: "0.2em 0.2em 0.4em 1em", display: "block",
+  boxSizing: "border-box", resize: "none", fontSize: "1em",
+  fontFamily: "consolas, monospace, Apple Color Emoji, Segoe UI Emoji",
+  overflow: "hidden", color: fg, background: bg, border: "none"
+}, oninput: () => fitta(ta), spellcheck: false, value: text })
+</pre>
+<pre class = "code_editor_2">
+ta.addEventListener("keydown", e => {
+  if(e.key === "s" && e.ctrlKey) save()
+  else if(e.key === "e" && e.ctrlKey) exec() })
+</pre>
+<pre class = "code_editor_2">
+$.refresh = () => {
+  const p = sandbox; $.sandbox = dom({ class: "output", style:
+    {border:"1px solid "+bg, borderTop: "none", padding: 5, overflow: "auto" } })
+  p.parentNode.replaceChild(sandbox, p) }
+</pre>
+<pre class = "code_editor_2">
+$.gettext = () => ta.value
+</pre>
+<pre class = "code_editor_2">
+$.bw = "25px"
+$.btstyle = {border:"none", userSelect:"none"}
+style(root, {display:"flex"})
+$.sandbox = dom()
+style(dom({child: [ta, sandbox]}, root),
+  {width: `calc(100% - ${bw})`, display: "inline-block"})
+refresh()
+$.buttons = dom({child:[
+  dom({tag:"button", style:btstyle, child:"+", onclick: ()=>add(order) }),
+  dom({tag:"button", style:[btstyle, {fontSize:10}], child:"⨉", onclick:()=>del(order) }),
+  dom({tag:"button", style:btstyle, child:"+", onclick: ()=>add(order+1) })
+]}, root)
+style(buttons, {width: bw, display: "inline-flex", flexDirection:"column"},
+  {verticalAlign:"top", justifyContent: "space-between"},
+  {border: "1px black solid", borderLeft: "none"})
+fitta(ta)
+</pre>
+注意exec函数现在需要将setInterval等函数注册的回调删除，所以需要一个额外的函数帮助处理这个问题：<br>
+（这些函数的封装远远不是完美的，只能说，符合正常范围内的用途）<br>
+<pre class = "setTimeout_etc_1">
+[$.a, $.b] = name.split(" "), delete $.name
+$.d = new Set, $.r = window[a].bind(window), $.c = window[b].bind(window)
+</pre>
+<pre class = "setTimeout_etc_1">
+if(a === "requestAnimationFrame") { // 暴力修复，如果回调太多就会泄露
+  $.rm = (f, t) => {const i=r(f, t);if(d.size>10){d.clear()}d.add(i);return i}
+} else { $.rm = (f, t) => { const i = r(f, t); d.add(i); return i } }
+$.cm = i => (d.delete(i), c(i))
+$.clear = () => { for(const i of [...d]) { cm(i) } }
+</pre>
+列表：<br>
+<pre class = "code_editor_list_2">
+$.article_key ??= "default"
+$.save = () => idb.set(article_key, list.map(e => e.gettext()))
+</pre>
+<pre class = "code_editor_list_2">
+$.tofunc = (src, n) => new Function("$", `[${n}]`,
+`with($){\n${src}\n}return $`)
+</pre>
+<pre class = "code_editor_list_2">
+$.stos = "requestIdleCallback cancelIdleCallback, requestAnimationFrame cancelAnimationFrame, setTimeout clearTimeout, setInterval clearInterval".split(", ").map(sto)
+$.stosname = [].concat(...stos.map($ => [$.a, $.b])).join(", ")
+$.stosfunc = [].concat(...stos.map($ => [$.rm, $.cm]))
+</pre>
+<pre class = "code_editor_list_2">
+$.exec = ($ = {}) => {
+  clear(); for(const e of list) {
+    let f, t = e.ta.value; try { 
+      f = tofunc(t, "root, " + stosname)
+      f($, [e.sandbox, ...stosfunc]) }
+    catch (e) { console.error(t); throw e } } }
+</pre>
+<pre class = "code_editor_list_2">
+$.clear = () => {
+  for(const s of stos) { s.clear() }
+  for(const e of list) { e.refresh() } }
+</pre>
+<pre class = "code_editor_list_2">
+$.newtext = (text="") => (code_editor(assign(obj($),
+ {text, root:dom({style:{marginBottom:5}}, root)})))
+$.list = [], $.update = () => {
+  if(list.length === 0) { list.push(newtext("")) }
+  for(let i = 0, l = list.length; i < l; i++) { list[i].order = i }
+  simpdiff(list.map(v => v.root), domarr(container)) }
+$.add = (i, t = newtext()) => (list.splice(i, 0, t), update())
+$.del = i => (list.splice(i, 1), update())
+$.container = dom()
+</pre>
+<pre class = "code_editor_list_2">
+root.append(container)
+idb.get(article_key).then((a = []) => {
+  $.list = a.map(newtext), update() })
+</pre>
+顺便关闭一下页面的保存快捷键：
+###code
+document.documentElement.addEventListener("keydown", e =>
+  e.ctrlKey && e.key === "s" ? e.preventDefault() :
+  e.ctrlKey && e.key === "e" ? e.preventDefault() : 0)
+###
+然后对列表做实例化：
+###code
+style(root, { padding: 5, border: "solid 1px black",
+  margin: "8px 0", paddingBottom: 0 })
+$.idb = indexdb({ name: "ltjs" })
+$.rawsto = tofunc(textbyclass("setTimeout_etc_1"))
+$.sto = name => rawsto({ name })
+$.code_editor = tofunc(textbyclass("code_editor_2"))
+$.editor_list = tofunc(textbyclass("code_editor_list_2"))
+const el = editor_list(obj($))
+setTimeout(() => el.exec(), 200)
+###
