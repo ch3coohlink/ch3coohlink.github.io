@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>lt.js 4 - InfiDesk</title>
+  <style>
+    html {
+      background: #58a;
+      background-image:
+        linear-gradient(rgba(255, 255, 255, .3) 1px, transparent 0),
+        linear-gradient(90deg, rgba(255, 255, 255, .3) 1px, transparent 0),
+        linear-gradient(white 1px, transparent 0),
+        linear-gradient(90deg, white 1px, transparent 0);
+      background-size: 15px 15px, 15px 15px, 75px 75px, 75px 75px;
+    }
+
+    html {
+      height: 100%;
+      touch-action: none;
+    }
+
+    body {
+      margin: 0;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    .movable {
+      position: absolute;
+      user-select: none;
+    }
+
+    .item {
+      background-color: #f8fcd7;
+      min-width: 300px;
+      box-shadow: #00000021 0px 7px 10px;
+      transition: box-shadow 0.2s;
+    }
+
+    .item-body {
+      height: 80px;
+    }
+
+    .dragbar {
+      height: 1.5em;
+      background-color: #00000011;
+      cursor: grab;
+    }
+
+    .dragbar>div {
+      background: #546e8436;
+      position: absolute;
+      top: 0.35em;
+      border-radius: 0.5em;
+      height: 0.8em;
+      width: 0.8em;
+      cursor: pointer;
+    }
+
+    .dragbar>.left1 {
+      left: 0.35em;
+    }
+
+    .dragbar>.right1 {
+      right: 0.35em;
+    }
+
+    .dragbar>.close {
+      background: #ff0000aa;
+      cursor: not-allowed;
+      border-radius: 0;
+    }
+
+    .item-child-div:empty {
+      box-shadow: none;
+    }
+
+    .item-child-div {
+      margin-top: 0.5em;
+      margin-right: 0.4em;
+      display: flex;
+      box-shadow: #00000021 0px 7px 10px;
+    }
+
+    .item-child {
+      position: relative;
+      box-shadow: none;
+    }
+  </style>
+  <script>
+    const $ = {}; (async () => {
+      with ($) {
+        $.AsyncFunction = (async () => { }).constructor
+        $.tofunc = (s, a) => new (a ? AsyncFunction : Function)("__PROTO__",
+          "__APPEND__", "$ = Object.assign(Object.create(__PROTO__), __APPEND__)",
+          "with($) { " + s + " } return $")
+        $.require = (p, a = false) => fetch(p).then(r => r.text()).then(t => tofunc(t, a))
+        $.loadsym = (p, e = $) => require(p, true).then(f => f(undefined, undefined, e))
+        await loadsym("./main.js")
+      }
+    })()
+  </script>
+</head>
+
+<body>
+  <script>document.body.innerHTML = ""</script>
+</body>
+
+</html>

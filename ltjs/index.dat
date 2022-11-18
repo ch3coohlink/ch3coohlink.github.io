@@ -15,7 +15,7 @@
 ###code
 setTimeout(() => {
   const html = document.documentElement
-  html.scroll(0, 17000)
+  html.scroll(0, html.scrollHeight)
 }, 400)
 ###
 <div class="spbar"></div>
@@ -90,6 +90,7 @@ $.bindall = o => {
 }
 $.assign = Object.assign
 $.dfrag = t => document.createRange().createContextualFragment(t)
+$.panic = e => { throw e }
 ###
 <div class="spbar"></div>
 <h2>文本编辑</h2>
@@ -469,11 +470,12 @@ wss.on("connection", _.wsf = ws => {
 ###code
 $.ws = new WebSocket("ws://localhost:9000")
 ws.addEventListener("message", e => {
-  if(e.data === "refresh") { location.reload() }
+  // if(e.data === "refresh") { location.reload() }
 })
 ###
 现在每次更新本文档都会同时刷新服务器和浏览器了。
 <div class="spbar"></div>
+<h2>新编辑器</h2>
 <pre class = "code_editor_0">
 $.fg = "#cbd3d2", $.bg = "#1d191d"
 </pre>
@@ -646,7 +648,7 @@ $.fallback = {}, $.tojson = async (...a) => {
   await Promise.all(ks.map(k => get(k).then(r => o[k] = r)))
   return JSON.stringify(o, ...a) }
 </pre>
-测试如下：
+测试如下（如果出错，将会弹出警告提示）：
 ###code
 $.indexdb = tofunc(textbyclass("indexedDB_warper_0"))
 const idb = indexdb({})
@@ -691,10 +693,10 @@ style(dom({child: [ta, sandbox]}, root),
   {width: `calc(100% - ${bw})`, display: "inline-block"})
 refresh()
 $.buttons = dom({child:[
-  dom({tag:"button", style:btstyle, child:"+", onclick: ()=>add(order) }),
   dom({tag:"button", style:[btstyle, {fontSize:10}], child:"⨉", onclick:()=>del(order) }),
-  dom({tag:"button", style:btstyle, child:"+", onclick: ()=>add(order+1) })
-]}, root)
+  dom({tag:"button", style:btstyle, child:"+↑", onclick: ()=>add(order) }),
+  dom({tag:"button", style:btstyle, child:"+↓", onclick: ()=>add(order+1) })
+].map(v => (v.setAttribute("tabindex", "-1"), v))}, root)
 style(buttons, {width: bw, display: "inline-flex", flexDirection:"column"},
   {verticalAlign:"top", justifyContent: "space-between"},
   {border: "1px black solid", borderLeft: "none"})
@@ -715,8 +717,8 @@ $.clear = () => { for(const i of [...d]) { cm(i) } }
 </pre>
 列表：<br>
 <pre class = "code_editor_list_2">
-$.article_key ??= "default"
-$.save = () => idb.set(article_key, list.map(e => e.gettext()))
+$.sprefix = "code/"
+$.save = () => idb.set(sprefix + article_key, list.map(e => e.gettext()))
 </pre>
 <pre class = "code_editor_list_2">
 $.tofunc = (src, n) => new Function("$", `[${n}]`,
@@ -728,7 +730,8 @@ $.stosname = [].concat(...stos.map($ => [$.a, $.b])).join(", ")
 $.stosfunc = [].concat(...stos.map($ => [$.rm, $.cm]))
 </pre>
 <pre class = "code_editor_list_2">
-$.exec = ($ = {}) => {
+$.env = () => ({})
+$.exec = ($ = env()) => {
   clear(); for(const e of list) {
     let f, t = e.ta.value; try { 
       f = tofunc(t, "root, " + stosname)
@@ -753,8 +756,8 @@ $.container = dom()
 </pre>
 <pre class = "code_editor_list_2">
 root.append(container)
-idb.get(article_key).then((a = []) => {
-  $.list = a.map(newtext), update() })
+idb.get(sprefix + article_key).then((a = []) => {
+  $.list = a.map(newtext), update(), $.onload?.() })
 </pre>
 顺便关闭一下页面的保存快捷键：
 ###code
@@ -770,7 +773,181 @@ $.idb = indexdb({ name: "ltjs" })
 $.rawsto = tofunc(textbyclass("setTimeout_etc_1"))
 $.sto = name => rawsto({ name })
 $.code_editor = tofunc(textbyclass("code_editor_2"))
-$.editor_list = tofunc(textbyclass("code_editor_list_2"))
-const el = editor_list(obj($))
-setTimeout(() => el.exec(), 200)
+$.editor_list_raw = tofunc(textbyclass("code_editor_list_2"))
+$.editor_list = (n = "default") => editor_list_raw(assign(obj($), { article_key: n }))
+const el = editor_list()
+el.onload = el.exec
 ###
+终于，一个能用的编辑器！<br>
+尽管有很多细节上的问题，但是它确实可以用来编辑代码了，现在的问题是，可以用它做到什么程度的编程？<br>
+一个显而易见的事情是它不具备类似于上面提到的引用代码一类的功能，也就是说只能操作顶层环境变量。<br>
+这是个非常大的限制，因为现在的编辑器就等价于一个js文件，和在vscode中编辑一个文件并无区别。<br>
+也就是说我们仍未实现一个可以充分利用文学编程优势的编辑器。<br>
+<div class="spbar"></div>
+编程需要对代码进行良好的组织，而文学编程甚至对此更为严格。<br>
+在前面的章节里我们实现了一种对代码的复用，也就是通过直接引用代码文本的方式将其封装为一个函数。<br>
+但对于文学编程而言，还可以想象另一种形式的复用：<br>
+除了把上文中的一个编辑器当作一篇“文档”，我们还可以把一篇文章当作一个包含了我们所需功能的包。<br>
+在这个视角下，我们可以将每篇文章当作一个模块，将相关的功能实现在其中，并在其它文章中进行导入从而实现更复杂的功能。<br>
+<br>
+但是听起来其实和引用代码文本还挺像的？我正在思考这个问题，引用一篇文章中的变量和引用文本从而生成函数似乎并没有什么本质的区别，因为后者完全可以实现前者，但前者却不能实现后者，也就是说我们应该从更根本的功能入手。<br>
+<br>
+在前面的章节中，我们是直接将代码文本写在HTML文档流中，通过id和class获取标签，从而实现对代码文本的引用的。<br>
+但不得不说，这种编辑方式体验非常差，因为会有很多形如&lt;pre class="xxx"&gt;的文本干扰阅读，令人难以定位实际要修改的代码位置。<br>
+<br>
+我想设计一种更适合编辑需要被引用的代码的编辑器。<br>
+<br>
+想想看，要引用代码，这和编辑代码唯一的区别就在于，被引用的段落需要有一个名字。<br>
+这就好比每个文件都会有一个名字一样，在一般的编程语言里，我们使用类似于import "./xxx/xxxx.xxx"的命令导入文件，这就是在用一个唯一的名字（将整个路径看作一个名字）去引用一段数据。<br>
+而在我的设计当中，你可以用一个函数加上被引用文档的名字获取到它的内容，从而生成对应的函数。<br>
+至于是要导入其中的变量还是将其作为一个对象来使用，这可以之后进行调整。<br>
+<br>
+经过上面的分析，基本可以确定一个大的设计方向了，不过还有一些小问题，比如对于每个文档的名称问题，我们可以选择生成一个uuid，也可以让用户自己进行命名。究竟怎样设计合适呢，下面稍微分析一下两种选择的利弊：<br>
+让用户自己命名的话，需要强制用户保证每个名字都是唯一的，在迭代一个模块时就会出现后标序号这样的情况。<br>
+而生成uuid的话，名字的唯一性是有了保证，但用户在指定引用的模块使就会遇到一些麻烦，可能需要设计额外的工具帮助定位所需的模块。<br>
+这样看来的话，选择实现上更简单的方案比较好。<br>
+<br>
+而且实际上，现在可以用一种非常原始的方式给文本命名，演示如下：
+###code
+style(root, { padding: 5, border: "solid 1px black", margin: "8px 0" })
+$.n = "demo_rename_editor_0"
+const el = editor_list(n)
+el.env = () => ({ dom })
+el.onload = el.exec
+root.append(`这里加载了一段名为${n}的文档。`)
+###
+<br>
+要引用文本也是很简单的，只要从对应的数据库用文本名称进行获取就可以了：
+###code
+$.prfc = "code/"
+$.prfcd = "codedatabase/"
+###code
+const root = $.root; idb.get(prfc + n).then((t = []) =>
+  root.append(...t.map(t => dom({child:t, tag:"pre"})),
+  `上面的代码将打印名称为${n}的文档的内容`))
+style(root, { padding: 5, border: "solid 1px black",
+  margin: "8px 0", paddingTop: 0 })
+###
+<div class="spbar"></div>
+下面为代码的保存与加载功能编写一个更正式的实现：
+<pre class="code_management_0">
+$.articles = new Map
+$.check = n => articles.has(n)
+$.save = (n, a) => (articles.set(n, a), idb.set(prfc + n, a).then(savedb))
+$.savedb = () => idb.set(prfcd + loadname, [...articles.keys()])
+$.load = n => articles.get(n)
+$.append = n => idb.get(prfc + n).then(a => a ? articles.set(n, a) : 0)
+</pre>
+<pre class="code_management_0">
+$.loadname ??= "default"
+$.onloads = []
+idb.get(prfcd + loadname).then((ns = []) => {
+  Promise.all(ns.map(n => idb.get(prfc + n))).then(as => {
+    as.forEach((a, i) => articles.set(ns[i], a))
+    onloads.forEach(f => f()) }) })
+</pre>
+###code
+$.tofunc = s => new Function("__PROTO__", "__APPEND__",
+  "$ = Object.assign(Object.create(__PROTO__), __APPEND__)", "with($) { " +
+  asarr(s).map(v => `{\n${v}\n}`).join(" ") + " } return $")
+###code
+$.codemana = tofunc(textbyclass("code_management_0"))
+$.cm = codemana($); const root = $.root
+style(root, { padding: 5, border: "solid 1px black", margin: "8px 0" })
+cm.onloads.push((a = [...cm.articles.keys()]) =>
+  root.append("当前代码库中有文档：", a.join(", "), `，共计${a.length}个项目。`))
+###
+<div class="spbar"></div>
+将上述功能嵌入编辑器中：
+<pre class = "code_editor_list_3">
+$.save = () => cm.save(article_key, list.map(e => e.gettext()))
+</pre>
+<pre class = "code_editor_list_3">
+$.tofunc = (src, n) => new AsyncFunction("$", `[${n}]`, `with($){\n${src}\n}return $`)
+</pre>
+<pre class = "code_editor_list_3">
+$.stos = "requestIdleCallback cancelIdleCallback, requestAnimationFrame cancelAnimationFrame, setTimeout clearTimeout, setInterval clearInterval".split(", ").map(sto)
+$.stosname = [].concat(...stos.map($ => [$.a, $.b])).join(", ")
+$.stosfunc = [].concat(...stos.map($ => [$.rm, $.cm]))
+</pre>
+<pre class = "code_editor_list_3">
+$.env = () => ({ require, loadsym })
+$.exec = async ($ = env()) => {
+  clear(); for(const e of list) {
+    let f, t = e.ta.value; try {
+      f = tofunc(t, "root, " + stosname)
+      await f($, [e.sandbox, ...stosfunc]) }
+    catch (e) { console.error(t); throw e } } }
+</pre>
+<pre class = "code_editor_list_3">
+$.clear = () => {
+  for(const s of stos) { s.clear() }
+  for(const e of list) { e.refresh() } }
+</pre>
+<pre class = "code_editor_list_3">
+$.newtext = (text="") => (code_editor(assign(obj($),
+  {text, root:dom({style:{marginBottom:5}}, root)})))
+$.update = () => {
+  if(list.length === 0) { list.push(newtext("")) }
+  for(let i = 0, l = list.length; i < l; i++) { list[i].order = i }
+  simpdiff(list.map(v => v.root), domarr(container)) }
+$.add = (i, t = newtext()) => (list.splice(i, 0, t), update())
+$.del = i => (list.splice(i, 1), update())
+$.container = dom()
+</pre>
+<pre class = "code_editor_list_3">
+let a = cm.load(article_key)
+if($.create & !a) a = []
+if(!a) throw `load "${article_key}" failed.`
+$.list = a.map(newtext)
+root.append(container), update()
+</pre>
+###code
+$.require = n => tofunc(cm.load(n))
+$.loadsym = (n, $) => require(n)(null, null, $)
+###code
+$.AsyncFunction = (async () => {}).constructor
+$.editor_list_raw = tofunc(textbyclass("code_editor_list_3"))
+###code
+const root = $.root, n = "basic"
+root.append("下面将一系列基础代码写入编辑器中，并演示在另一个编辑器中进行导入：", dom({ class: "spbar" }))
+cm.onloads.push(() => {
+  editor_list_raw($, {root, article_key: n})
+  root.append(dom({ class: "spbar" }), `名为${n}的文档已经写入，下面演示导入：`)
+})
+###code
+const root = $.root; cm.onloads.push(() => {
+  const el = editor_list_raw($, {root, article_key: "test_basic_0"})
+  el.exec()
+})
+###
+<div class="spbar"></div>
+至此，编辑器到了一个可以发挥基本功能的阶段，因此下面我们开始在编辑器中重新实现编辑器：
+###code
+const root = $.root; cm.onloads.push(() => {
+  const el = editor_list_raw($, {root, article_key: "code_editor_0", create: true})
+})
+###
+编辑器列表：
+###code
+const root = $.root; cm.onloads.push(() => {
+  const el = editor_list_raw($, {root, article_key: "editor_list_0", create: true})
+})
+###
+包装setInterval等函数：
+###code
+const root = $.root; cm.onloads.push(() => {
+  const el = editor_list_raw($, {root, article_key: "setTimeout_etc_0", create: true})
+})
+###
+<br>
+从目前组件的拆分来看，前面的组件都非常适合在编辑器中重新实现，但对于代码库这一组件而言，同时存在两个以上会导致逻辑上的混乱。<br>
+这是因为该组件的内部存在独立的状态（保存了所有的代码），原本这样做是为了保证代码加载的API都是同步的，但现在在沙箱允许await的前提下，这样的设计就不是必要的了。<br>
+为了不引起混乱，可以重新设计全异步的代码库，但目前而言，先简单将原本环境中的代码库实例导入就好。<br>
+<br>
+组装所有代码：
+###code
+const root = $.root; cm.onloads.push(() => {
+  const el = editor_list_raw($, {root, article_key: "rewrite_editor_0", create: true})
+  const { env } = el; el.env = () => assign(env(), { cm }); el.exec()
+})
