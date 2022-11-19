@@ -37,11 +37,11 @@
       background-color: #f8fcd7;
       min-width: 300px;
       box-shadow: #00000021 0px 7px 10px;
-      transition: box-shadow 0.2s;
+      transition: box-shadow 0.2s, width 0.1s;
     }
 
     .item-body {
-      height: 80px;
+      min-height: 100px;
     }
 
     .dragbar {
@@ -50,7 +50,7 @@
       cursor: grab;
     }
 
-    .dragbar>div {
+    .dragbar div {
       background: #546e8436;
       position: absolute;
       top: 0.35em;
@@ -60,15 +60,15 @@
       cursor: pointer;
     }
 
-    .dragbar>.left1 {
+    .dragbar .left1 {
       left: 0.35em;
     }
 
-    .dragbar>.right1 {
+    .dragbar .right1 {
       right: 0.35em;
     }
 
-    .dragbar>.close {
+    .dragbar .close {
       background: #ff0000aa;
       cursor: not-allowed;
       border-radius: 0;
@@ -79,6 +79,7 @@
     }
 
     .item-child-div {
+      position: absolute;
       margin-top: 0.5em;
       margin-right: 0.4em;
       display: flex;
@@ -88,6 +89,22 @@
     .item-child {
       position: relative;
       box-shadow: none;
+    }
+
+    ul li {
+      position: relative;
+      background-color: #ccc;
+      float: left;
+    }
+
+    ul li ul {
+      position: absolute;
+      top: 30px;
+      left: 10px;
+    }
+
+    ul li ul li {
+      width: 200px;
     }
   </style>
   <script>

@@ -6,10 +6,14 @@ $.entered = false, $p = proto($)
 elm.addEventListener("pointerenter", () => {
   $.entered = true
   di ? style(elm, { boxShadow: selectstyle }) : 0
+  elm.style.zIndex = "100"
+  updatewidth()
 })
 elm.addEventListener("pointerleave", () => {
   $.entered = false
   style(elm, { boxShadow: "" })
+  di !== $ ? elm.style.zIndex = "" : 0
+  updatewidth()
 })
 
 $.dragbar = dom({ class: "dragbar" }, elm)
@@ -27,17 +31,19 @@ ibody.addEventListener("pointerdown", e => {
 })
 
 dom({ child: id, style: { padding: "0.5em" } }, ibody)
+dom({ tag: "textarea" }, ibody)
 
 $.parent = null, $.children = new Set
 $.tochild = p => {
+  elm.classList.add("item-child")
   $.parent = p
   p.children.add($)
   p.childdiv.append(elm)
-  elm.classList.add("item-child")
+  p.updatewidth()
 }
-$.unchild = () => {
-  parent.children.delete($)
+$.unchild = (p = parent) => {
   $.parent = null
+  p.children.delete($)
 
   const b = elm.getBoundingClientRect()
   const rb = $p.root.getBoundingClientRect()
@@ -47,5 +53,14 @@ $.unchild = () => {
 
   elm.classList.remove("item-child")
   setdrag($), $p.pd = true
+  p.updatewidth()
 }
 $.childdiv = dom({ class: "item-child-div" }, ibody)
+
+$.selfwidth = $.width = 300
+$.setwidth = w => style(elm, { width: ($.width = w) })
+$.updatewidth = (w = 0, r = true) => {
+  children.forEach(c => w += c.width)
+  setwidth(Math.max(w, selfwidth))
+  r ? parent?.updatewidth() : 0
+}

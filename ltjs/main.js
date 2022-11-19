@@ -19,16 +19,24 @@ requestAnimationFrame($.loop = () => {
 $.pd = false, $.di = null
 $.selectstyle = "#ffff00 0px 0px 20px"
 $.tolast = i => itemdiv.lastChild.after(i.elm)
-$.setdrag = i => ($.di = i, tolast(i), i.elm.style.pointerEvents = "none")
+$.setdrag = i => ($.di = i, tolast(i),
+  style(i.elm, { pointerEvents: "none", zIndex: "101" }))
+
+$.getselect = (si, f = i => i.entered ? (si = i).children.forEach(f) : 0) =>
+  (items.forEach(i => i.parent ? 0 : f(i)), si)
+
 addEventListener("pointerdown", () => $.pd = true)
 addEventListener("pointerup", () => {
   if (di) { di.elm.style.pointerEvents = "" }
-  let si, f = i => { if (i.entered) { si = i, i.children.forEach(f) } }
-  items.forEach(i => (i.elm.style.boxShadow = "", i.parent ? 0 : f(i)))
-  if (di && si && di !== si) { di.tochild(si) } $.pd = false, $.di = null
+  items.forEach(i => style(i.elm, { boxShadow: "", zIndex: "" }))
+  const si = getselect(); if (di && si && di !== si) { di.tochild(si) }
+  $.pd = false, $.di = null
 })
 addEventListener("pointermove", e => {
   if (!pd) { return }
+
+  if (di) { getselect()?.updatewidth(di.width) }
+
   const mx = e.movementX / sx, my = e.movementY / sy
   if (di) { di.x += mx, di.y += my }
   else { $.x += mx, $.y += my }
