@@ -7,7 +7,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>lt.js 4 - InfiDesk</title>
   <style>
-    html {
+    .grid-bg {
       background: #58a;
       background-image:
         linear-gradient(rgba(255, 255, 255, .3) 1px, transparent 0),
@@ -15,6 +15,7 @@
         linear-gradient(white 1px, transparent 0),
         linear-gradient(90deg, white 1px, transparent 0);
       background-size: 15px 15px, 15px 15px, 75px 75px, 75px 75px;
+      background-position: 50px 50px;
     }
 
     html {
@@ -28,20 +29,52 @@
       overflow: hidden;
     }
 
+    .drag-panel {
+      height: 100%;
+      width: 100%;
+      transition: transform 0.1s;
+      position: absolute;
+      display: flex;
+      align-items: flex-start;
+      top: 0px;
+      left: 0px;
+    }
+
     .movable {
       position: absolute;
+      top: 0px;
+      left: 0px;
+      -webkit-user-select: none;
       user-select: none;
     }
 
     .item {
       background-color: #f8fcd7;
-      min-width: 300px;
+      width: 300px;
       box-shadow: #00000021 0px 7px 10px;
-      transition: box-shadow 0.2s, width 0.1s;
+      transition: box-shadow 0.2s, width 0.15s;
+      margin-right: 3px;
     }
 
-    .item-body {
-      min-height: 100px;
+    .create-item {
+      position: absolute;
+      top: -10px;
+      left: 10%;
+      height: 40px;
+      cursor: pointer;
+      width: 20%;
+      max-width: 300px;
+    }
+
+    .create-item.right1 {
+      left: unset;
+      right: 10%;
+      background-color: crimson;
+    }
+
+    .item-body>.content {
+      padding: 0.5em;
+      padding-bottom: calc(0.5em + 10px);
     }
 
     .dragbar {
@@ -74,37 +107,15 @@
       border-radius: 0;
     }
 
-    .item-child-div:empty {
-      box-shadow: none;
-    }
-
     .item-child-div {
       position: absolute;
-      margin-top: 0.5em;
-      margin-right: 0.4em;
       display: flex;
-      box-shadow: #00000021 0px 7px 10px;
+      align-items: flex-start;
+      top: calc(100% - 10px);
     }
 
     .item-child {
       position: relative;
-      box-shadow: none;
-    }
-
-    ul li {
-      position: relative;
-      background-color: #ccc;
-      float: left;
-    }
-
-    ul li ul {
-      position: absolute;
-      top: 30px;
-      left: 10px;
-    }
-
-    ul li ul li {
-      width: 200px;
     }
   </style>
   <script>

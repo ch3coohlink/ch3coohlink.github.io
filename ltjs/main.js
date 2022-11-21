@@ -1,49 +1,27 @@
 await loadsym("./basic.js")
 $.root = $.body = document.body
-$.html = document.documentElement
+root.classList.add("grid-bg")
 
-$.x = 0, $.y = 0, $.sx = 1, $.sy = 1
-$.itemdiv = dom({ style: { height: "100%" } }, root)
-$.ci = await require("./item.js")
-$.items = "0".repeat(10).split("").map((_, i) => ci($, { root: itemdiv, id: i + 1 }))
+const paths = "./item.js ./texteditor.js";
+[$.Ci, $.Cte] = await Promise.all(paths.split(" ").map(require))
 
-requestAnimationFrame($.loop = () => {
-  requestAnimationFrame(loop)
-  style(body, { transform: `scale(${sx}, ${sy})` })
-  items.forEach(i => {
-    if (i.parent) style(i.elm, { transform: "" })
-    else { style(i.elm, { transform: `translate(${i.x + x}px, ${i.y + y}px)` }) }
-  })
-})
+$.items = [], $.itemdiv = dom({ class: "drag-panel" }, root)
 
-$.pd = false, $.di = null
-$.selectstyle = "#ffff00 0px 0px 20px"
-$.tolast = i => itemdiv.lastChild.after(i.elm)
-$.setdrag = i => ($.di = i, tolast(i),
-  style(i.elm, { pointerEvents: "none", zIndex: "101" }))
+// $.updatelist = () => domarr(items.filter(i => !i.parent).map(i => i.elm), itemdiv)
 
-$.getselect = (si, f = i => i.entered ? (si = i).children.forEach(f) : 0) =>
-  (items.forEach(i => i.parent ? 0 : f(i)), si)
+$.id = 1
+$.newbt = dom({ class: "item create-item" }, root)
+newbt.onpointerdown = e => {
+  const [x, y] = screen2coord(e.pageX - 140 * sx, e.pageY - 12 * sy)
+  const i = Ci($, { root: itemdiv, x, y, id: id++ })
+  items.push(i), setdrag(i)
+}
 
-addEventListener("pointerdown", () => $.pd = true)
-addEventListener("pointerup", () => {
-  if (di) { di.elm.style.pointerEvents = "" }
-  items.forEach(i => style(i.elm, { boxShadow: "", zIndex: "" }))
-  const si = getselect(); if (di && si && di !== si) { di.tochild(si) }
-  $.pd = false, $.di = null
-})
-addEventListener("pointermove", e => {
-  if (!pd) { return }
+// TODO: add delete
+$.delbt = dom({ class: "item create-item right1" }, root)
 
-  if (di) { getselect()?.updatewidth(di.width) }
+$.screen2coord = (x, y, rb = itemdiv.
+  getBoundingClientRect(), w = rb.width / 2, h = rb.height / 2) =>
+  [(x + w - w / sx) / sx - $.x, (y + h - h / sy) / sy - $.y]
 
-  const mx = e.movementX / sx, my = e.movementY / sy
-  if (di) { di.x += mx, di.y += my }
-  else { $.x += mx, $.y += my }
-})
-
-const { min, max } = Math, smin = 1 / 5, smax = 3
-addEventListener("wheel", e => {
-  const s = sx + e.deltaY * -0.001
-  $.sx = $.sy = min(max(s, smin), smax)
-})
+await loadsym("./panel.js")
