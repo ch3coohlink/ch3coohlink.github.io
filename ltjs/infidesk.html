@@ -64,6 +64,8 @@
       cursor: pointer;
       width: 20%;
       max-width: 300px;
+      -webkit-user-select: none;
+      user-select: none;
     }
 
     .create-item.right1 {
@@ -84,13 +86,20 @@
     }
 
     .dragbar div {
-      background: #546e8436;
       position: absolute;
       top: 0.35em;
+    }
+
+    .dragbar .button {
+      background: #546e8436;
       border-radius: 0.5em;
       height: 0.8em;
       width: 0.8em;
       cursor: pointer;
+    }
+
+    .dragbar .title {
+      top: 0.1em;
     }
 
     .dragbar .left1 {
@@ -116,6 +125,23 @@
 
     .item-child {
       position: relative;
+    }
+  </style>
+  <style>
+    textarea:focus {
+      outline: none;
+    }
+
+    textarea {
+      overflow: hidden;
+      resize: none;
+      width: 100%;
+      box-sizing: border-box;
+      display: block;
+      background: none;
+      font-size: 16px;
+      border: none;
+      font-family: consolas, 'Courier New', Courier, monospace;
     }
   </style>
   <script>

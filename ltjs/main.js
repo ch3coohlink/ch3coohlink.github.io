@@ -2,19 +2,19 @@ await loadsym("./basic.js")
 $.root = $.body = document.body
 root.classList.add("grid-bg")
 
-const paths = "./item.js ./texteditor.js";
-[$.Ci, $.Cte] = await Promise.all(paths.split(" ").map(require))
+const paths = "./item.js ./texteditor.js ./words.js";
+[$.Ci, $.Cte, $.Cwrds] = await Promise.all(paths.split(" ").map(require))
+Cwrds(null, null, $)
 
-$.items = [], $.itemdiv = dom({ class: "drag-panel" }, root)
-
-// $.updatelist = () => domarr(items.filter(i => !i.parent).map(i => i.elm), itemdiv)
+$.svgdiv = dom({ tag:"svg", class: "drag-panel" }, root)
+$.items = new Set, $.itemdiv = dom({ class: "drag-panel" }, root)
 
 $.id = 1
 $.newbt = dom({ class: "item create-item" }, root)
 newbt.onpointerdown = e => {
   const [x, y] = screen2coord(e.pageX - 140 * sx, e.pageY - 12 * sy)
-  const i = Ci($, { root: itemdiv, x, y, id: id++ })
-  items.push(i), setdrag(i)
+  const i = Ci($, { root: itemdiv, x, y, id: id++, innerfct: Cte })
+  items.add(i), setdrag(i)
 }
 
 // TODO: add delete
