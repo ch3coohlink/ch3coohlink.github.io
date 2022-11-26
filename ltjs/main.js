@@ -4,7 +4,7 @@ root.classList.add("grid-bg")
 
 const paths = "./item.js ./texteditor.js ./words.js";
 [$.Ci, $.Cte, $.Cwrds] = await Promise.all(paths.split(" ").map(require))
-Cwrds(null, null, $)
+$.rdword = Cwrds($)
 
 $.svgdiv = dom({ tag:"svg", class: "drag-panel" }, root)
 $.items = new Set, $.itemdiv = dom({ class: "drag-panel" }, root)
