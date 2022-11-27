@@ -22,10 +22,22 @@ const elm = document.createElement.bind(document)
 $.dom = (o = {}, p, n = o.tag ?? "div") => {
   const e = elm(n); for (const k in o) {
     const v = o[k]; switch (k) {
-      case "class": e.className = isarr(v) ? v.join(" ") : v; break;
+      case "class": e.className = v; break;
       case "child": e.append(...asarr(v)); break;
       case "style": style(e, ...asarr(v)); break;
       default: e[k] !== v ? e[k] = v : 0; break;
+    }
+  } if (p) { p.append(e) } return e
+}
+
+const csvg = n => document.createElementNS("http://www.w3.org/2000/svg", n)
+$.svg = (n, o = {}, p, e = csvg(n)) => {
+  for (const k in o) {
+    const v = o[k]; switch (k) {
+      case "class": e.classList.add(...v.split(" ")); break;
+      case "child": e.append(...asarr(v)); break;
+      case "style": style(e, ...asarr(v)); break;
+      default: e.setAttribute(k, v); break;
     }
   } if (p) { p.append(e) } return e
 }

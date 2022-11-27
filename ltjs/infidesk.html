@@ -29,15 +29,33 @@
       overflow: hidden;
     }
 
-    .drag-panel {
+    .full-panel {
       height: 100%;
       width: 100%;
-      transition: transform 0.1s;
-      position: absolute;
-      display: flex;
-      align-items: flex-start;
       top: 0px;
       left: 0px;
+      position: absolute;
+      overflow: visible;
+      /* this break svg when scale */
+      /* transition: transform 0.1s; */
+    }
+
+    .svg-panel {
+      pointer-events: none;
+    }
+
+    path {
+      pointer-events: stroke;
+      cursor: not-allowed;
+      /* transition: filter 0.01s; */
+      fill: none;
+      stroke: #ff000066;
+      stroke-width: 2;
+    }
+
+    .drag-panel {
+      display: flex;
+      align-items: flex-start;
     }
 
     .movable {
@@ -50,7 +68,8 @@
 
     .item {
       background-color: #f8fcd7;
-      width: 1000px;
+      min-width: 300px;
+      max-width: 1000px;
       box-shadow: #00000021 0px 7px 10px;
       transition: box-shadow 0.2s, width 0.15s;
       margin-right: 3px;
@@ -128,6 +147,18 @@
     }
   </style>
   <style>
+    .codefont {
+      font-size: 16px;
+      font-family: consolas, 'Courier New', Courier, monospace;
+    }
+
+    .measure {
+      white-space: pre-wrap;
+      overflow: scroll;
+      position: fixed;
+      top: 100%;
+    }
+
     textarea:focus {
       outline: none;
     }
@@ -135,14 +166,13 @@
     textarea {
       overflow: hidden;
       resize: none;
-      width: 100%;
       box-sizing: border-box;
       display: block;
       background: none;
-      font-size: 16px;
       border: none;
       padding: 0;
-      font-family: consolas, 'Courier New', Courier, monospace;
+      min-width: calc(300px - 1em);
+      max-width: calc(1000px - 1em);
     }
   </style>
   <script>

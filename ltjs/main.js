@@ -6,8 +6,8 @@ const paths = "./item.js ./texteditor.js ./words.js";
 [$.Ci, $.Cte, $.Cwrds] = await Promise.all(paths.split(" ").map(require))
 $.rdword = Cwrds($)
 
-$.svgdiv = dom({ tag:"svg", class: "drag-panel" }, root)
-$.items = new Set, $.itemdiv = dom({ class: "drag-panel" }, root)
+$.items = new Set, $.itemdiv = dom({ class: "full-panel drag-panel" }, root)
+$.svgdoc = svg("svg", { class: "full-panel svg-panel" }, root)
 
 $.id = 1
 $.newbt = dom({ class: "item create-item" }, root)
@@ -17,11 +17,17 @@ newbt.onpointerdown = e => {
   items.add(i), setdrag(i)
 }
 
-// TODO: add delete
 $.delbt = dom({ class: "item create-item right1" }, root)
+delbt.addEventListener("pointerenter", () => (
+  $.todel = true, di ? di.elm.style.boxShadow = delstyle : 0))
+delbt.addEventListener("pointerleave", () => (
+  $.todel = false, di ? di.elm.style.boxShadow = "" : 0))
 
 $.screen2coord = (x, y, rb = itemdiv.
   getBoundingClientRect(), w = rb.width / 2, h = rb.height / 2) =>
   [(x + w - w / sx) / sx - $.x, (y + h - h / sy) / sy - $.y]
+
+const mdiv = dom({ class: "measure codefont" }, root)
+$.measure = t => (mdiv.innerText = t, getComputedStyle(mdiv).width)
 
 await loadsym("./panel.js")
