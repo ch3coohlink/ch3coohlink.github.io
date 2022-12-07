@@ -49,30 +49,14 @@
       cursor: not-allowed;
       /* transition: filter 0.01s; */
       fill: none;
-      stroke: #ff000066;
+      stroke: #ff000099;
       stroke-width: 2;
+      filter: drop-shadow(0 6px 4px #00000088);
     }
 
     .drag-panel {
       display: flex;
       align-items: flex-start;
-    }
-
-    .movable {
-      position: absolute;
-      top: 0px;
-      left: 0px;
-      -webkit-user-select: none;
-      user-select: none;
-    }
-
-    .item {
-      background-color: #f8fcd7;
-      min-width: 300px;
-      max-width: 1000px;
-      box-shadow: #00000021 0px 7px 10px;
-      transition: box-shadow 0.2s, width 0.15s;
-      margin-right: 3px;
     }
 
     .create-item {
@@ -98,12 +82,6 @@
       /* padding-bottom: calc(0.5em + 10px); */
     }
 
-    .dragbar {
-      height: 1.5em;
-      background-color: #00000011;
-      cursor: grab;
-    }
-
     .dragbar div {
       position: absolute;
       top: 0.35em;
@@ -119,6 +97,10 @@
 
     .dragbar .title {
       top: 0.1em;
+      color: gray;
+      width: calc(100% - 2em);
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .dragbar .left1 {
@@ -147,9 +129,95 @@
     }
   </style>
   <style>
+    .movable {
+      position: absolute;
+      top: 0px;
+      left: 0px;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+
+    .item {
+      background-color: #f8fcd7;
+      min-width: 100px;
+      max-width: 1000px;
+      box-shadow: #00000030 0px 7px 20px 11px;
+      transition: box-shadow 0.2s;
+
+      display: flex;
+      flex-direction: column;
+    }
+
+    .dragbar {
+      height: 24px;
+      background-color: #00000011;
+      cursor: grab;
+    }
+
+    .content {
+      display: flex;
+      height: 100%;
+      justify-content: space-between;
+    }
+
+    .userspace {
+      min-height: 76px;
+    }
+
+    .nodebar {
+      width: 16px;
+      background-color: #00000008;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      justify-content: center;
+    }
+
+    .nodebar.right {
+      align-items: flex-start;
+    }
+
+    .nodebar {
+      padding-top: 10px;
+    }
+
+    .nodeport {
+      margin-bottom: 10px;
+    }
+
+    .nodeport {
+      display: flex;
+      align-items: center;
+      max-height: 100px;
+      margin-bottom: 10px;
+    }
+
+    .nodeport.right {
+      flex-direction: row-reverse;
+    }
+
+    .nodeportname {
+      font-size: xx-small;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      writing-mode: tb;
+      color: white;
+      text-align: center;
+      max-height: 100%;
+    }
+
+    .nodeportbutton {
+      width: 16px;
+      height: 16px;
+      border-radius: 8px;
+      background-color: #00000022;
+      cursor: pointer;
+    }
+  </style>
+  <style>
     .codefont {
       font-size: 16px;
-      font-family: consolas, 'Courier New', Courier, monospace;
+      font-family: consolas, SimHei, 'Courier New', Courier, monospace;
     }
 
     .measure {
@@ -181,7 +249,7 @@
         $.AsyncFunction = (async () => { }).constructor
         $.tofunc = (s, a) => new (a ? AsyncFunction : Function)("__PROTO__",
           "__APPEND__", "$ = Object.assign(Object.create(__PROTO__), __APPEND__)",
-          "with($) { " + s + " } return $")
+          "with($) {\n" + s + "\n} return $")
         $.require = (p, a = false) => fetch(p).then(r => r.text()).then(t => tofunc(t, a))
         $.loadsym = (p, e = $) => require(p, true).then(f => f(undefined, undefined, e))
         await loadsym("./main.js")

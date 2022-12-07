@@ -10,7 +10,7 @@ $.onenter = () => {
   elm.style.zIndex = "100"
 }
 $.onleave = () => {
-  $p.si === $ ? $p.si = null : 0
+  si === $ ? $p.si = null : 0
   style(elm, { boxShadow: "" })
   di !== $ ? elm.style.zIndex = "" : 0
 }
@@ -25,7 +25,7 @@ cnctbt.addEventListener("pointerdown", e =>
   (enterconnect($, e), e.stopPropagation()))
 $.from = new Map, $.to = new Map
 
-dom({ child: id, class: "left1 title" }, dragbar)
+dom({ child: id, class: "left1 title codefont" }, dragbar)
 
 $.ibody = dom({ class: "item-body" }, elm)
 ibody.addEventListener("pointerdown", e => (tolast($), e.stopPropagation()))
@@ -39,6 +39,4 @@ $.remove = () => (items.delete($), elm.remove(),
 
 $.updateconn = () => (from.forEach(styleconnect), to.forEach(styleconnect))
 $.setpos = () => (style(elm, { left: x, top: y }), updateconn())
-setpos()
-
-onresize.push(updateconn)
+onresize.push(updateconn), setpos()

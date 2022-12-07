@@ -9,6 +9,9 @@ $.log = (...a) => (console.log(...a), a[a.length - 1])
 $.panic = e => { throw e }
 $.proto = Object.getPrototypeOf
 
+$.uuid = (d = 32, r = 32) => [...crypto.getRandomValues(
+  new Uint8Array(d))].map(v => (v % r).toString(r)).join("")
+
 $.style = (e, ...ss) => { // 内联样式辅助函数
   for (const s of ss) {
     for (const k in s) {
