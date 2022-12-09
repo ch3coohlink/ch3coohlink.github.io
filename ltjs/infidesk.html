@@ -45,8 +45,8 @@
     }
 
     path {
-      pointer-events: stroke;
-      cursor: not-allowed;
+      /* pointer-events: stroke; */
+      /* cursor: not-allowed; */
       /* transition: filter 0.01s; */
       fill: none;
       stroke: #ff000099;
@@ -158,10 +158,13 @@
       display: flex;
       height: 100%;
       justify-content: space-between;
+      flex-shrink: 0;
     }
 
     .userspace {
-      min-height: 76px;
+      padding: 0.5em;
+      min-height: 100px;
+      max-width: calc(1000px - 32px);
     }
 
     .nodebar {
@@ -212,6 +215,60 @@
       border-radius: 8px;
       background-color: #00000022;
       cursor: pointer;
+      transition: box-shadow 0.2s;
+    }
+
+    /* panel for searching node type & creating node */
+    .node-create-panel {
+      display: none;
+      position: fixed;
+      width: 300px;
+      min-height: 100px;
+      max-height: 300px;
+      background-color: #f8fcd7;
+      top: 50%;
+      left: 50%;
+      padding: 5px;
+      border-radius: 5px;
+      color: #333333;
+      box-shadow: #00000030 0px 7px 20px 11px;
+    }
+
+    .node-type-input {
+      padding: 5px;
+      border: 0;
+      margin: 0;
+      width: 100%;
+      height: 2em;
+      box-sizing: border-box;
+      background: none;
+      box-shadow: inset #00000078 0 0 10px 0px;
+      border-radius: 3px;
+      margin-bottom: 5px;
+    }
+
+    .node-type-list {
+      overflow-x: hidden;
+      overflow-y: auto;
+      max-height: calc(300px - 2em - 5px);
+      border-left: 4px solid #00000021;
+      user-select: none;
+    }
+
+    .node-type-item {
+      padding: 5px;
+    }
+
+    .node-type-item:hover {
+      background-color: #d0c9bc3b;
+    }
+
+    .node-type-list::-webkit-scrollbar {
+      width: 5px;
+    }
+
+    .node-type-list::-webkit-scrollbar-thumb {
+      background-color: #00000021;
     }
   </style>
   <style>
@@ -227,7 +284,8 @@
       top: 100%;
     }
 
-    textarea:focus {
+    textarea:focus,
+    input:focus {
       outline: none;
     }
 
@@ -239,8 +297,12 @@
       background: none;
       border: none;
       padding: 0;
-      min-width: calc(300px - 1em);
-      max-width: calc(1000px - 1em);
+    }
+
+    .texteditor-container>textarea {
+      min-width: calc(300px - 1em - 32px);
+      max-width: calc(1000px - 1em - 32px);
+      min-height: 100%;
     }
   </style>
   <script>
@@ -250,7 +312,8 @@
         $.tofunc = (s, a) => new (a ? AsyncFunction : Function)("__PROTO__",
           "__APPEND__", "$ = Object.assign(Object.create(__PROTO__), __APPEND__)",
           "with($) {\n" + s + "\n} return $")
-        $.require = (p, a = false) => fetch(p).then(r => r.text()).then(t => tofunc(t, a))
+        $.gettext = p => fetch(p).then(r => r.text())
+        $.require = (p, a = false) => gettext(p).then(t => tofunc(t, a))
         $.loadsym = (p, e = $) => require(p, true).then(f => f(undefined, undefined, e))
         await loadsym("./main.js")
       }
