@@ -1,5 +1,6 @@
 $.isnum = o => typeof o == "number", $.isfct = o => typeof o == "function"
 $.isstr = o => typeof o == "string", $.isbgi = o => typeof o == "bigint"
+$.issyb = o => typeof o == "symbol"
 $.isudf = o => o === undefined, $.isnth = o => isudf(o) || isnul(o)
 $.isobj = o => !!o && typeof o == "object", $.isnul = o => o === null
 $.isarr = Array.isArray, $.asarr = v => isarr(v) ? v : [v]
@@ -11,6 +12,10 @@ $.proto = Object.getPrototypeOf
 
 $.uuid = (d = 32, r = 32) => [...crypto.getRandomValues(
   new Uint8Array(d))].map(v => (v % r).toString(r)).join("")
+
+$.debounce = (f, t = 100, i) => () => (clearTimeout(i), i = setTimeout(f, t))
+$.throttle = (f, t = 100, i) => (...a) =>
+  i ? 0 : (i = 1, f(...a), setTimeout(() => i = 0, t))
 
 $.style = (e, ...ss) => { // 内联样式辅助函数
   for (const s of ss) {

@@ -12,24 +12,29 @@ elm.addEventListener("pointerenter", () => elm.style.zIndex = "100")
 elm.addEventListener("pointerleave", () => di !== $ ? elm.style.zIndex = "" : 0)
 dragbar.addEventListener("pointerdown", e => setdrag($, e))
 
-$.input = new Set, $.output = new Set
+$.input = [], $.output = []
 const sc = p => styleconnect(p, p.target)
 $.updateconn = () => (input.forEach(sc), output.forEach(sc))
-$.setpos = () => (style(elm, { left: x, top: y }), updateconn())
-onresize.add(updateconn), setpos()
+$.setpos = (x, y) => (save.x = $.x = x, save.y = $.y = y,
+  style(elm, { left: x, top: y }), updateconn())
+onresize.add(updateconn)
 
 // define node ========================
+$.execute = () => log(`default handler for node "${id}" executed`, elm)
 $.typedict = {}, $.defineport = (isinput, name, type, nodetype) => {
   let p; switch (nodetype) {
     case "array": p = arrport($, name, isinput, isinput ? inputbar : outputbar); break;
     default: p = port($, name, isinput, isinput ? inputbar : outputbar); break;
-  } (typedict[type] ??= new Set).add(p)
+  } (typedict[type] ??= []).push(p)
 }
 $.defineinput = (...a) => defineport(true, ...a)
 $.defineoutput = (...a) => defineport(false, ...a)
 
-$.defineprocess = () => {
-
-}
-
-defunc($, { root: userspace })
+// save & load
+$.save = idb.saveobj(id)
+const f = async () => {
+  Promise.all([save.x, save.y]).then(([x, y]) => x && y ? setpos(x, y) : 0)
+  if ($.type) { save.type = type } else { $.type = await save.type }
+  $.user = nodetype.get(type)($, { root: userspace })
+  dragbar.innerHTML = type
+}; f()

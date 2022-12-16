@@ -58,75 +58,6 @@
       display: flex;
       align-items: flex-start;
     }
-
-    .create-item {
-      position: absolute;
-      top: -10px;
-      left: 10%;
-      height: 40px;
-      cursor: pointer;
-      width: 20%;
-      max-width: 300px;
-      -webkit-user-select: none;
-      user-select: none;
-    }
-
-    .create-item.right1 {
-      left: unset;
-      right: 10%;
-      background-color: crimson;
-    }
-
-    .item-body>.content {
-      padding: 0.5em;
-      /* padding-bottom: calc(0.5em + 10px); */
-    }
-
-    .dragbar div {
-      position: absolute;
-      top: 0.35em;
-    }
-
-    .dragbar .button {
-      background: #546e8436;
-      border-radius: 0.5em;
-      height: 0.8em;
-      width: 0.8em;
-      cursor: pointer;
-    }
-
-    .dragbar .title {
-      top: 0.1em;
-      color: gray;
-      width: calc(100% - 2em);
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .dragbar .left1 {
-      left: 0.35em;
-    }
-
-    .dragbar .right1 {
-      right: 0.35em;
-    }
-
-    .dragbar .close {
-      background: #ff0000aa;
-      cursor: not-allowed;
-      border-radius: 0;
-    }
-
-    .item-child-div {
-      position: absolute;
-      display: flex;
-      align-items: flex-start;
-      top: calc(100% - 10px);
-    }
-
-    .item-child {
-      position: relative;
-    }
   </style>
   <style>
     .movable {
@@ -152,13 +83,15 @@
       height: 24px;
       background-color: #00000011;
       cursor: grab;
+      padding-left: 0.5em;
+      padding-top: 3px;
+      color: #777;
     }
 
     .content {
       display: flex;
       height: 100%;
       justify-content: space-between;
-      flex-shrink: 0;
     }
 
     .userspace {
@@ -169,11 +102,12 @@
 
     .nodebar {
       width: 16px;
-      background-color: #00000008;
+      background-color: #7e5e1711;
       display: flex;
       flex-direction: column;
       align-items: flex-end;
       justify-content: center;
+      flex-shrink: 0;
     }
 
     .nodebar.right {
@@ -303,6 +237,34 @@
       min-width: calc(300px - 1em - 32px);
       max-width: calc(1000px - 1em - 32px);
       min-height: 100%;
+    }
+
+    .label {
+      font-size: xx-small;
+      color: #777;
+      margin-bottom: 3px;
+    }
+
+    .registernode-container {
+      width: 300px;
+      min-height: unset;
+    }
+
+    .button-list {
+      display: flex;
+      margin-bottom: 5px;
+      flex-direction: row-reverse;
+    }
+
+    button {
+      background-color: transparent;
+      border-radius: 3px;
+      border: 2px solid #777;
+      color: #777;
+    }
+
+    button:active {
+      background-color: #00000011;
     }
   </style>
   <script>
