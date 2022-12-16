@@ -20,7 +20,13 @@ $.setpos = (x, y) => (save.x = $.x = x, save.y = $.y = y,
 onresize.add(updateconn)
 
 // define node ========================
-$.execute = () => log(`default handler for node "${id}" executed`, elm)
+$.execute = () => {
+  if (!user.process) { return } const i = {}
+  input.forEach(p => { i[p.name] = p.target?.value })
+  const r = user.process(user, i)
+  output.forEach(p => { p.value = r[p.name] })
+  //log(`default handler for node "${id}" executed`, elm)
+}
 $.typedict = {}, $.defineport = (isinput, name, type, nodetype) => {
   let p; switch (nodetype) {
     case "array": p = arrport($, name, isinput, isinput ? inputbar : outputbar); break;
@@ -35,6 +41,8 @@ $.save = idb.saveobj(id)
 const f = async () => {
   Promise.all([save.x, save.y]).then(([x, y]) => x && y ? setpos(x, y) : 0)
   if ($.type) { save.type = type } else { $.type = await save.type }
-  $.user = nodetype.get(type)($, { root: userspace })
+  const f = nodetype.get(type); if (!f) { return }
+  $.user = f($, { root: userspace })
+  user.process = tofunc(funcbody(user.process))
   dragbar.innerHTML = type
 }; f()

@@ -66,9 +66,8 @@ root.addEventListener("keydown", e => {
   if (lk === "e" && e.ctrlKey) {
     try { fi ? execgraph(getgraph(fi)) : 0 }
     catch (e) { console.error(e) }
+    e.preventDefault()
   }
-  if (k === "F5") { return }
-  e.preventDefault()
 })
 
 // connection =========================

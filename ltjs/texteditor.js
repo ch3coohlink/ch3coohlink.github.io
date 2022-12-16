@@ -9,3 +9,7 @@ $.ta = dom({ tag: "textarea", class: "codefont", spellcheck: false }, root)
 
 ta.oninput = () => (resize(), save.text = ta.value)
 save.text.then(t => (ta.value = t ?? "", resize()))
+
+$.process = () => {
+  $.text = ta.value
+}
