@@ -1,5 +1,6 @@
 root.classList.add("texteditor-container")
-defineoutput("text")
+defineinput("unused", "undefined")
+defineoutput("text", "text")
 $.resize = (_, e = ta) => {
   e.style.width = measure(e.value)
   e.style.height = "auto"
@@ -7,9 +8,8 @@ $.resize = (_, e = ta) => {
 }
 $.ta = dom({ tag: "textarea", class: "codefont", spellcheck: false }, root)
 
+ta.onkeydown = e => e.key === "Delete" ? e.stopPropagation() : 0
 ta.oninput = () => (resize(), save.text = ta.value)
 save.text.then(t => (ta.value = t ?? "", resize()))
 
-$.process = () => {
-  $.text = ta.value
-}
+$.process = () => { $.text = ta.value }

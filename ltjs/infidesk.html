@@ -84,8 +84,11 @@
       background-color: #00000011;
       cursor: grab;
       padding-left: 0.5em;
+      padding-right: 0.5em;
       padding-top: 3px;
       color: #777;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .content {
@@ -204,6 +207,12 @@
     .node-type-list::-webkit-scrollbar-thumb {
       background-color: #00000021;
     }
+
+    .sandbox-root {
+      width: 600px;
+      min-height: 500px;
+      resize: both;
+    }
   </style>
   <style>
     .codefont {
@@ -265,6 +274,19 @@
 
     button:active {
       background-color: #00000011;
+    }
+  </style>
+  <style>
+    .focus {
+      box-shadow: #3fa1ff 0px 0px 40px;
+    }
+
+    .executing {
+      box-shadow: #ff9030 0px 0px 40px;
+    }
+
+    .failed {
+      box-shadow: #ff3030 0px 0px 40px;
     }
   </style>
   <script>

@@ -37,10 +37,12 @@ $.saveobj = p => {
   const tset = debounce((k, v, f = key + k) => { isnth(v) ? $.del(f) : $.set(f, v) })
   const set = (_, k, v) => (tset(k, v), true)
   const get = (o, k) => issyb(k) ? o[k] : o[k] ?? $.get(key + k)
-  const key = `/saveobj/${p}/`; return new Proxy({}, { set, get })
+  // const remove = () => getpath(key).then(log)
+  const remove = () => getpath(key).then(a => a.forEach(([k]) => $.del(k)))
+  const key = `/saveobj/${p}/`; return new Proxy({ remove }, { set, get })
 }
 $.saveset = p => {
-  const add = (k, v = "") => set(key + k, v), get = k => get(key + k)
+  const add = (k, v = "") => $.set(key + k, v), get = k => $.get(key + k)
   const all = () => getpath(key).then(a => a.map(([k, v]) => [k.slice(key.length), v]))
-  const del = k => del(key + k), key = `/saveset/${p}/`; return { add, get, del, all }
+  const del = k => $.del(key + k), key = `/saveset/${p}/`; return { add, get, del, all }
 }

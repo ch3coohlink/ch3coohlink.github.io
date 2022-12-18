@@ -9,6 +9,5 @@ ntinput.oninput = () => save.targettype = ntinput.value
 save.targettype.then(t => ntinput.value = t ?? "")
 
 $.process = () => {
-  log(init)
-  log(proc)
+  log(`Registernode is temporarily removed from design.`)
 }

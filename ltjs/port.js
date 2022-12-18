@@ -8,18 +8,21 @@ $.ports = isinput ? input : output, $.id = ports.length, ports.push($)
 $.target = $.elm = null
 
 $.key = (isinput ? "input" : "output") + id
+$.remove = () => { breakconnect($, target) }
 $.settarget = t => t ? (save[key] = [t.$p.id, t.isinput, t.id], $.target = t)
-  : (save[key] = null, elm.remove(), $.elm = $.target = null)
+  : (save[key] = null, elm?.remove(), $.elm = $.target = null)
 save[key].then(c => {
   if (!c) { return } const [id, isinput, portid] = c
-  const t = nodes.get(id), p = (isinput ? t.input : t.output)[portid]
+  const t = nodes.get(id)
+  if (!t) { save[key] = null; return }
+  p = (isinput ? t.input : t.output)[portid]
   makeconnect($, p)
 })
 
 button.addEventListener("pointerdown", e => {
   if (!tc) {
     if (target) {
-      enterconnect(target, e, elm)
+      enterconnect(target, e)
       breakconnect($, target)
       e.stopPropagation()
     } else { enterconnect($, e) }

@@ -6,7 +6,6 @@ $.tc = $.tce = $.ce = null
 
 $.cnablestyle = "#00ff00 0px 0px 20px"
 $.unablestyle = "#ff0000 0px 0px 20px"
-$.focusstyle = "#fff 0px 0px 40px"
 $.delstyle = "#ff0000 0px 0px 40px"
 
 $.nodediv = dom({ class: "full-panel drag-panel" }, root)
@@ -34,37 +33,42 @@ requestAnimationFrame($.loop = () => {
 })
 
 // mouse logic ======================
-$.clearfocus = () => fi ? (fi.elm.style.boxShadow = "", $.fi = null) : 0
+$.clearfocus = () => fi ? (fi.elm.classList.remove("focus"), $.fi = null) : 0
 $.tolast = i => (nodediv.lastChild.after(i.elm),
-  clearfocus(), $.fi = i, fi.elm.style.boxShadow = focusstyle)
+  clearfocus(), $.fi = i, fi.elm.classList.add("focus"))
 $.setdrag = (i, e) => ($.di = i,
   $.dx = e.offsetX, $.dy = e.offsetY,
   style(i.elm, { pointerEvents: "none", zIndex: "101" }))
 $.ispanel = e => e.target === nodediv || e.target === root
 
-$.csfp/*click start from panel*/ = false, $.ismoved = false
-root.addEventListener("pointerdown", (e, p = ispanel(e)) => {
+$.csfp/*click start from panel*/ = false, $.ismoved = false, $.msb = -1
+addEventListener("pointerdown", (e, p = ispanel(e)) => {
+  $.msb = e.button; if (msb === 1) { e.preventDefault() }
   if (p) { $.df = $.csfp = true, clearfocus() }
-  if (tc && tc.button !== e.target) { if (p) { showcnp(e) } leaveconnect() }
+  if (tc && tc.button !== e.target) { leaveconnect() }
 })
-root.addEventListener("pointerup", (e, p = ispanel(e)) => {
-  if (p && csfp && e.button == 2) { showcnp(e) }
-  di ? di.elm.style.pointerEvents = "" : 0
+addEventListener("pointerup", (e, p = ispanel(e)) => {
+  if (p && csfp && msb === 2) { showcnp(e) }
+  di ? di.elm.style.pointerEvents = "" : 0, $.msb = -1
   $.df = $.di = null, $.csfp = $.ismoved = $.spcf = false
 })
-onpointermove.add((e) => {
+addEventListener("pointermove", e => {
   if (!ismoved && csfp) { $.ismoved = true } $.ce = e
-  df ? ($.x += e.movementX / sx, $.y += e.movementY / sy, save.x = x, save.y = y) : 0
+  if (df && (msb === 1 || (msb === 0 && e.shiftKey)))
+    ($.x += e.movementX / sx, $.y += e.movementY / sy, save.x = x, save.y = y)
 })
 const { min, max } = Math, smin = 1 / 5, smax = 3
-onwheel.add((e, p = ispanel(e), s = sx + e.deltaY * -0.001) =>
+addEventListener("wheel", (e, p = ispanel(e), s = sx + e.deltaY * -0.0002) =>
   p ? ($.sx = $.sy = min(max(s, smin), smax), save.sx = sx, save.sy = sy) : 0)
 
 // keyboard ===========================
-root.addEventListener("keydown", e => {
+addEventListener("keydown", e => {
   const k = e.key, lk = k.toLowerCase()
+  if (k === "Alt") { e.preventDefault() }
+  if (lk === "w" && e.ctrlKey) { e.preventDefault() }
+  if (k === "Delete") { fi ? removenode(fi) : 0 }
   if (lk === "e" && e.ctrlKey) {
-    try { fi ? execgraph(getgraph(fi)) : 0 }
+    try { fi ? execgraph(...getgraph(fi)) : 0 }
     catch (e) { console.error(e) }
     e.preventDefault()
   }
@@ -89,35 +93,45 @@ $.makeconnect = (a, b) => {
   a.elm = b.elm = svg("path", {}, svgdoc)
   a.settarget(b), b.settarget(a), styleconnect(a, b)
 }
-$.breakconnect = (a, b) => (a.settarget(0), b.settarget(0))
+$.breakconnect = (a, b) => (a?.settarget(0), b?.settarget(0))
 $.enterconnect = (i, e, elm = svg("path", {}, svgdoc)) =>
   ($.tc = i, $.ce = e, $.tce = elm)
 $.leaveconnect = () => ($.tc = null, tce.remove(), $.tce = null)
 
-// node update ========================
+// execution ==========================
 const mapset = (m, k, v) => { if (!m.has(k)) m.set(k, new Set); m.get(k).add(v) }
 $.getgraph = i => {
-  let s = false, ns = new Set, ps = new Set
-  const to = new Map, from = new Map, fi = (i, b) => {
-    if (!s) for (const p of b ? i.input : i.output) {
-      const pt = p.target, t = pt?.$p
+  const ns = new Set, ps = new Set, to = new Map, from = new Map
+  const fi = (i, b) => {
+    for (const p of b ? i.input : i.output) {
+      const pt = p.target, t = pt?.$p, x = b ? t : i, y = b ? i : t
       if (!t || ps.has(pt)) { continue }
-      if (ns.has(t)) { s = true; return }
-      const x = b ? t : i, y = b ? i : t
-      mapset(to, x, y), mapset(from, y, x), ps.add(p, pt), f(t)
+      if (from.has(y) && from.get(y).has(x)) { ps.add(p, pt); continue }
+      mapset(to, x, y), mapset(from, y, x), ps.add(p, pt)
+      if (t.type === "copynode" && !pt.isinput) { fc(t) } else { f(t) }
     }
   }, f = i => (ns.add(i), fi(i, 1), fi(i, 0))
-  f(i); return [to, from]
+  const fc = i => (ns.add(i), fi(i, 1)), color = new Map, dfs = (n, c) => {
+    color.set(n, 1); if (to.has(n)) for (const t of to.get(n)) (c = color.get(t),
+      c === 1 ? panic("cyclic!") : c !== -1 ? dfs(t) : 0); color.set(n, -1)
+  }, isacylic = () => { for (const n of ns) if (color.get(n) !== -1) dfs(n) }
+  try { f(i), isacylic() } catch { faillight(ns); return [] }
+  return [ns.keys().next().value, to, from]
 }
-$.execgraph = ([to, from]) => {
+$.faillight = ns => (ns.forEach(n => n.elm.classList.add("failed")),
+  setTimeout(() => ns.forEach(n => n.elm.classList.remove("failed")), 500))
+$.execlight = (t = 0, s = 30) => k => (
+  setTimeout(() => k.elm.classList.add("executing"), t),
+  setTimeout(() => k.elm.classList.remove("executing"), t + 500), t += s)
+$.execgraph = (fst, to, from) => {
   const findfree = (k, v = from.get(k)) => { if (v) for (let i of v) if (!seen.has(i)) return i }
-  const findtop = (k, n = findfree(k)) => n ? findtop(n) : k
+  const findtop = (k, n = findfree(k)) => n ? findtop(n) : k, l = execlight()
   const seen = new Set, execute = (k, v = to.get(k) ?? new Set) => {
-    seen.add(k), k.execute(); for (let i of v) { execute(findtop(i)) }
-  }, fst = from.keys().next().value; fst ? execute(findtop(fst)) : 0
+    l(k), seen.add(k), k.execute(); for (let i of v) { execute(findtop(i)) }
+  }; fst ? execute(findtop(fst)) : 0
 }
 
-// create node ========================
+// node management ====================
 $.nodetype = new Map(defaultnode.map(k => [k, dfno[k]]))
 
 $.ncpanel = dom({ class: "node-create-panel" }, root)
@@ -129,6 +143,7 @@ $.createnode = (id, k, x, y) => {
   nodelist.add(id), nodes.set(id, n)
   x && y ? n.setpos(x, y) : 0; return n
 }
+$.removenode = i => (nodelist.del(i.id), nodes.delete(i.id), i.remove())
 
 $.iscnpshow = () => !!ncpanel.style.display
 $.showcnp = (e, oncreate) => {

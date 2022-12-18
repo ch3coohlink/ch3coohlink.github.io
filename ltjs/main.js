@@ -16,7 +16,7 @@ window.addEventListener("pointermove", e => onpointermove.forEach(f => f(e)))
 $.onwheel = new Set
 window.addEventListener("wheel", e => onwheel.forEach(f => f(e)))
 
-const nodename = "registernode texteditor"
+const nodename = "registernode texteditor executenode arraynode copynode"
 $.defaultnode = nodename.split(" "), $.dfno = {}
 await Promise.all(defaultnode.map(n => require(`./${n}.js`).then(f => dfno[n] = f)))
 await loadsym("./panel.js")

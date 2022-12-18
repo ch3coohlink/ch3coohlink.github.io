@@ -9,6 +9,7 @@ $.isnumstr = s => isstr(s) && !isNaN(Number(s))
 $.log = (...a) => (console.log(...a), a[a.length - 1])
 $.panic = e => { throw e }
 $.proto = Object.getPrototypeOf
+$.getown = (o, k) => o.hasOwnProperty(k) ? o[k] : undefined
 $.funcbody = (f, s = f + "") => s.slice(s.indexOf("{") + 1, s.lastIndexOf("}"))
 
 $.uuid = (d = 32, r = 32) => [...crypto.getRandomValues(

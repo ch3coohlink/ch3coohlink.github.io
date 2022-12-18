@@ -25,7 +25,6 @@ $.execute = () => {
   input.forEach(p => { i[p.name] = p.target?.value })
   const r = user.process(user, i)
   output.forEach(p => { p.value = r[p.name] })
-  //log(`default handler for node "${id}" executed`, elm)
 }
 $.typedict = {}, $.defineport = (isinput, name, type, nodetype) => {
   let p; switch (nodetype) {
@@ -43,6 +42,10 @@ const f = async () => {
   if ($.type) { save.type = type } else { $.type = await save.type }
   const f = nodetype.get(type); if (!f) { return }
   $.user = f($, { root: userspace })
-  user.process = tofunc(funcbody(user.process))
+  user.process ? user.process = tofunc(funcbody(user.process)) : 0
   dragbar.innerHTML = type
 }; f()
+
+$.remove = () => (
+  input.forEach(p => p.remove()), output.forEach(p => p.remove()),
+  elm.remove(), save.remove(), getown(user, "remove")?.())
