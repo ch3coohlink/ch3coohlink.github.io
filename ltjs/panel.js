@@ -58,8 +58,12 @@ addEventListener("pointermove", e => {
     ($.x += e.movementX / sx, $.y += e.movementY / sy, save.x = x, save.y = y)
 })
 const { min, max } = Math, smin = 1 / 5, smax = 3
-addEventListener("wheel", (e, p = ispanel(e), s = sx + e.deltaY * -0.0002) =>
+addEventListener("wheel", (e, p = ispanel(e), s = sx + e.deltaY * -0.001) =>
   p ? ($.sx = $.sy = min(max(s, smin), smax), save.sx = sx, save.sy = sy) : 0)
+
+addEventListener("error", e => {
+  
+})
 
 // keyboard ===========================
 addEventListener("keydown", e => {
@@ -68,9 +72,7 @@ addEventListener("keydown", e => {
   if (lk === "w" && e.ctrlKey) { e.preventDefault() }
   if (k === "Delete") { fi ? removenode(fi) : 0 }
   if (lk === "e" && e.ctrlKey) {
-    try { fi ? execgraph(...getgraph(fi)) : 0 }
-    catch (e) { console.error(e) }
-    e.preventDefault()
+    e.preventDefault(), fi ? execgraph(...getgraph(fi)) : 0
   }
 })
 
@@ -126,9 +128,9 @@ $.execlight = (t = 0, s = 30) => k => (
 $.execgraph = (fst, to, from) => {
   const findfree = (k, v = from.get(k)) => { if (v) for (let i of v) if (!seen.has(i)) return i }
   const findtop = (k, n = findfree(k)) => n ? findtop(n) : k, l = execlight()
-  const seen = new Set, execute = (k, v = to.get(k) ?? new Set) => {
-    l(k), seen.add(k), k.execute(); for (let i of v) { execute(findtop(i)) }
-  }; fst ? execute(findtop(fst)) : 0
+  const seen = new Set, queue = [], q = (k, v = to.get(k) ?? new Set) => {
+    queue.push(k), seen.add(k); for (let i of v) { q(findtop(i)) }
+  }; fst ? q(findtop(fst)) : 0, queue.forEach(n => (l(n), n.execute()))
 }
 
 // node management ====================

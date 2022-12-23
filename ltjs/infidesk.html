@@ -200,18 +200,17 @@
       background-color: #d0c9bc3b;
     }
 
-    .node-type-list::-webkit-scrollbar {
+    *::-webkit-scrollbar {
       width: 5px;
     }
 
-    .node-type-list::-webkit-scrollbar-thumb {
+    *::-webkit-scrollbar-thumb {
       background-color: #00000021;
     }
 
     .sandbox-root {
       width: 600px;
       min-height: 500px;
-      resize: both;
     }
   </style>
   <style>
@@ -287,6 +286,32 @@
 
     .failed {
       box-shadow: #ff3030 0px 0px 40px;
+    }
+
+    .sandbox-logpanel {
+      color: #777;
+      font-size: x-small;
+      white-space: pre-wrap;
+      max-height: 400px;
+      overflow-x: hidden;
+      overflow-y: auto;
+      overflow-wrap: anywhere;
+      user-select: text;
+    }
+
+    .sandbox-logpanel>div {
+      border-bottom: #0000000f 1px solid;
+      padding-top: 5px;
+      padding-bottom: 2px;
+    }
+
+    .error-message {
+      color: red;
+    }
+
+    .border {
+      border-bottom: 0.5px solid #777;
+      margin: 5px 0;
     }
   </style>
   <script>
