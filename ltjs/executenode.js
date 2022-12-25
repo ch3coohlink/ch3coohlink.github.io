@@ -33,7 +33,7 @@ logpanel.addEventListener("wheel", (e, s = logpanel.scrollTop + e.deltaY) => (
 
 $._tofunc = (s, i) => new Function("__PROTO__", "__APPEND__",
   "$ = Object.assign(Object.create(__PROTO__), __APPEND__)",
-  "with($) {\n" + s + "\n} return $" + i ? `\n//# sourceURL=${i}.js` : "")
+  "with($) {\n" + s + "\n} return $" + (i ? `\n//# sourceURL=${i}.js` : ""))
 
 $.process = () => {
   isarr(src) ? $.src = src.map(t => `{\n${t}\n}`).join(" ") : 0

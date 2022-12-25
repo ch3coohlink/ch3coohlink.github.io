@@ -24,8 +24,8 @@ $.execute = () => {
   if (!user.process) { return } let i = {}, r
   input.forEach(p => { i[p.name] = p.target?.value })
   try { r = user.process(user, i) }
-  catch (e) { faillight(new Set([$])), console.error(e) }
-  output.forEach(p => { p.value = r[p.name] })
+  catch (e) { faillight(new Set([$])) }
+  output.forEach(p => { p.value = r?.[p.name] })
 }
 $.typedict = {}, $.defineport = (isinput, name, type, nodetype) => {
   let p; switch (nodetype) {
