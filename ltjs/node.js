@@ -23,10 +23,12 @@ onresize.add(updateconn)
 // define node ========================
 $.execute = () => {
   if (!user.process) { return } let i = {}, r
-  input.forEach(p => { i[p.name] = p.target?.value })
+  up.forEach(p => { i[p.name] = p.target?.value })
+  left.forEach(p => { i[p.name] = p.target?.value })
   try { r = user.process(user, i) }
   catch (e) { faillight(new Set([$])) }
-  output.forEach(p => { p.value = r?.[p.name] })
+  down.forEach(p => { p.value = r?.[p.name] })
+  right.forEach(p => { p.value = r?.[p.name] })
 }
 $.defineport = (type, name) => Cport($, { name, type })
 $.defineup = (...a) => defineport("up", ...a)

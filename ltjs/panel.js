@@ -95,8 +95,7 @@ $.connectable = (a, b) => {
 $.conseli = p => [p.$p.save.id, p.type, p.id]
 $.condsel = ([nid, type, pid]) => nodes.get(nid)[type][pid]
 $.makeconnect = (a, b, id = uuid(), skipsave = false) => {
-  if (!connectable(a, b)) { return }
-  if (isinput(a)) { [a, b] = [b, a] }
+  if (!connectable(a, b)) { return } if (isinput(a)) { [a, b] = [b, a] }
   const elm = svg("path", {}, svgdoc), conn = { id, elm, a, b }
   b.target = a.target = conn, styleconnect(conn)
   skipsave ? 0 : connlist[id] = [a, b].map(conseli)
@@ -111,20 +110,25 @@ $.leaveconnect = () => ($.tc = null, tce.remove(), $.tce = null)
 const mapset = (m, k, v) => { if (!m.has(k)) m.set(k, new Set); m.get(k).add(v) }
 $.getgraph = i => {
   const ns = new Set, ps = new Set, to = new Map, from = new Map
-  const fi = (i, b) => {
-    for (const p of b ? i.input : i.output) {
-      const pt = p.target, t = pt?.$p, x = b ? t : i, y = b ? i : t
-      if (!t || ps.has(pt)) { continue }
-      if (from.has(y) && from.get(y).has(x)) { ps.add(p, pt); continue }
-      mapset(to, x, y), mapset(from, y, x), ps.add(p, pt)
-      if (t.type === "copynode" && !pt.isinput) { fc(t) } else { f(t) }
+  const full = "up down left right".split(" ")
+  const vert = "up down".split(" "), horz = "left right".split(" ")
+  const inpt = "up left".split(" "), otpt = "down right".split(" ")
+  const f = (i, type) => {
+    for (const p of i[type]) {
+      let pt = p.target, { a, b } = pt ?? {}; if (!pt || ps.has(pt)) continue
+      a = a.$p, b = b.$p; if (from.has(b) && from.get(b).has(a)) { ps.add(pt); continue }
+      mapset(to, a, b), mapset(from, b, a), ps.add(pt)
+      const t = p.getother().$p; log(t); if (i.fulltransport) { ff(t) }
+      else if (type === "up" || type === "down") { fv(t) }
+      else if (type === "left" || type === "right") { fh(t) }
     }
-  }, f = i => (ns.add(i), fi(i, 1), fi(i, 0))
-  const fc = i => (ns.add(i), fi(i, 1)), color = new Map, dfs = (n, c) => {
+  }, [ff, fv, fh, fi, fo] = [full, vert, horz, inpt, otpt]
+    .map(n => i => (ns.add(i), n.forEach(t => f(i, t))))
+  const color = new Map, dfs = (n, c) => {
     color.set(n, 1); if (to.has(n)) for (const t of to.get(n)) (c = color.get(t),
       c === 1 ? panic("cyclic!") : c !== -1 ? dfs(t) : 0); color.set(n, -1)
   }, isacylic = () => { for (const n of ns) if (color.get(n) !== -1) dfs(n) }
-  try { f(i), isacylic() } catch { faillight(ns); return [] }
+  try { ff(i), isacylic() } catch { faillight(ns); return [] }
   return [ns.keys().next().value, to, from]
 }
 $.faillight = ns => (ns.forEach(n => n.elm.classList.add("failed")),
@@ -133,10 +137,12 @@ $.execlight = (t = 0, s = 30) => k => (
   setTimeout(() => k.elm.classList.add("executing"), t),
   setTimeout(() => k.elm.classList.remove("executing"), t + 500), t += s)
 $.execgraph = (fst, to, from) => {
-  const findfree = (k, v = from.get(k)) => { if (v) for (let i of v) if (!seen.has(i)) return i }
-  const findtop = (k, n = findfree(k)) => n ? findtop(n) : k, l = execlight()
+  const findfree = (k, v = from.get(k)) => {
+    if (v) for (let i of v) if (!seen.has(i)) return i
+  }, findtop = (k, n = findfree(k)) => n ? findtop(n) : k, l = execlight()
   const seen = new Set, queue = [], q = (k, v = to.get(k) ?? new Set) => {
-    queue.push(k), seen.add(k); for (let i of v) { q(findtop(i)) }
+    if (seen.has(k)) { return } queue.push(k), seen.add(k)
+    for (let i of v) { q(findtop(i)) }
   }; fst ? q(findtop(fst)) : 0, queue.forEach(n => (l(n), n.execute()))
 }
 
@@ -152,7 +158,8 @@ $.createnode = save => {
   nodelist[save.id] = 1, nodes.set(save.id, n)
   return n
 }
-$.removenode = (i, k = i.save.id) => (delete nodelist[k], nodes.delete(k), i.remove())
+$.removenode = (i, k = i.save.id) => (
+  delete nodelist[k], nodes.delete(k), i.remove())
 
 $.iscnpshow = () => !!ncpanel.style.display
 $.showcnp = (e, oncreate) => {
@@ -182,7 +189,6 @@ Promise.all([save, nodelist, connlist].map(v => v.init)).then(() => {
   Object.keys(connlist).forEach(k => {
     try {
       let [a, b] = connlist[k].map(condsel)
-      log(connlist[k], k, a, b)
       makeconnect(a, b, k, true)
     } catch (e) { console.error(e) }
   })
