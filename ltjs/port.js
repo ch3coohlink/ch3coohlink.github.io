@@ -1,29 +1,23 @@
 $.$p = proto($), $.global = proto($p)
 
-$.portdiv = dom({ class: "nodeport" + (isinput ? "" : " right") }, root)
+$.root = $p[type + "bar"]
+
+$.portdiv = dom({ class: "nodeport" + " " + type }, root)
 $.namediv = dom({ class: "nodeportname", child: name }, portdiv)
 $.button = dom({ class: "nodeportbutton" }, portdiv)
 
-$.ports = isinput ? input : output, $.id = ports.length, ports.push($)
-$.target = $.elm = null
+$.ports = $[type]
+$.id = ports.length, ports.push($)
+$.target = null
 
-$.key = (isinput ? "input" : "output") + id
-$.remove = () => { breakconnect($, target) }
-$.settarget = t => t ? (save[key] = [t.$p.id, t.isinput, t.id], $.target = t)
-  : (save[key] = null, elm?.remove(), $.elm = $.target = null)
-save[key].then(c => {
-  if (!c) { return } const [id, isinput, portid] = c
-  const t = nodes.get(id)
-  if (!t) { save[key] = null; return }
-  p = (isinput ? t.input : t.output)[portid]
-  makeconnect($, p)
-})
+$.remove = () => breakconnect(target)
 
+$.getother = (t = target, p = $) => !t ? null : t.a === p ? t.b : t.a
 button.addEventListener("pointerdown", e => {
   if (!tc) {
     if (target) {
-      enterconnect(target, e)
-      breakconnect($, target)
+      enterconnect(getother(), e)
+      breakconnect(target)
       e.stopPropagation()
     } else { enterconnect($, e) }
   }

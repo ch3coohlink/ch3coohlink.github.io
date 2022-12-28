@@ -113,12 +113,31 @@
       flex-shrink: 0;
     }
 
-    .nodebar.right {
+    .nodebar.up,
+    .nodebar.down {
+      height: 16px;
+      width: 100%;
+      flex-direction: row;
+    }
+
+    .nodebar.up {
+      height: 30px;
+    }
+
+    .nodebar.down {
       align-items: flex-start;
     }
 
-    .nodebar {
-      padding-top: 10px;
+    .nodebar>.title {
+      position: absolute;
+      left: 16px;
+      top: 2px;
+      color: #777;
+      font-size: large;
+    }
+
+    .nodebar.right {
+      align-items: flex-start;
     }
 
     .nodeport {
@@ -134,6 +153,23 @@
 
     .nodeport.right {
       flex-direction: row-reverse;
+    }
+
+    .nodeport.up {
+      flex-direction: column;
+    }
+
+    .nodeport.up .nodeportname {
+      writing-mode: horizontal-tb;
+      padding-bottom: 5px;
+    }
+
+    .nodeport.down .nodeportname {
+      writing-mode: horizontal-tb;
+    }
+
+    .nodeport.down {
+      flex-direction: column-reverse;
     }
 
     .nodeportname {
@@ -242,8 +278,7 @@
     }
 
     .texteditor-container>textarea {
-      min-width: calc(300px - 1em - 32px);
-      max-width: calc(1000px - 1em - 32px);
+      width: calc(1000px - 1em - 32px);
       min-height: 100%;
     }
 

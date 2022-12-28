@@ -35,12 +35,12 @@ $.getpath = s => search(path(s))
 const debounce = (f, t = 100, o = {}) => (k, v) => (
   clearTimeout(o[k]), o[k] = setTimeout(() => f(k, v), t))
 const { set: rset, deleteProperty: rdel } = Reflect
-$.saveobj = p => {
-  const tset = debounce((k, v) => set(key + k, v))
-  const pset = (o, k, v) => (tset(k, v), rset(o, k, v))
-  const pdel = (o, k) => (del(k), rdel(o, k))
-  const init = () => getpath(key).then(a => a.forEach(([k, v]) => o[k.slice(kl)] = v))
-  const remove = () => del(path(key)), key = `/saveobj/${p}/`, kl = key.length
-  const o = Object.create({ init, remove })
+$.saveobj = id => {
+  const dset = debounce((k, v) => set(key + k, v))
+  const pset = (o, k, v) => (dset(k, v), rset(o, k, v))
+  const pdel = (o, k) => (del(key + k), rdel(o, k))
+  const remove = () => del(path(key)), key = `/saveobj/${id}/`, kl = key.length
+  const init = getpath(key).then(a => a.forEach(([k, v]) => o[k.slice(kl)] = v))
+  const o = Object.create({ init, remove, id })
   return new Proxy(o, { set: pset, deleteProperty: pdel })
 }
