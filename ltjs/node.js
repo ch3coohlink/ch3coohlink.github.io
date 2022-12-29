@@ -21,12 +21,12 @@ $.setpos = (x = save.x, y = save.y) => (save.x = x, save.y = y,
 onresize.add(updateconn)
 
 // define node ========================
-$.execute = () => {
+$.execute = async () => {
   if (!user.process) { return } let i = {}, r
-  up.forEach(p => { i[p.name] = p.target?.value })
-  left.forEach(p => { i[p.name] = p.target?.value })
-  try { r = user.process(user, i) }
-  catch (e) { faillight(new Set([$])) }
+  up.forEach(p => { i[p.name] = p.getother()?.value })
+  left.forEach(p => { i[p.name] = p.getother()?.value })
+  try { r = await user.process(user, i) }
+  catch (e) { faillight(new Set([$])); throw e }
   down.forEach(p => { p.value = r?.[p.name] })
   right.forEach(p => { p.value = r?.[p.name] })
 }
@@ -37,12 +37,12 @@ $.defineleft = (...a) => defineport("left", ...a)
 $.defineright = (...a) => defineport("right", ...a)
 
 $.remove = () => (
-  [up, down, left, right].forEach(n => $[n].forEach(p => p.remove())),
+  [up, down, left, right].forEach(v => v.forEach(p => p.remove())),
   elm.remove(), save.remove(), getown(user, "remove")?.())
 
 // save & load ========================
 const f = nodetype.get(save.type)
 if (!f) { throw `type "${save.type}" not exist.` }
 $.user = f($, { root: userspace }), setpos()
-user.process ? user.process = tofunc(funcbody(user.process)) : 0
-dom({ child: save.type, class: "title" }, upbar)
+user.process ? user.process = tofunc(funcbody(user.process), true) : 0
+dom({ child: save.type, class: "title", zIndex: -1 }, upbar)

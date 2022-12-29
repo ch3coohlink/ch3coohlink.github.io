@@ -1,0 +1,7 @@
+defineleft("a")
+defineleft("b")
+defineleft("c")
+defineleft("d")
+defineleft("e")
+defineup("env")
+definedown("env")

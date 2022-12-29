@@ -12,7 +12,7 @@ $.target = null
 
 $.remove = () => breakconnect(target)
 
-$.getother = (t = target, p = $) => t.a === p ? t.b : t.a
+$.getother = (t = target, p = $) => !t ? null : t.a === p ? t.b : t.a
 button.addEventListener("pointerdown", e => {
   if (!tc) {
     if (target) {

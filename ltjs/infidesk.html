@@ -99,7 +99,7 @@
 
     .userspace {
       padding: 0.5em;
-      min-height: 100px;
+      min-height: 20px;
       max-width: calc(1000px - 32px);
     }
 
@@ -130,6 +130,7 @@
 
     .nodebar>.title {
       position: absolute;
+      pointer-events: none;
       left: 16px;
       top: 2px;
       color: #777;
@@ -155,21 +156,27 @@
       flex-direction: row-reverse;
     }
 
+    .nodeport.up,
+    .nodeport.down {
+      margin-right: 5px;
+    }
+
     .nodeport.up {
       flex-direction: column;
-    }
-
-    .nodeport.up .nodeportname {
-      writing-mode: horizontal-tb;
-      padding-bottom: 5px;
-    }
-
-    .nodeport.down .nodeportname {
-      writing-mode: horizontal-tb;
+      margin-bottom: 22px;
     }
 
     .nodeport.down {
       flex-direction: column-reverse;
+      margin-bottom: 0;
+    }
+
+    .nodeport.up .nodeportname {
+      writing-mode: unset;
+    }
+
+    .nodeport.down .nodeportname {
+      writing-mode: unset;
     }
 
     .nodeportname {
@@ -279,7 +286,7 @@
 
     .texteditor-container>textarea {
       width: calc(1000px - 1em - 32px);
-      min-height: 100%;
+      min-height: 38px;
     }
 
     .label {
@@ -321,6 +328,16 @@
 
     .failed {
       box-shadow: #ff3030 0px 0px 40px;
+    }
+
+    .sandbox {
+      border-top: 1px solid #777;
+      padding-top: 5px;
+      margin-top: 5px;
+    }
+
+    .sandbox:empty {
+      display: none;
     }
 
     .sandbox-logpanel {

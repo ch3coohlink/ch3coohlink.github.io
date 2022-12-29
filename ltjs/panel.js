@@ -118,7 +118,7 @@ $.getgraph = i => {
       let pt = p.target, { a, b } = pt ?? {}; if (!pt || ps.has(pt)) continue
       a = a.$p, b = b.$p; if (from.has(b) && from.get(b).has(a)) { ps.add(pt); continue }
       mapset(to, a, b), mapset(from, b, a), ps.add(pt)
-      const t = p.getother().$p; log(t); if (i.fulltransport) { ff(t) }
+      const t = p.getother().$p; if (t.fulltransport) { ff(t) }
       else if (type === "up" || type === "down") { fv(t) }
       else if (type === "left" || type === "right") { fh(t) }
     }
@@ -136,14 +136,15 @@ $.faillight = ns => (ns.forEach(n => n.elm.classList.add("failed")),
 $.execlight = (t = 0, s = 30) => k => (
   setTimeout(() => k.elm.classList.add("executing"), t),
   setTimeout(() => k.elm.classList.remove("executing"), t + 500), t += s)
-$.execgraph = (fst, to, from) => {
+$.execgraph = async (fst, to, from) => {
   const findfree = (k, v = from.get(k)) => {
     if (v) for (let i of v) if (!seen.has(i)) return i
   }, findtop = (k, n = findfree(k)) => n ? findtop(n) : k, l = execlight()
   const seen = new Set, queue = [], q = (k, v = to.get(k) ?? new Set) => {
     if (seen.has(k)) { return } queue.push(k), seen.add(k)
     for (let i of v) { q(findtop(i)) }
-  }; fst ? q(findtop(fst)) : 0, queue.forEach(n => (l(n), n.execute()))
+  }; fst ? q(findtop(fst)) : 0
+  for (const n of queue) { l(n), await n.execute() }
 }
 
 // node management ====================
