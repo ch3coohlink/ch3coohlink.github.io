@@ -9,7 +9,11 @@ const createsto = (n, o, [a, b] = n.split(" ")) => {
   "setTimeout clearTimeout, setInterval clearInterval"
 ).split(", ").map(n => createsto(n, sto))
 
+let oac = window.AudioContext, arr = []
+$.clearoac = () => (arr.forEach(v => v.close()), arr = [])
+$.AudioContext = function () { const r = new oac(); arr.push(r); return r }
+
 $.newenv = () => {
-  clearsto()
-  return { ...sto }
+  clearsto(), clearoac()
+  return { ...sto, AudioContext }
 }

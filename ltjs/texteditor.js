@@ -8,15 +8,19 @@ $.resize = (_, e = ta) => {
 }
 $.ta = dom({ tag: "textarea", class: "codefont", spellcheck: false }, root)
 $.sandbox = dom({ class: "sandbox" }, root)
+sandbox.onpointerdown = e => e.stopPropagation()
 
 ta.onkeydown = e => e.key === "Delete" ? e.stopPropagation() : 0
 ta.oninput = () => (resize(), save.text = ta.value)
 ta.value = save.text ??= "", resize()
 
-$.process = async () => {
+$.processhorz = () => {
+  $.text = ta.value
+}
+$.processvert = async () => {
   if (!$.env) { $.env = oneenv.newenv() }
-  $.text = ta.value; sandbox.innerHTML = ""
+  sandbox.innerHTML = ""
   const f = new AsyncFunction("$", "root",
-    `with($){\n${text}\n}//# sourceURL=${save.id}.js\nreturn $`)
+    `with($){\n${ta.value}\n}//# sourceURL=${save.id}.js\nreturn $`)
   $.env = await f(env, sandbox)
 }

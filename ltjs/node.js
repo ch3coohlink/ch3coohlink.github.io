@@ -25,7 +25,13 @@ $.execute = async () => {
   if (!user.process) { return } let i = {}, r
   up.forEach(p => { i[p.name] = p.getother()?.value })
   left.forEach(p => { i[p.name] = p.getother()?.value })
-  try { r = await user.process(user, i) }
+  try {
+    if (user.process) { r = await user.process(user, i) }
+    else {
+      if (exechorz && user.processhorz) { r = await user.processhorz(user, i) }
+      if (execvert && user.processvert) { r = await user.processvert(user, i)}
+    }
+  }
   catch (e) { faillight(new Set([$])); throw e }
   down.forEach(p => { p.value = r?.[p.name] })
   right.forEach(p => { p.value = r?.[p.name] })
@@ -40,9 +46,12 @@ $.remove = () => (
   [up, down, left, right].forEach(v => v.forEach(p => p.remove())),
   elm.remove(), save.remove(), getown(user, "remove")?.())
 
+$.oneenv = Cenv($)
+
 // save & load ========================
 const f = nodetype.get(save.type)
 if (!f) { throw `type "${save.type}" not exist.` }
 $.user = f($, { root: userspace }), setpos()
-user.process ? user.process = tofunc(funcbody(user.process), true) : 0
+const transproc = v => user[v] ? user[v] = tofunc(funcbody(user[v]), true) : 0
+"process processvert processhorz".split(" ").map(transproc)
 dom({ child: save.type, class: "title", zIndex: -1 }, upbar)

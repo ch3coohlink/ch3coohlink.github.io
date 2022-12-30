@@ -118,9 +118,10 @@ $.getgraph = i => {
       let pt = p.target, { a, b } = pt ?? {}; if (!pt || ps.has(pt)) continue
       a = a.$p, b = b.$p; if (from.has(b) && from.get(b).has(a)) { ps.add(pt); continue }
       mapset(to, a, b), mapset(from, b, a), ps.add(pt)
-      const t = p.getother().$p; if (t.fulltransport) { ff(t) }
-      else if (type === "up" || type === "down") { fv(t) }
-      else if (type === "left" || type === "right") { fh(t) }
+      const t = p.getother().$p; t.execvert = t.exechorz = false
+      if (t.user.fulltransport) { ff(t), t.execvert = t.exechorz = true }
+      else if (type === "up" || type === "down") { fv(t), t.execvert = true }
+      else if (type === "left" || type === "right") { fh(t), t.exechorz = true }
     }
   }, [ff, fv, fh, fi, fo] = [full, vert, horz, inpt, otpt]
     .map(n => i => (ns.add(i), n.forEach(t => f(i, t))))

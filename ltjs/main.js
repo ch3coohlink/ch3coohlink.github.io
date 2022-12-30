@@ -5,7 +5,7 @@ root.addEventListener("contextmenu", e => e.preventDefault())
 
 const paths = "./words.js ./node.js ./port.js ./indexdb.js ./env.js";
 [$.Cwrds, $.Cnode, $.Cport, $.Cidb, $.Cenv] = await Promise.all(paths.split(" ").map(v => require(v)))
-$.rdword = Cwrds($), $.idb = Cidb($, { name: "ltjs4" }), $.oneenv = Cenv($)
+$.rdword = Cwrds($), $.idb = Cidb($, { name: "ltjs4" })
 
 const mdiv = dom({ class: "measure codefont" }, root)
 $.measure = t => (mdiv.innerText = t, getComputedStyle(mdiv).width)
