@@ -13,7 +13,9 @@ let oac = window.AudioContext, arr = []
 $.clearoac = () => (arr.forEach(v => v.close()), arr = [])
 $.AudioContext = function () { const r = new oac(); arr.push(r); return r }
 
+$.clear = () => { clearsto(), clearoac() }
+
 $.newenv = () => {
-  clearsto(), clearoac()
+  clear()
   return { ...sto, AudioContext }
 }

@@ -22,14 +22,15 @@ onresize.add(updateconn)
 
 // define node ========================
 $.execute = async () => {
-  if (!user.process) { return } let i = {}, r
+  let i = {}, r = {}
   up.forEach(p => { i[p.name] = p.getother()?.value })
   left.forEach(p => { i[p.name] = p.getother()?.value })
+  log(elm, "horizen", exechorz, "vetical", execvert)
   try {
     if (user.process) { r = await user.process(user, i) }
     else {
       if (exechorz && user.processhorz) { r = await user.processhorz(user, i) }
-      if (execvert && user.processvert) { r = await user.processvert(user, i)}
+      if (execvert && user.processvert) { r = await user.processvert(user, i) }
     }
   }
   catch (e) { faillight(new Set([$])); throw e }
@@ -43,6 +44,7 @@ $.defineleft = (...a) => defineport("left", ...a)
 $.defineright = (...a) => defineport("right", ...a)
 
 $.remove = () => (
+  oneenv.clear()
   [up, down, left, right].forEach(v => v.forEach(p => p.remove())),
   elm.remove(), save.remove(), getown(user, "remove")?.())
 

@@ -117,23 +117,25 @@ $.getgraph = i => {
     for (const p of i[type]) {
       let pt = p.target, { a, b } = pt ?? {}; if (!pt || ps.has(pt)) continue
       a = a.$p, b = b.$p; if (from.has(b) && from.get(b).has(a)) { ps.add(pt); continue }
-      mapset(to, a, b), mapset(from, b, a), ps.add(pt)
-      const t = p.getother().$p; t.execvert = t.exechorz = false
+      mapset(to, a, b), mapset(from, b, a), ps.add(pt); const t = p.getother().$p;
       if (t.user.fulltransport) { ff(t), t.execvert = t.exechorz = true }
-      else if (type === "up" || type === "down") { fv(t), t.execvert = true }
+      else if (t.user.onewayoutput && (type === "right" || type === "down")) {
+        fi(t), t.execvert = t.exechorz = true
+      } else if (type === "up" || type === "down") { fv(t), t.execvert = true }
       else if (type === "left" || type === "right") { fh(t), t.exechorz = true }
     }
   }, [ff, fv, fh, fi, fo] = [full, vert, horz, inpt, otpt]
-    .map(n => i => (ns.add(i), n.forEach(t => f(i, t))))
+    .map(n => i => (ns.has(i) ? 0 : (i.execvert = i.exechorz = false),
+      ns.add(i), n.forEach(t => f(i, t))))
   const color = new Map, dfs = (n, c) => {
     color.set(n, 1); if (to.has(n)) for (const t of to.get(n)) (c = color.get(t),
       c === 1 ? panic("cyclic!") : c !== -1 ? dfs(t) : 0); color.set(n, -1)
   }, isacylic = () => { for (const n of ns) if (color.get(n) !== -1) dfs(n) }
-  try { ff(i), isacylic() } catch { faillight(ns); return [] }
-  return [ns.keys().next().value, to, from]
+  try { ff(i), i.execvert = i.exechorz = true, isacylic() }
+  catch (e) { faillight(ns); throw e; } return [ns.keys().next().value, to, from]
 }
 $.faillight = ns => (ns.forEach(n => n.elm.classList.add("failed")),
-  setTimeout(() => ns.forEach(n => n.elm.classList.remove("failed")), 500))
+  setTimeout(() => ns.forEach(n => n.elm.classList.remove("failed")), 1000))
 $.execlight = (t = 0, s = 30) => k => (
   setTimeout(() => k.elm.classList.add("executing"), t),
   setTimeout(() => k.elm.classList.remove("executing"), t + 500), t += s)
