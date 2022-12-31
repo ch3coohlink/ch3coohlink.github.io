@@ -42,7 +42,7 @@ $.definedown = (...a) => defineport("down", ...a)
 $.defineleft = (...a) => defineport("left", ...a)
 $.defineright = (...a) => defineport("right", ...a)
 
-$.remove = () => (oneenv.clear(), user?.remove(),
+$.remove = () => (oneenv.clear(), //user?.remove(),
   [up, down, left, right].forEach(v => v.forEach(p => p.remove())),
   elm.remove(), save.remove(), getown(user, "remove")?.())
 
