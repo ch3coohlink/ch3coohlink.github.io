@@ -24,3 +24,25 @@ $.processvert = async () => {
     `with($){\n${ta.value}\n}//# sourceURL=${save.id}.js\nreturn $`)
   $.env = await f(env, sandbox)
 }
+
+$.pinbt = dom({ tag: "button", child: "📌", class: "pin-button" }, root)
+pinbt.onpointerdown = e => e.stopPropagation()
+pinbt.onclick = () => save.pined ? removepin() : createpin()
+$.placeholder = dom(), $.pindom = null
+$.createpin = () => {
+  sandbox.classList.add("detach")
+  sandbox.replaceWith(placeholder)
+  $.pindom = sendpin(sandbox, "", removepin)
+  save.pined = true
+}
+$.removepin = () => {
+  pindom.remove(), $.pindom = null
+  sandbox.classList.remove("detach")
+  placeholder.replaceWith(sandbox)
+  save.pined = false
+}
+if (save.pined ??= false) { createpin() }
+
+$.remove = () => {
+  if (save.pined) { removepin() }
+}

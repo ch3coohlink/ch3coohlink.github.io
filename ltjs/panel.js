@@ -194,6 +194,9 @@ Promise.all([save, nodelist, connlist].map(v => v.init)).then(() => {
     try {
       let [a, b] = connlist[k].map(condsel)
       makeconnect(a, b, k, true)
-    } catch (e) { console.error(e) }
+    } catch (e) {
+      delete connlist[k]
+      console.error(e)
+    }
   })
 })

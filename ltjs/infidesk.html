@@ -365,6 +365,37 @@
       border-bottom: 0.5px solid #777;
       margin: 5px 0;
     }
+
+    .pin-button {
+      width: 40px;
+      height: 30px;
+      position: absolute;
+      right: 0;
+      top: 0;
+      border: 0;
+      padding: 0;
+      padding-bottom: 5px;
+    }
+
+    .pin-dom {
+      position: fixed;
+      user-select: none;
+      top: 10px;
+      right: 10px;
+    }
+
+    .pin-dom>.nodebar {
+      color: #777;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 0 5px;
+    }
+
+    .detach {
+      border: none;
+      padding: 0;
+      margin: 5px;
+    }
   </style>
   <script>
     const $ = {}; (async () => {

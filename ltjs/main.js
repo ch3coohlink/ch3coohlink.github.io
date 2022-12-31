@@ -14,3 +14,12 @@ const nodename = "texteditor branch merge ref array copy"
 $.defaultnode = nodename.split(" "), $.dfno = {}
 await Promise.all(defaultnode.map(n => require(`./${n}.js`).then(f => dfno[n] = f)))
 await loadsym("./panel.js")
+
+$.sendpin = (e, title = "", remove) => {
+  const elm = dom({ class: "pin-dom item" }, root)
+  const dragbar = dom({ class: "nodebar up", child: title })
+  const pinbt = dom({ tag: "button", child: "📌", class: "pin-button" })
+  pinbt.onclick = () => remove()
+  elm.append(dragbar, pinbt, e)
+  return elm
+}
