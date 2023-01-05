@@ -12,14 +12,14 @@ definedown("j")
 
 $.process = () => {
   if (!$.env) { $.env = oneenv.newenv() }
-  $.a = { ...env }//Object.create(env)
-  $.b = { ...env }//Object.create(env)
-  $.c = { ...env }//Object.create(env)
-  $.d = { ...env }//Object.create(env)
-  $.e = { ...env }//Object.create(env)
-  $.f = { ...env }//Object.create(env)
-  $.g = { ...env }//Object.create(env)
-  $.h = { ...env }//Object.create(env)
-  $.i = { ...env }//Object.create(env)
-  $.j = { ...env }//Object.create(env)
+  $.a = { ...env }
+  $.b = { ...env }
+  $.c = { ...env }
+  $.d = { ...env }
+  $.e = { ...env }
+  $.f = { ...env }
+  $.g = { ...env }
+  $.h = { ...env }
+  $.i = { ...env }
+  $.j = { ...env }
 }

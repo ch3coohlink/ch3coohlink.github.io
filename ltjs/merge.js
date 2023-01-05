@@ -12,8 +12,5 @@ definedown("env")
 
 $.process = () => {
   "abcdefghij".split("").forEach(n => { $[n] ??= {} })
-  const op = Object.getPrototypeOf({})
-  const p = Object.getPrototypeOf(a)
-  $.env = p && p !== op ? p : a
-  $.env.ref = { a, b, c, d, e, f, g, h, i, j }
+  $.env = Object.assign(a, b, c, d, e, f, g, h, i, j)
 }

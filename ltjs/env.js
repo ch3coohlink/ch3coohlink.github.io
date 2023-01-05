@@ -9,13 +9,11 @@ const createsto = (n, o, [a, b] = n.split(" ")) => {
   "setTimeout clearTimeout, setInterval clearInterval"
 ).split(", ").map(n => createsto(n, sto))
 
-let oac = window.AudioContext, arr = []
-$.clearoac = () => (arr.forEach(v => v.close()), arr = [])
-$.AudioContext = function () { const r = new oac(); arr.push(r); return r }
+$.clearctor = () => { cca.forEach(f => f()) }
+const cca = [], ctorf = (f, c, a = []) => (cca.push(() => (a.forEach(c), a = [])),
+  function (...a) { let r = new f(...a); a.push(r); return r })
+const ctora = [["AudioContext", v => v.close()], ["Worker", v => v.terminate()]]
+const ctoro = {}; for (const [n, f] of ctora) { ctoro[n] = ctorf(window[n], f) }
 
-$.clear = () => { clearsto(), clearoac() }
-
-$.newenv = () => {
-  clear()
-  return { ...sto, AudioContext }
-}
+$.clear = () => { clearsto(), clearctor() }
+$.newenv = () => (clear(), { ...sto, ...ctoro })

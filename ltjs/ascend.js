@@ -1,0 +1,25 @@
+defineup("env")
+definedown("a")
+definedown("b")
+definedown("c")
+definedown("d")
+definedown("e")
+definedown("f")
+definedown("g")
+definedown("h")
+definedown("i")
+definedown("j")
+
+$.process = () => {
+  if (!$.env) { $.env = oneenv.newenv() }
+  $.a = Object.create(env)
+  $.b = Object.create(env)
+  $.c = Object.create(env)
+  $.d = Object.create(env)
+  $.e = Object.create(env)
+  $.f = Object.create(env)
+  $.g = Object.create(env)
+  $.h = Object.create(env)
+  $.i = Object.create(env)
+  $.j = Object.create(env)
+}
