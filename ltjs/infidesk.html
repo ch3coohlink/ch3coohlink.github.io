@@ -10,10 +10,10 @@
     .grid-bg {
       background: #58a;
       background-image:
-        linear-gradient(rgba(255, 255, 255, .3) 1px, transparent 0),
-        linear-gradient(90deg, rgba(255, 255, 255, .3) 1px, transparent 0),
-        linear-gradient(white 1px, transparent 0),
-        linear-gradient(90deg, white 1px, transparent 0);
+        linear-gradient(#ffffff4d 1px, transparent 0),
+        linear-gradient(90deg, #ffffff4d 1px, transparent 0),
+        linear-gradient(#ffffff 1px, transparent 0),
+        linear-gradient(90deg, #ffffff 1px, transparent 0);
       background-size: 15px 15px, 15px 15px, 75px 75px, 75px 75px;
       background-position: 50px 50px;
     }
@@ -334,6 +334,7 @@
       border-top: 1px solid #777;
       padding-top: 5px;
       margin-top: 5px;
+      overflow: hidden;
     }
 
     .sandbox:empty {
@@ -391,7 +392,7 @@
       padding: 0 5px;
     }
 
-    .detach {
+    .pin-dom .sandbox {
       border: none;
       padding: 0;
       margin: 5px;

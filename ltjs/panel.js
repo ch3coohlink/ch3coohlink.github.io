@@ -43,7 +43,8 @@ $.ispanel = e => e.target === nodediv || e.target === root
 $.csfp/*click start from panel*/ = false, $.ismoved = false, $.msb = -1
 addEventListener("pointerdown", (e, p = ispanel(e)) => {
   $.msb = e.button; if (msb === 1) { e.preventDefault() }
-  if (p) { $.df = $.csfp = true, clearfocus() }
+  if (p) { $.df = $.csfp = true }
+  if (p && msb === 0) { clearfocus() }
   if (tc && tc.button !== e.target) { leaveconnect() }
 })
 addEventListener("pointerup", (e, p = ispanel(e)) => {
@@ -57,8 +58,8 @@ addEventListener("pointermove", e => {
     (save.x += e.movementX / save.sx, save.y += e.movementY / save.sy)
 })
 const { min, max } = Math, smin = 1 / 5, smax = 3
-addEventListener("wheel", (e, p = ispanel(e), s = save.sx + e.deltaY * -0.001) =>
-  p ? (save.sx = save.sy = min(max(s, smin), smax)) : 0)
+addEventListener("wheel", (e, s = save.sx + e.deltaY * -0.001) =>
+  save.sx = save.sy = min(max(s, smin), smax))
 
 addEventListener("error", e => {
 

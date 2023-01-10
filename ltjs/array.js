@@ -10,7 +10,7 @@ defineleft("8")
 defineleft("9")
 defineright("arr")
 
-$.push = (arr, ...a) => a.forEach(v => isnth(v) ? 0 : isarr(v) ? arr.push(...v) : arr.push(v))
+$.push = (arr, ...a) => a.forEach(v => isnth(v) ? 0 : arr.push(v))
 $.process = () => {
   push($.arr = [],
     $["0"], $["1"], $["2"], $["3"], $["4"], $["5"], $["6"], $["7"], $["8"], $["9"])
