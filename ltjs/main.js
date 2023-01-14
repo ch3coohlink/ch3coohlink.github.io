@@ -10,7 +10,8 @@ $.rdword = Cwrds($), $.idb = Cidb($, { name: "ltjs4" })
 const mdiv = dom({ class: "measure codefont" }, root)
 $.measure = t => (mdiv.innerText = t, getComputedStyle(mdiv).width)
 
-const nodename = "texteditor branch merge ref array copy ascend"
+// do not randomly change node type name !!!
+const nodename = "texteditor branch merge ref array copy ascend descend"
 $.defaultnode = nodename.split(" "), $.dfno = {}
 await Promise.all(defaultnode.map(n => require(`./${n}.js`).then(f => dfno[n] = f)))
 await loadsym("./panel.js")

@@ -12,14 +12,15 @@ definedown("j")
 
 $.process = () => {
   if (!$.env) { $.env = oneenv.newenv() }
-  $.a = { ...env }
-  $.b = { ...env }
-  $.c = { ...env }
-  $.d = { ...env }
-  $.e = { ...env }
-  $.f = { ...env }
-  $.g = { ...env }
-  $.h = { ...env }
-  $.i = { ...env }
-  $.j = { ...env }
+  const $$ = env.$$; $$.list.push([])
+  $.a = { ...env, $$: structuredClone($$) }
+  $.b = { ...env, $$: structuredClone($$) }
+  $.c = { ...env, $$: structuredClone($$) }
+  $.d = { ...env, $$: structuredClone($$) }
+  $.e = { ...env, $$: structuredClone($$) }
+  $.f = { ...env, $$: structuredClone($$) }
+  $.g = { ...env, $$: structuredClone($$) }
+  $.h = { ...env, $$: structuredClone($$) }
+  $.i = { ...env, $$: structuredClone($$) }
+  $.j = { ...env, $$: structuredClone($$) }
 }

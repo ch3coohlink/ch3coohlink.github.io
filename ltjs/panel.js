@@ -57,7 +57,7 @@ addEventListener("pointermove", e => {
   if (df && (msb === 1 || (msb === 0 && e.shiftKey)))
     (save.x += e.movementX / save.sx, save.y += e.movementY / save.sy)
 })
-const { min, max } = Math, smin = 1 / 5, smax = 3
+const { min, max } = Math, smin = 1 / 20, smax = 3
 addEventListener("wheel", (e, s = save.sx + e.deltaY * -0.001) =>
   save.sx = save.sy = min(max(s, smin), smax))
 

@@ -16,4 +16,4 @@ const ctora = [["AudioContext", v => v.close()], ["Worker", v => v.terminate()]]
 const ctoro = {}; for (const [n, f] of ctora) { ctoro[n] = ctorf(window[n], f) }
 
 $.clear = () => { clearsto(), clearctor() }
-$.newenv = () => (clear(), { ...sto, ...ctoro })
+$.newenv = () => (clear(), { ...sto, ...ctoro, $$: { list: [[]], seen: new Set } })

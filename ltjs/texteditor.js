@@ -23,10 +23,15 @@ $.processhorz = () => {
 }
 $.processvert = async () => {
   if (!$.env) { $.env = oneenv.newenv() }
-  initsdbx()
-  const f = new AsyncFunction("$", "root",
+  initsdbx(); const f = new AsyncFunction("$", "root",
     `with($){\n${ta.value}\n}//# sourceURL=${save.id}.js\nreturn $`)
+  const $$ = env.$$, l = $$.list, cl = l[l.length - 1]
+  $$.record = true, $$.current = { text: ta.value, id: save.id }
   $.env = await f(env, sandbox)
+  if ($$.record) {
+    cl.push($$.current)
+    $$.seen.add(save.id)
+  }
 }
 
 $.pinbt = dom({ tag: "button", child: "📌", class: "pin-button" }, root)
