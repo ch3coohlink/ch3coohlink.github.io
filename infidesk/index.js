@@ -43,4 +43,5 @@ style($.fsdiv = dom({}, body),
 )
 
 stexp.append("basic component: drag panel",
-  dragpanel())
+  $.dpl = dragpanel())
+dpl.fullscreen = true
