@@ -12,15 +12,16 @@ definedown("j")
 
 $.process = () => {
   if (!$.env) { $.env = oneenv.newenv() }
-  const $$ = env.$$; $$.list.push([])
-  $.a = { ...env, $$: structuredClone($$) }
-  $.b = { ...env, $$: structuredClone($$) }
-  $.c = { ...env, $$: structuredClone($$) }
-  $.d = { ...env, $$: structuredClone($$) }
-  $.e = { ...env, $$: structuredClone($$) }
-  $.f = { ...env, $$: structuredClone($$) }
-  $.g = { ...env, $$: structuredClone($$) }
-  $.h = { ...env, $$: structuredClone($$) }
-  $.i = { ...env, $$: structuredClone($$) }
-  $.j = { ...env, $$: structuredClone($$) }
+  const p = proto(env), $$ = env.$$; $$.list.push([])
+  const { assign: a, create: c } = Object
+  $.a = a(c(p), env, { $$: structuredClone($$) })
+  $.b = a(c(p), env, { $$: structuredClone($$) })
+  $.c = a(c(p), env, { $$: structuredClone($$) })
+  $.d = a(c(p), env, { $$: structuredClone($$) })
+  $.e = a(c(p), env, { $$: structuredClone($$) })
+  $.f = a(c(p), env, { $$: structuredClone($$) })
+  $.g = a(c(p), env, { $$: structuredClone($$) })
+  $.h = a(c(p), env, { $$: structuredClone($$) })
+  $.i = a(c(p), env, { $$: structuredClone($$) })
+  $.j = a(c(p), env, { $$: structuredClone($$) })
 }

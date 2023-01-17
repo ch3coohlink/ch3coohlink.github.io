@@ -1,0 +1,38 @@
+textarea {
+  font-size: 16px;
+  line-height: 19px;
+  font-family: consolas, 'Microsoft YaHei', SimHei, 'Courier New', Courier, monospace;
+  resize: none;
+  width: 100%;
+  box-sizing: border-box;
+  background: #00000010;
+  border: none;
+  border-bottom: 3px solid #777;
+  overflow: hidden;
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 2px), 0% calc(100% - 2px));
+  transition: clip-path 0.3s linear;
+  padding: 5px;
+  display: block;
+  white-space: break-spaces;
+}
+
+textarea:focus,
+textarea:hover {
+  outline: none;
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
+}
+
+.container {
+  position: relative;
+  min-width: 100px;
+}
+
+.label {
+  position: absolute;
+  top: 0px;
+  font-size: small;
+  left: 4px;
+  color: #777;
+  user-select: none;
+  width: min(500px, 50%);
+}

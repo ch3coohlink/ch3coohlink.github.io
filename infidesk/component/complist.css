@@ -1,0 +1,21 @@
+.list {
+  display: flex;
+  font-size: 25px;
+  flex-direction: row;
+}
+
+.list>* {
+  margin: 10px;
+}
+
+.horizontal-reverse {
+  flex-direction: row-reverse;
+}
+
+.vertical {
+  flex-direction: column;
+}
+
+.vertical-reverse {
+  flex-direction: column-reverse;
+}

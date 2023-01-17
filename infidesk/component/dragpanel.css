@@ -1,0 +1,13 @@
+.root {
+  position: relative;
+}
+
+.root>* {
+  position: absolute;
+}
+
+.float-button-list {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+}

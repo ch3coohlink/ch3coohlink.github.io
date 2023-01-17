@@ -19,7 +19,7 @@ $.process = () => {
     } $$.seen.forEach(i => seen.add(i))
   })
   list.push([])
-  $.env = Object.assign(a, b, c, d, e, f, g, h, i, j)
+  $.env = Object.assign(Object.create(proto(a)), a, b, c, d, e, f, g, h, i, j)
   $.env.$$.list = list
   $.env.$$.seen = seen
 }

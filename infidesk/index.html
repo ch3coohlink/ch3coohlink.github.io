@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>InfiDesk Dev Page</title>
+  <script>
+    const $ = {}; (async () => {
+      with ($) {
+        $._ = undefined
+        $.AsyncFunction = (async () => { }).constructor
+        $.tofunc = (s, a) => new (a ? AsyncFunction : Function)("__PROTO__",
+          "__APPEND__", "$ = Object.assign(Object.create(__PROTO__), __APPEND__)",
+          "with($) {\n" + s + "\n} return $")
+        $.gettext = async p => (await fetch(p)).text()
+        $.require = (p, a = false) => gettext(p)
+          .then(t => tofunc(t + `\n//# sourceURL=${p}`, a))
+        $.loadsym = (p, e = $) => require(p, true).then(f => f(_, _, e))
+        await loadsym("./index.js")
+      }
+    })()
+  </script>
+</head>
+
+<body>
+  <script>document.body.innerHTML = ""</script>
+</body>
+
+</html>
