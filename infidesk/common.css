@@ -19,3 +19,8 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+.canvas {
+  width: 100%;
+  height: 100%;
+}
