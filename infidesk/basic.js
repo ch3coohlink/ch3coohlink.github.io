@@ -1,5 +1,7 @@
 $.log = (...a) => (console.log(...a), a[a.length - 1])
-$.assign = Object.assign, $.inherit = Object.create
+$.assign = Object.assign
+const obj = Object.create
+$.inherit = (o, ...a) => assign(obj(o), ...a)
 $.proto = Object.getPrototypeOf
 $.deepcopy = structuredClone.bind(window)
 $.getown = (o, k) => o.hasOwnProperty(k) ? o[k] : _
@@ -10,6 +12,7 @@ $.isnum = v => typeof v === "number"
 $.isobj = o => typeof o === "object"
 $.ishtml = e => e instanceof HTMLElement
 $.ashtml = e => ishtml(e) ? e : e.relm
+$.istarr = ArrayBuffer.isView
 
 $.style = (e, ...ss) => {
   e = ashtml(e)
@@ -64,3 +67,7 @@ let sfc32 = (a, b, c, d) => () => {
   c = c + t | 0;
   return (t >>> 0) / 4294967296;
 }
+
+$.pnow = performance.now.bind(performance)
+$.frame = (f, c = Infinity, st = pnow(), l) =>
+  (l = t => c-- > 0 ? (requestAnimationFrame(l), f(t - st)) : 0, l(st))
