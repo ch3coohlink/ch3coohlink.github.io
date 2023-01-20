@@ -14,24 +14,26 @@ $.rawprogram = (vs, fs) => {
   log(gl.getProgramInfoLog(p)), gl.deleteProgram(p)
 }
 
-$.gldict = {}, $.ucache = {}, Object.keys(proto(gl)).forEach(n =>
-  (n.match(/^[A-Z]/) && !gldict[gl[n]]) ? gldict[gl[n]] = n :
-    n.match(/^uniform/) ? $.ucache[n] = gl[n].bind(gl) : 0)
+if (!gl.hasbind) {
+  Object.keys(proto(gl)).forEach(n =>
+    n.match(/^[A-Z]/) && !gl[gl[n]] ? gl[gl[n]] = n :
+      n.match(/^(?:uniform|get)/) ? gl[n] = gl[n].bind(gl) : 0)
+  gl.hasbind = true
+}
 
 const infoarr = (p, t, b = t === "Attrib", a = []) => {
   const l = gl.getProgramParameter(p, b ? gl.ACTIVE_ATTRIBUTES : gl.ACTIVE_UNIFORMS)
-  const f = gl["getActive" + t].bind(gl), g = gl[`get${t}Location`].bind(gl)
+  const f = gl["getActive" + t], g = gl[`get${t}Location`]
   const m = {}; for (let i = 0, e, r, n; i < l; i++) {
     e = f(p, i), r = { i }, n = r.name = e.name, r.size = e.size
-    r.type = gldict[e.type], r.loc = g(p, n); if (!b) {
+    r.type = gl[e.type], r.loc = g(p, n); if (!b) {
       const [, t, m, a0, a1] = r.type.match(/([A-Z]+)(?:_([A-Z]+)(\d+)(?:x(\d+))?)?/)
       const tn = t === "FLOAT" ? "f" : t === "INT" ? "i" : "ui"
       const mb = m === "MAT", fn = "uniform" + (mb ?
         `Matrix${a0 === a1 ? a0 : a0 + "x" + a1}${tn}v` :
         `${a0 ?? 1}${tn}${a0 ? "v" : ""}`)
-      r.func = ucache[fn], r.fn = fn, r.m = mb
-    } else { r.item = gl[r.type.match(/([A-Z]+)(?:_([A-Z]+)(\d+))?/)[1]] }
-    m[n] = r, a.push(r)
+      r.func = gl[fn], r.fn = fn, r.m = mb
+    } m[n] = r, a.push(r)
   } return [a, m]
 }
 $.getproginfo = p => [infoarr(p, "Attrib"), infoarr(p, "Uniform")]
@@ -39,7 +41,7 @@ $.getproginfo = p => [infoarr(p, "Attrib"), infoarr(p, "Uniform")]
 $.newprogram = (vs, fs, p = rawprogram(newvs(vs), newfs(fs))) =>
   (p.info = getproginfo(p), p)
 
-$.definebuffers = o => {
+$.defbuffers = o => {
   const r = {}; for (const k in o) {
     let v = o[k], b = gl.createBuffer()
     if (!istarr(v)) { v = new Float32Array(v) }
@@ -48,19 +50,21 @@ $.definebuffers = o => {
   } return r
 }
 
-$.definevao = (o, p) => {
+$.defvao = (o, p, d) => {
   const vao = gl.createVertexArray()
   gl.bindVertexArray(vao)
-  bindAttrib(definebuffers(o), p)
+  bindAttrib(defbuffers(o), p, d)
   return vao
 }
 
-$.bindAttrib = (b, p) => {
-  const [[, ai]] = p.info; for (const k in b) {
-    const v = b[k], i = ai[k]; if (!i) { throw `no "${k}" attribute` }
-    gl.bindBuffer(gl.ARRAY_BUFFER, v), gl.enableVertexAttribArray(i.loc)
-    gl.vertexAttribPointer(i.loc, i.num ?? 3,
-      i.item, i.normal ?? false, i.stride ?? 0, 0)
+$.bindAttrib = (b, p, d = {}) => {
+  if (p instanceof WebGLProgram) { p = p.info[0][1] }
+  for (const k in b) { d[k] ??= {} } for (const k in d) {
+    const v = d[k], i = p[k]; if (!i) { throw `no "${k}" attribute` }
+    gl.bindBuffer(gl.ARRAY_BUFFER, b[v.buffer ?? k])
+    gl.enableVertexAttribArray(i.loc)
+    gl.vertexAttribPointer(i.loc, v.size ?? 3, v.type ?? gl.FLOAT,
+      v.normalize ?? false, v.stride ?? 0, v.offset ?? 0)
   }
 }
 

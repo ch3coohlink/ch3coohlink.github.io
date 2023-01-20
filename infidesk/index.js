@@ -35,17 +35,12 @@ void main() {
   gl_FragColor = vec4( vec3( color * 0.5, sin( color + time / 2.5 ) * 0.75, color ), 1.0 );
 }`)
 
-// $.a = definebuffers({
-//   position: [-1, -1, 0, 1, -1, 0, -1, 1, 0, -1, 1, 0, 1, -1, 0, 1, 1, 0],
-// })
-
-$.a = definevao({
-  position: [-1, -1, 0, 1, -1, 0, -1, 1, 0, -1, 1, 0, 1, -1, 0, 1, 1, 0],
-}, p)
+$.position = [-1, -1, 0, 1, -1, 0, -1, 1, 0, -1, 1, 0, 1, -1, 0, 1, 1, 0]
+$.a = defvao({ position }, p)
 
 frame(t => {
   const w = gl.canvas.width, h = gl.canvas.height
   gl.viewport(0, 0, w, h)
-  shaderinput(p, a, { time: t * 0.01, resolution: [w, h] })
-  gl.drawArrays(gl.TRIANGLES, 0, 6)
+  shaderinput(p, a, { time: t * 0.001, resolution: [w, h] })
+  gl.drawArrays(gl.TRIANGLES, 0, position.length / 3)
 })

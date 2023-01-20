@@ -4,6 +4,7 @@ const obj = Object.create
 $.inherit = (o, ...a) => assign(obj(o), ...a)
 $.proto = Object.getPrototypeOf
 $.deepcopy = structuredClone.bind(window)
+$.hasown = (o, k) => o.hasOwnProperty(k)
 $.getown = (o, k) => o.hasOwnProperty(k) ? o[k] : _
 
 $.asarr = v => isarr(v) ? v : [v]
