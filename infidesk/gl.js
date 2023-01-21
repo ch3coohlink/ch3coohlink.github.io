@@ -1,8 +1,8 @@
-$.newshader = (type, source) => {
-  const s = gl.createShader(type)
-  gl.shaderSource(s, source), gl.compileShader(s)
+$.newshader = (t, src) => {
+  const s = gl.createShader(t); src = "#version 300 es\n" + src
+  gl.shaderSource(s, src), gl.compileShader(s)
   if (gl.getShaderParameter(s, gl.COMPILE_STATUS)) { return s }
-  log(gl.getShaderInfoLog(s)), gl.deleteShader(s)
+  console.error(gl.getShaderInfoLog(s), "\n", src), gl.deleteShader(s)
 }
 $.newvs = s => newshader(gl.VERTEX_SHADER, s)
 $.newfs = s => newshader(gl.FRAGMENT_SHADER, s)
@@ -11,7 +11,7 @@ $.rawprogram = (vs, fs) => {
   const p = gl.createProgram()
   gl.attachShader(p, vs), gl.attachShader(p, fs), gl.linkProgram(p)
   if (gl.getProgramParameter(p, gl.LINK_STATUS)) { return p }
-  log(gl.getProgramInfoLog(p)), gl.deleteProgram(p)
+  console.error(gl.getProgramInfoLog(p)), gl.deleteProgram(p)
 }
 
 if (!gl.hasbind) {
@@ -21,25 +21,69 @@ if (!gl.hasbind) {
   gl.hasbind = true
 }
 
-const infoarr = (p, t, b = t === "Attrib", a = []) => {
-  const l = gl.getProgramParameter(p, b ? gl.ACTIVE_ATTRIBUTES : gl.ACTIVE_UNIFORMS)
-  const f = gl["getActive" + t], g = gl[`get${t}Location`]
-  const m = {}; for (let i = 0, e, r, n; i < l; i++) {
-    e = f(p, i), r = { i }, n = r.name = e.name, r.size = e.size
-    r.type = gl[e.type], r.loc = g(p, n); if (!b) {
-      const [, t, m, a0, a1] = r.type.match(/([A-Z]+)(?:_([A-Z]+)(\d+)(?:x(\d+))?)?/)
-      const tn = t === "FLOAT" ? "f" : t === "INT" ? "i" : "ui"
-      const mb = m === "MAT", fn = "uniform" + (mb ?
-        `Matrix${a0 === a1 ? a0 : a0 + "x" + a1}${tn}v` :
-        `${a0 ?? 1}${tn}${a0 ? "v" : ""}`)
-      r.func = gl[fn], r.fn = fn, r.m = mb
-    } m[n] = r, a.push(r)
-  } return [a, m]
+const initattrib = (p, a = [], m = {}) => {
+  const l = gl.getProgramParameter(p, gl.ACTIVE_ATTRIBUTES)
+  for (let i = 0, e, r, n; i < l; i++) {
+    e = gl.getActiveAttrib(p, i)
+    r = { i }, n = r.name = e.name, r.size = e.size
+    r.type = gl[e.type], r.loc = gl.getAttribLocation(p, n)
+    m[n] = r, a.push(r)
+  } p.aa = a, p.am = m
 }
-$.getproginfo = p => [infoarr(p, "Attrib"), infoarr(p, "Uniform")]
 
-$.newprogram = (vs, fs, p = rawprogram(newvs(vs), newfs(fs))) =>
-  (p.info = getproginfo(p), p)
+const ubp = [
+  [gl.UNIFORM_BLOCK_BINDING, "loc"],
+  [gl.UNIFORM_BLOCK_DATA_SIZE, "size"],
+  [gl.UNIFORM_BLOCK_ACTIVE_UNIFORMS, "paramnum"],
+  [gl.UNIFORM_BLOCK_ACTIVE_UNIFORM_INDICES, "indices"],
+  [gl.UNIFORM_BLOCK_REFERENCED_BY_VERTEX_SHADER, "vertref"],
+  [gl.UNIFORM_BLOCK_REFERENCED_BY_FRAGMENT_SHADER, "fragref"]]
+
+let uboindex = 0, newubo = size => {
+  const ubo = gl.createBuffer(), i = uboindex++
+  gl.bindBuffer(gl.UNIFORM_BUFFER, ubo)
+  gl.bufferData(gl.UNIFORM_BUFFER, size, gl.DYNAMIC_DRAW)
+  gl.bindBufferBase(gl.UNIFORM_BUFFER, i, ubo)
+  ubo.index = i; return ubo
+}
+
+const inituniform = (p, u = {}, a = [], m = {}) => {
+  const l = gl.getProgramParameter(p, gl.ACTIVE_UNIFORMS)
+  const q = [...Array(l).keys()]
+  const bi = gl.getActiveUniforms(p, q, gl.UNIFORM_BLOCK_INDEX)
+  const oft = gl.getActiveUniforms(p, q, gl.UNIFORM_OFFSET)
+  const bs = new Set(bi), ba = [], bm = {}; bs.delete(-1)
+  p.ua = a, p.um = m, p.ba = ba, p.bm = bm, p.ubos = u
+
+  for (const i of bs) {
+    const n = gl.getActiveUniformBlockName(p, i)
+    const r = { i }; for (const [e, k] of ubp) {
+      r[k] = gl.getActiveUniformBlockParameter(p, i, e)
+    } r.ubo = u[n] ??= newubo(r.size)
+    gl.uniformBlockBinding(p, r.ubo.index, r.loc)
+    r.param = {}, r.name = n, bm[n] = r, ba.push(r)
+  }
+
+  for (let i = 0; i < l; i++) {
+    let e = gl.getActiveUniform(p, i), b = bi[i]
+    let r = { i }, n = r.name = e.name; r.size = e.size
+    r.type = gl[e.type], r.loc = gl.getUniformLocation(p, n)
+    r.block = b, r.offset = oft[i]
+
+    const [, t, ms, a0, a1] = r.type.match(/([A-Z]+)(?:_([A-Z]+)(\d+)(?:x(\d+))?)?/)
+    const tn = t === "FLOAT" ? "f" : t === "INT" ? "i" : "ui"
+    const ism = ms === "MAT", fn = "uniform" + (ism ?
+      `Matrix${a0 === a1 ? a0 : a0 + "x" + a1}${tn}v` :
+      `${a0 ?? 1}${tn}${a0 ? "v" : ""}`)
+    r.func = gl[fn], r.fn = fn, r.ism = ism
+
+    if (b !== -1) { ba[b].param[n] = r } else { m[n] = r, a.push(r) }
+  }
+}
+$.initshaderinput = (p, u) => (initattrib(p), inituniform(p, u), p)
+
+$.newprogram = (vs, fs, u) =>
+  initshaderinput(rawprogram(newvs(vs), newfs(fs)), u)
 
 $.defbuffers = o => {
   const r = {}; for (const k in o) {
@@ -58,7 +102,7 @@ $.defvao = (o, p, d) => {
 }
 
 $.bindAttrib = (b, p, d = {}) => {
-  if (p instanceof WebGLProgram) { p = p.info[0][1] }
+  if (p instanceof WebGLProgram) { p = p.am }
   for (const k in b) { d[k] ??= {} } for (const k in d) {
     const v = d[k], i = p[k]; if (!i) { throw `no "${k}" attribute` }
     gl.bindBuffer(gl.ARRAY_BUFFER, b[v.buffer ?? k])
@@ -69,9 +113,12 @@ $.bindAttrib = (b, p, d = {}) => {
 }
 
 $.bindUniform = (u, p) => {
-  const [, [, ui]] = p.info; for (const k in u) {
-    const v = u[k], i = ui[k]; if (!i) { throw `no "${k}" uniform` }
-    i.m ? i.func(i.loc, false, v) : i.func(i.loc, v)
+  const { um, bm } = p
+  for (const k in u) {
+    const v = u[k], i = um[k], b = bm[k]
+    if (!i && !b) { throw `no "${k}" uniform` }
+    if (i) { i.ism ? i.func(i.loc, false, v) : i.func(i.loc, v) }
+    if (b) { }
   }
 }
 
