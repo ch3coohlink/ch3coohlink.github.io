@@ -36,13 +36,21 @@ void main() {
   fragColor = vec4( vec3( color * 0.5, sin( color + time / 2.5 ) * 0.75, color ), 1.0 );
 }`)
 
-$.position = [1, 1, -1, 1, 1, -1, -1, -1]
-$.a = defvao({ position }, p, { position: { size: 2 } })
+const position = [1, 1, -1, 1, 1, -1, -1, -1]
+const s = 2, l = position.length / s
+const a = defvao({ position }, { position: { size: s } }, p)
 log(...Object.keys(p).map(k => [k, p[k]]).flat())
 
-frame(t => {
+let i = 0; frame(t => {
+  const fc = i++, st = pnow(); begintimer()
+
   const w = gl.canvas.width, h = gl.canvas.height
   gl.viewport(0, 0, w, h)
   shaderinput(p, a, { time: t * 0.001, resolution: [w, h] })
-  gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
+  gl.drawArrays(gl.TRIANGLE_STRIP, 0, l)
+
+  const et = pnow(); endtimer().then(t => {
+    log(`frame ${fc} gpu time:` + t.toFixed(5) + "ms", "\n",
+      `frame ${fc} cpu time:` + (et - st).toFixed(5) + "ms")
+  })
 })

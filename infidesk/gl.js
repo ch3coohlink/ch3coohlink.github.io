@@ -94,27 +94,26 @@ $.defbuffers = o => {
   } return r
 }
 
-$.defvao = (o, p, d) => {
+$.defvao = (o, d, p) => {
   const vao = gl.createVertexArray()
   gl.bindVertexArray(vao)
-  bindAttrib(defbuffers(o), p, d)
+  bindAttrib(defbuffers(o), d, p)
   return vao
 }
 
-$.bindAttrib = (b, p, d = {}) => {
-  if (p instanceof WebGLProgram) { p = p.am }
+$.bindAttrib = (b, d = {}, p = {}, check = false) => {
+  if (p instanceof WebGLProgram) { p = p.am, check = true }
   for (const k in b) { d[k] ??= {} } for (const k in d) {
-    const v = d[k], i = p[k]; if (!i) { throw `no "${k}" attribute` }
+    const v = d[k], i = p[k]; if (!i && check) { throw `no "${k}" attribute` }
     gl.bindBuffer(gl.ARRAY_BUFFER, b[v.buffer ?? k])
-    gl.enableVertexAttribArray(i.loc)
-    gl.vertexAttribPointer(i.loc, v.size ?? 3, v.type ?? gl.FLOAT,
+    const l = v.loc ?? i.loc; gl.enableVertexAttribArray(l)
+    gl.vertexAttribPointer(l, v.size ?? 3, v.type ?? gl.FLOAT,
       v.normalize ?? false, v.stride ?? 0, v.offset ?? 0)
   }
 }
 
 $.bindUniform = (u, p) => {
-  const { um, bm } = p
-  for (const k in u) {
+  const { um, bm } = p; for (const k in u) {
     const v = u[k], i = um[k], b = bm[k]
     if (!i && !b) { throw `no "${k}" uniform` }
     if (i) { i.ism ? i.func(i.loc, false, v) : i.func(i.loc, v) }
@@ -127,3 +126,47 @@ $.shaderinput = (p, b = {}, u = {}) => {
   if (b instanceof WebGLVertexArrayObject) { gl.bindVertexArray(b) }
   else { bindAttrib(b, p) } bindUniform(u, p)
 }
+
+const ext = gl.getExtension("EXT_disjoint_timer_query_webgl2")
+const timers = new Set; let q
+$.begintimer = () => {
+  q = gl.createQuery()
+  gl.beginQuery(ext.TIME_ELAPSED_EXT, q)
+}
+$.endtimer = () => {
+  gl.endQuery(ext.TIME_ELAPSED_EXT)
+  return new Promise(r => timers.add([q, r]))
+}
+frame(() => {
+  for (const t of timers) {
+    const [q, r] = t, a = gl.getQueryParameter(q, gl.QUERY_RESULT_AVAILABLE)
+    if (!a) { continue } timers.delete(t)
+    r(gl.getQueryParameter(q, gl.QUERY_RESULT) * 0.000001)
+    gl.deleteQuery(q)
+  }
+})
+
+// $.cube = defvao({
+//   position: [
+//     -1, -1, 1, 1, -1, 1, 1, 1, 1, -1, 1, 1,     // Front
+//     -1, -1, -1, -1, 1, -1, 1, 1, -1, 1, -1, -1, // Back
+//     -1, 1, -1, -1, 1, 1, 1, 1, 1, 1, 1, -1,     // Top
+//     -1, -1, -1, 1, -1, -1, 1, -1, 1, -1, -1, 1, // Bottom
+//     1, -1, -1, 1, 1, -1, 1, 1, 1, 1, -1, 1,     // Right
+//     -1, -1, -1, -1, -1, 1, -1, 1, 1, -1, 1, -1, // Left
+//   ], uv: [
+//     0, 0, 1, 0, 1, 1, 0, 1, // Front
+//     0, 0, 1, 0, 1, 1, 0, 1, // Back
+//     0, 0, 1, 0, 1, 1, 0, 1, // Top
+//     0, 0, 1, 0, 1, 1, 0, 1, // Bottom
+//     0, 0, 1, 0, 1, 1, 0, 1, // Right
+//     0, 0, 1, 0, 1, 1, 0, 1, // Left
+//   ], indices: [
+//     0, 1, 2, 0, 2, 3,       // Front
+//     4, 5, 6, 4, 6, 7,       // Back
+//     8, 9, 10, 8, 10, 11,    // Top
+//     12, 13, 14, 12, 14, 15, // Bottom
+//     16, 17, 18, 16, 18, 19, // Right
+//     20, 21, 22, 20, 22, 23, // Left
+//   ]
+// }, {})
