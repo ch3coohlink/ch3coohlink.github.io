@@ -6,7 +6,9 @@ $.proto = Object.getPrototypeOf
 $.deepcopy = structuredClone.bind(window)
 $.hasown = (o, k) => o.hasOwnProperty(k)
 $.getown = (o, k) => o.hasOwnProperty(k) ? o[k] : _
+$.objproto = proto({})
 
+$.array = (n, f) => [...Array(n).keys()].map(f)
 $.asarr = v => isarr(v) ? v : [v]
 $.isarr = Array.isArray
 $.isnum = v => typeof v === "number"
@@ -52,13 +54,13 @@ $.eventtarget = $ => {
   return $
 }
 
-let { imul } = Math, mb32 = a => t =>
+let { imul } = Math; $.mb32 = a => t =>
   (a = a + 1831565813 | 0,
     t = imul(a ^ a >>> 15, 1 | a),
     t = t + imul(t ^ t >>> 7, 61 | t) ^ t,
     (t ^ t >>> 14) >>> 0) / 4294967296
 
-let sfc32 = (a, b, c, d) => () => {
+$.sfc32 = (a, b, c, d) => () => {
   a |= 0; b |= 0; c |= 0; d |= 0;
   let t = (a + b | 0) + d | 0;
   d = d + 1 | 0;
