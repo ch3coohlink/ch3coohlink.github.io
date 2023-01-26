@@ -3,7 +3,7 @@ $.assign = Object.assign
 const obj = Object.create
 $.inherit = (o, ...a) => assign(obj(o), ...a)
 $.proto = Object.getPrototypeOf
-$.deepcopy = structuredClone.bind(window)
+$.deepcopy = structuredClone.bind(self)
 $.hasown = (o, k) => o.hasOwnProperty(k)
 $.getown = (o, k) => o.hasOwnProperty(k) ? o[k] : _
 $.objproto = proto({})
@@ -17,29 +17,31 @@ $.ishtml = e => e instanceof HTMLElement
 $.ashtml = e => ishtml(e) ? e : e.relm
 $.istarr = ArrayBuffer.isView
 
-$.style = (e, ...ss) => {
-  e = ashtml(e)
-  for (const s of ss) {
-    for (const k in s) {
-      let v = s[k]; isnum(v) ? v = `${v}px` : 0
-      if (e.style[k] !== v) { e.style[k] = v }
-    }
-  } return e
-}
+if (self.document) {
+  $.style = (e, ...ss) => {
+    e = ashtml(e)
+    for (const s of ss) {
+      for (const k in s) {
+        let v = s[k]; isnum(v) ? v = `${v}px` : 0
+        if (e.style[k] !== v) { e.style[k] = v }
+      }
+    } return e
+  }
 
-$.compappend = (e, ...a) => e.append(...a.map(v => !isobj(v) ?
-  dom({ innerText: v }) : ishtml(v) ? v : v.relm ?? dom({ innerText: v })))
+  $.compappend = (e, ...a) => e.append(...a.map(v => !isobj(v) ?
+    dom({ innerText: v }) : ishtml(v) ? v : v.relm ?? dom({ innerText: v })))
 
-const elm = document.createElement.bind(document)
-$.dom = (o = {}, p, n = o.tag ?? "div") => {
-  const e = elm(n); for (const k in o) {
-    const v = o[k]; switch (k) {
-      case "class": e.className = v; break;
-      case "child": compappend(e, ...asarr(v)); break;
-      case "style": style(e, ...asarr(v)); break;
-      default: e[k] !== v ? e[k] = v : 0; break;
-    }
-  } if (p) { p.append(e) } return e
+  const elm = document.createElement.bind(document)
+  $.dom = (o = {}, p, n = o.tag ?? "div") => {
+    const e = elm(n); for (const k in o) {
+      const v = o[k]; switch (k) {
+        case "class": e.className = v; break;
+        case "child": compappend(e, ...asarr(v)); break;
+        case "style": style(e, ...asarr(v)); break;
+        default: e[k] !== v ? e[k] = v : 0; break;
+      }
+    } if (p) { p.append(e) } return e
+  }
 }
 
 $.uuid = (d = 32, r = 32) => [...crypto.getRandomValues(
@@ -74,3 +76,12 @@ $.sfc32 = (a, b, c, d) => () => {
 $.pnow = performance.now.bind(performance)
 $.frame = (f, c = Infinity, st = pnow(), l) =>
   (l = t => c-- > 0 ? (requestAnimationFrame(l), f(t - st)) : 0, l(st))
+
+$.newwrk = (p, ...a) => {
+  let w = new Worker("./worker.js", ...a), r
+  w.postMessage(["init", p])
+  w.addEventListener("message", e => { if (e.data === "inited") { r(w) } })
+  w.call = (...a) => w.postMessage(["call", ...a])
+  w.transfer = (t, ...a) => w.postMessage(["call", ...a], t)
+  return new Promise(v => r = v)
+}
