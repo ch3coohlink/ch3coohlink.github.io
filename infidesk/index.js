@@ -8,14 +8,13 @@ $.save = idb.saveobj("lmm6keutnfvlhnuj08vq1nu1mhsfjrtm")
 
 const body = document.body
 // compappend(body, $.cvs = canvas())
-// $.cvs = canvas()
+$.cvs = canvas()
 // $.gl = cvs.cvs.getContext("webgl2"), glutil(_, _, $)
-$.cvs = { cvs: document.getElementById("src") }
 $.ctx = cvs.cvs.getContext("2d")
 const ratio = 0.2
 cvs.cvs.width = 1920 * ratio
 cvs.cvs.height = 1080 * ratio
-log(ctx)
+body.append(cvs.cvs)
 
 $.seedrd = mb32(7592834538)
 $.rd = (a = 1, b) => (b ? 0 : (b = a, a = 0), seedrd() * (b - a) + a)
@@ -95,11 +94,9 @@ const ss = sequence(inherit($, {
 //   body.append(img)
 // }
 // body.append(cvs.cvs, shrinkcvs)
-body.append(cvs.cvs)
 
 let t = 100
-// setInterval(() => {
-$.draw = (() => {
+$.draw = () => {
   let st = pnow()
   ctx.setTransform(new DOMMatrix())
   ctx.fillStyle = "white"
@@ -115,20 +112,11 @@ $.draw = (() => {
 
   let et = pnow(), ft = et - st
   // ft > 1 ? log(ft.toFixed(1)) : 0
-})
+}
 
 addEventListener("keydown", e => {
   const rt = pnow(), et = e.timeStamp, dt = rt - et
 })
-
-const newwrk = (p, ...a) => {
-  let w = new Worker("./worker.js", ...a), r
-  w.postMessage(["init", p])
-  w.addEventListener("message", e => { if (e.data === "inited") { r(w) } })
-  w.call = (...a) => w.postMessage(["call", ...a])
-  w.transfer = (t, ...a) => w.postMessage(["call", ...a], t)
-  return new Promise(v => r = v)
-}
 
 const w = await newwrk("./codec.js")
 let stream = cvs.cvs.captureStream(0)
@@ -142,7 +130,6 @@ let off = ocvs.transferControlToOffscreen()
 w.transfer([off, r], "setup_encode", off, r)
 $.feedframe = () => track.requestFrame()
 
-await new Promise(r => setTimeout(r, 100))
 for (let i = 0; i < 1000; i++) {
   draw(i * (1 / 60) * 1000)
   feedframe()
