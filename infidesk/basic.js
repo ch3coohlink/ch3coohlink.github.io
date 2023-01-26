@@ -79,9 +79,28 @@ $.frame = (f, c = Infinity, st = pnow(), l) =>
 
 $.newwrk = (p, ...a) => {
   let w = new Worker("./worker.js", ...a), r
-  w.postMessage(["init", p])
-  w.addEventListener("message", e => { if (e.data === "inited") { r(w) } })
-  w.call = (...a) => w.postMessage(["call", ...a])
-  w.transfer = (t, ...a) => w.postMessage(["call", ...a], t)
+  const postMessage = w.postMessage.bind(w)
+  postMessage(["init", p])
+  w.addEventListener("message", async e => {
+    const type = e.data.shift()
+    if (type === "inited") { r(w) }
+    else if (type === "call") {
+      const [name, ...args] = e.data
+      $[name](...args)
+    } else if (type === "waitcall") {
+      const [id, name, ...args] = e.data
+      const r = await $[name](...args)
+      postMessage(["waitcallfined", id, r])
+    } else if (type === "waitcallfined") {
+      const [id, r] = e.data
+      cbs[id](r), delete cbs[id]
+    }
+  })
+  w.call = (...a) => postMessage(["call", ...a])
+  w.transfer = (t, ...a) => postMessage(["call", ...a], t)
+  let callid = 0, cbs = {}; $.waitcall = (...a) => {
+    let i = callid++; postMessage(["waitcall", i, ...a])
+    return new Promise(r => cbs[i] = r)
+  }
   return new Promise(v => r = v)
 }

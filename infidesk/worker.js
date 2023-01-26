@@ -10,12 +10,29 @@ with ($) {
     .then(t => tofunc(t + `\n//# sourceURL=${p}`, a))
   $.loadsym = (p, e = $) => require(p, true).then(f => f(_, _, e))
 
-  addEventListener("message", e => {
-    const [type, path, ...data] = e.data
+  addEventListener("message", async e => {
+    const type = e.data.shift()
     if (type === "init") {
-      loadsym(path).then(a => postMessage("inited"))
+      const [path] = e.data
+      await loadsym(path)
+      postMessage(["inited"])
     } else if (type === "call") {
-      $[path](...data)
+      const [name, ...args] = e.data
+      $[name](...args)
+    } else if (type === "waitcall") {
+      const [id, name, ...args] = e.data
+      const r = await $[name](...args)
+      postMessage(["waitcallfined", id, r])
+    } else if (type === "waitcallfined") {
+      const [id, r] = e.data
+      cbs[id](r), delete cbs[id]
     }
   })
+
+  $.call = (...a) => postMessage(["call", ...a])
+  $.transfer = (t, ...a) => postMessage(["call", ...a], t)
+  let callid = 0, cbs = {}; $.waitcall = (...a) => {
+    let i = callid++; postMessage(["waitcall", i, ...a])
+    return new Promise(r => cbs[i] = r)
+  }
 }
