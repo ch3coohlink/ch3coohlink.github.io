@@ -11,6 +11,8 @@ const body = document.body
 compappend(body, $.cvs = canvas())
 $.ctx = cvs.getContext("2d")
 
+$.seed = 3952395901;[$.rd, $.rdi] = genrd(seed)
+
 $.defseq = $d => {
   let keyname = "init formula step".split(" ")
   keyname.forEach(k => $d["_" + k] = tofunc(funcbody($d[k] ?? (() => { }))))
@@ -44,21 +46,23 @@ $.step = () => {
 }
 
 $.jump = throttle((t, l) => {
-  $.pause = true
-  l ? a.jumpto(_, Math.max(l, 0)) : a.jumpto(Math.max(t, 0))
-  step()
+  $.pause = true; l ? a.jumpto(_, Math.max(l, 0))
+    : a.jumpto(Math.max(t, 0)), step()
 })
 
 addEventListener("keydown", e => {
-  const acsm = [e.altKey, e.ctrlKey, e.shiftKey, e.metaKey].map(v => v ? 1 : 0).join("")
-  // log(e.key, acsm)
+  const acsm = [e.altKey, e.ctrlKey, e.shiftKey
+    , e.metaKey].map(v => v ? 1 : 0).join("")
   if (acsm === "0000") {
-    if (e.key === " ") { a.jumpto(0) }
-    // if (e.key === " ") { $.pause = !pause }
-    // else if (e.key === "ArrowUp") { jump(a.t - 1) }
-    // else if (e.key === "ArrowDown") { jump(a.t + 1) }
-    // else if (e.key === "ArrowLeft") { jump(_, a.frame - 2) }
-    // else if (e.key === "ArrowRight") { jump(_, a.frame) }
+    if (e.key === " ") {
+      [$.rd, $.rdi] = genrd(seed)
+      a.jumpto(0)
+    }
+  } else if (acsm === "0100") {
+    if (e.key === " ") {
+      $.seed = rd() * 2 ** 32;[$.rd, $.rdi] = genrd(seed)
+      a.jumpto(0)
+    }
   }
 })
 
@@ -73,20 +77,16 @@ $.rect = defseq({
   },
 })
 
-$.arr = array(100, i => {
-  return rect($, {
-    x: rd(0.1, 0.9), y: rd(0.1, 0.9),
-    es: rd(10, 20), d: 1,
-    text: (i + 1).toString().padStart(2, "0")
-  })
-})
-
 $.a = defseq({
   init: () => {
+    $.arr = array(100, i => {
+      return rect($, {
+        x: rd(0.1, 0.9), y: rd(0.1, 0.9), es: rd(10, 20), d: 1,
+        text: (i + 1).toString().padStart(2, "0")
+      })
+    })
   },
-  formula: () => {
-    for (const o of arr) { o.formula(t) }
-  },
+  formula: () => { for (const o of arr) { o.formula(t) } },
 })()
 
 // frame(() => { if (!pause) { step() } }, 1000)
