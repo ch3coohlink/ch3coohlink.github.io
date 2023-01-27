@@ -56,13 +56,12 @@ $.eventtarget = $ => {
   return $
 }
 
-let { imul } = Math; $.mb32 = a => t =>
+let { imul } = Math, mb32 = a => t =>
   (a = a + 1831565813 | 0,
     t = imul(a ^ a >>> 15, 1 | a),
     t = t + imul(t ^ t >>> 7, 61 | t) ^ t,
     (t ^ t >>> 14) >>> 0) / 4294967296
-
-$.sfc32 = (a, b, c, d) => () => {
+let sfc32 = (a, b, c, d) => () => {
   a |= 0; b |= 0; c |= 0; d |= 0;
   let t = (a + b | 0) + d | 0;
   d = d + 1 | 0;
@@ -71,6 +70,12 @@ $.sfc32 = (a, b, c, d) => () => {
   c = c << 21 | c >>> 11;
   c = c + t | 0;
   return (t >>> 0) / 4294967296;
+}
+$.genrd = seed => {
+  let seedrd = mb32(seed)
+  let rd = (a = 1, b) => (b ? 0 : (b = a, a = 0), seedrd() * (b - a) + a)
+  let rdi = (a, b) => Math.ceil(rd(a, b))
+  return [rd, rdi]
 }
 
 $.pnow = performance.now.bind(performance)

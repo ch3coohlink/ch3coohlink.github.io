@@ -5,23 +5,10 @@
 
 $.idb = newidb($, { name: "infidesk" })
 $.save = idb.saveobj("lmm6keutnfvlhnuj08vq1nu1mhsfjrtm")
+await save.init
 
 const body = document.body
-// compappend(body, $.cvs = canvas())
-$.cvs = canvas()
-// $.gl = cvs.cvs.getContext("webgl2"), glutil(_, _, $)
-$.ctx = cvs.cvs.getContext("2d")
-const ratio = 0.2
-cvs.cvs.width = 1920 * ratio
-cvs.cvs.height = 1080 * ratio
-body.append(cvs.cvs)
-
-$.seedrd = mb32(7592834538)
-$.rd = (a = 1, b) => (b ? 0 : (b = a, a = 0), seedrd() * (b - a) + a)
-$.rdi = (a = 1, b) => Math.ceil(b ? 0 : (b = a, a = 0), seedrd() * (b - a) + a)
-
-$.animate = (f, ...a) => { }
-$.wait = t => { t }
+compappend(body, $.cvs = scrollpanel())
 
 const sequence = $ => {
   with ($) {
@@ -42,100 +29,3 @@ const sequence = $ => {
     }; _init()
   } return $
 }
-
-const s = (o, i, n, a, sa, spd) => sequence(inherit(o, {
-  init: $ => {
-    with ($) {
-      $.box = { x: 0, y: 0, w: 100, h: 100 }
-      $.angle = 0
-    }
-  },
-  tick: $ => {
-    with ($) {
-      box.x += ftime * spd
-      box.y += ftime * spd
-      angle += ftime * sa
-      if (draw) {
-        ctx.setTransform(new DOMMatrix().translate(cvs.cvs.width / 2, cvs.cvs.height / 2)
-          .rotate(a + 360 / n * i).translate(box.x, box.y).rotate(angle))
-        ctx.fillRect(0, 0, box.w, box.h)
-      }
-    }
-  },
-}))
-
-const ss = sequence(inherit($, {
-  init: $ => {
-    with ($) {
-      $.l = Math.ceil(rd(1, 8))
-      $.a = Math.ceil(rd(360))
-      $.sa = Math.ceil(rd(-100, 100))
-      $.spd = Math.ceil(rd(-100, 100))
-      $.ss = array(l, i => s($, i, l, a, sa, spd).jumpto(1))
-    }
-  },
-  tick: $ => {
-    with ($) {
-      for (const s of ss) { s.next() }
-    }
-  },
-}))
-
-// let shrinkcvs = dom({ tag: "canvas" })
-// let shrinkctx = shrinkcvs.getContext("2d")
-// let drawtoimage = (ratio = 0.2) => {
-//   const w = Math.ceil(cvs.cvs.width * ratio)
-//   const h = Math.ceil(cvs.cvs.height * ratio)
-//   if (shrinkcvs.width !== w || shrinkcvs.height !== h)
-//     shrinkcvs.width = w, shrinkcvs.height = h;
-//   shrinkctx.clearRect(0, 0, w, h)
-//   shrinkctx.drawImage(cvs.cvs, 0, 0, w, h)
-//   const img = dom({ tag: "img", src: shrinkcvs.toDataURL("image/webp", 0.1) })
-//   body.append(img)
-// }
-// body.append(cvs.cvs, shrinkcvs)
-
-let t = 100
-$.draw = () => {
-  let st = pnow()
-  ctx.setTransform(new DOMMatrix())
-  ctx.fillStyle = "white"
-  ctx.fillRect(0, 0, cvs.cvs.width, cvs.cvs.height)
-  ctx.fillStyle = "black"
-  ss.next()
-  if (ss.time > t) {
-    let i = rd(4)
-    ss.jumpto(i)
-    t = rd(i, 4)
-  }
-  // drawtoimage()
-
-  let et = pnow(), ft = et - st
-  // ft > 1 ? log(ft.toFixed(1)) : 0
-}
-
-addEventListener("keydown", e => {
-  const rt = pnow(), et = e.timeStamp, dt = rt - et
-})
-
-const w = await newwrk("./codec.js")
-let stream = cvs.cvs.captureStream(0)
-let track = stream.getVideoTracks()[0]
-let mp = new MediaStreamTrackProcessor(track)
-let r = mp.readable
-let ocvs = dom({ tag: "canvas" }, body)
-ocvs.width = cvs.cvs.width
-ocvs.height = cvs.cvs.height
-let off = ocvs.transferControlToOffscreen()
-w.transfer([off, r], "setup_encode", off, r)
-$.feedframe = () => track.requestFrame()
-
-for (let i = 0; i < 1000; i++) {
-  draw(i * (1 / 60) * 1000)
-  feedframe()
-  // w.call("encode_frame", i)
-  await new Promise(r => setTimeout(r, 20))
-  // log("call encode frame", i)
-}
-
-await save.init

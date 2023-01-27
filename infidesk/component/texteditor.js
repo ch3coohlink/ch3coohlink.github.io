@@ -2,7 +2,8 @@ $.ctn = dom({ class: "container" }, root)
 $.ta = dom({ tag: "textarea", spellcheck: false }, ctn)
 $.lbd = dom({ class: "label text-ellipsis" }, ctn)
 
-$.fitta = () => (ta.style.height = "auto", ta.style.height = ta.scrollHeight + 3 + "px")
+$.fitta = () => (ta.style.height = "auto",
+  ta.style.height = ta.scrollHeight + 3 + "px")
 ta.oninput = e => (trigger("input", e), fitta())
 new ResizeObserver(fitta).observe(ta)
 
