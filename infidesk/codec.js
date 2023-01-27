@@ -26,8 +26,8 @@ $.setup_encode = async (cvs, src) => {
   })
   encoder.configure({
     // codec: "avc1.42001E",
-    codec: "vp09.00.10.08",
-    // codec: "vp8",
+    // codec: "vp09.00.10.08",
+    codec: "vp8",
     width: cvs.width,
     height: cvs.height,
   })
