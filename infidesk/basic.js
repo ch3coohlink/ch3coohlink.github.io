@@ -17,6 +17,16 @@ $.ishtml = e => e instanceof HTMLElement
 $.ashtml = e => ishtml(e) ? e : e.relm
 $.istarr = ArrayBuffer.isView
 
+$.funcbody = f => f.toString()
+  .replace(/^[^{]*{\s*/, "").replace(/\s*}[^}]*$/, "")
+
+$.debounce = (f, t = 100, i) => (...a) =>
+  (clearTimeout(i), i = setTimeout(() => f(...a), t))
+$.throttle = (f, t = 100, i) => (...a) =>
+  i ? 0 : (i = 1, f(...a), setTimeout(() => i = 0, t))
+
+$.wait = t => new Promise(r => setTimeout(r, t))
+
 if (self.document) {
   $.style = (e, ...ss) => {
     e = ashtml(e)
