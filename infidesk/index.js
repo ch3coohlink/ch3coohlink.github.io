@@ -8,7 +8,7 @@ $.save = idb.saveobj("lmm6keutnfvlhnuj08vq1nu1mhsfjrtm")
 await save.init
 
 const body = document.body
-compappend(body, $.cvs = scrollpanel())
+compappend(body, $.cvs = canvas())
 
 const sequence = $ => {
   with ($) {

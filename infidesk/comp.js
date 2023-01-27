@@ -18,5 +18,5 @@ $.initprop = ($, prop, get, set, deft = "", v = $[prop] ?? deft) =>
   (Object.defineProperty($, prop, { get, set }), $[prop] = v)
 
 const list = `texteditor showcase button complist dragpanel canvas
-scrollpanel`.split(/\s+/)
+`.split(/\s+/).filter(v => v)
 await Promise.all(list.map(n => newcomp(n).then(f => $[n] = f)))
