@@ -6,6 +6,7 @@ $.proto = Object.getPrototypeOf
 $.deepcopy = structuredClone.bind(self)
 $.hasown = (o, k) => o.hasOwnProperty(k)
 $.getown = (o, k) => o.hasOwnProperty(k) ? o[k] : _
+$.getset = (o, k, g, s) => Object.defineProperty(o, k, { get: g, set: s })
 $.objproto = proto({})
 
 $.array = (n, f) => [...Array(n).keys()].map(f)
