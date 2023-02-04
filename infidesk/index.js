@@ -102,72 +102,92 @@ $.a = defseq({
   }
 
   screen.child.push({
-    type: "text", value: "测试一些中文😍🥰abcdefghijklmnopqrstuvwxyz",
-    size: "25px",
-    layout: { type: "item", }
+    type: "text", text: "e",
+    size: "50px", font: "consolas"
   })
 
-  for (const o of screen.child) {
-    if (o.type === "text") {
-      ctx.font = "25px consolas"
-      o.width = ctx.measureText(o.value)
-      log(o.width)
+  let getlines = (text, maxWidth) => {
+    let words = text.split(" ")
+    let lines = []
+    let currentLine = words[0]
+
+    for (let i = 1; i < words.length; i++) {
+      let word = words[i]
+      let width = ctx.measureText(currentLine + " " + word).width
+      if (width < maxWidth) {
+        currentLine += " " + word
+      } else {
+        lines.push(currentLine)
+        currentLine = word
+      }
     }
+    lines.push(currentLine)
+    return lines
   }
 
+  let w = 0, h = 0
+  for (const o of screen.child) {
+    if (o.type === "text") {
+      ctx.font = o.size + " " + o.font
+      const m = ctx.measureText(o.text)
+      o.top = m.fontBoundingBoxAscent
+      o.bottom = m.fontBoundingBoxDescent
+      o.height = o.top + o.bottom
+      o.width = m.width
+    }
+    w = Math.max(w, o.width)
+    h += o.height
+  }
+  screen.cwidth = w
+  screen.cheight = h
+  log(w, h)
+
+  $.testdiv = dom({
+    style: {
+      position: "fixed", top: `calc(50% - 10px)`,
+      left: `calc(50% - 4px)`
+    }, child: "e"
+  })
+  body.append(testdiv)
+
   frame(t => {
+
+    testdiv.style.transform = `scale(${t / 100})`
+
     ctx.save()
     ctx.fillStyle = "white"
     ctx.fillRect(0, 0, cvs.width, cvs.height)
     ctx.fillStyle = "black"
-    for (const o of screen.child) {
-      // caluculate parent size
-    }
+
+    const wp = screen.layout.width.match(/(\d+)%/)[1] / 100
+    const hp = screen.layout.height.match(/(\d+)%/)[1] / 100
+    const w = wp * cvs.width * 0.5, h = hp * cvs.height * 0.5
     for (const o of screen.child) {
       if (o.type === "text") {
-        // position
-        // color
-        // font
-        // align
-        // baseline
-        let size = (t / 1000) ** 2
-        ctx.font = size + "px consolas"
-
-        o.width = ctx.measureText(o.value)
-
-        let x = 100, y = 800
-
-        let r = size / (o.width.fontBoundingBoxAscent + o.width.fontBoundingBoxDescent)
-        log(size.toFixed(4), r.toFixed(4))
-
-        ctx.strokeStyle = "black"
-        ctx.strokeRect(x - 2, y - 2, 4, 4)
-
-        ctx.fillText(o.value, x, y)
-        ctx.fillRect(x, y, o.width.width, 1)
-
-        ctx.fillRect(x - 5, y,
-          1, o.width.fontBoundingBoxDescent + 1)
-
-        ctx.fillStyle = "blue"
-        ctx.fillRect(x, y + o.width.fontBoundingBoxDescent,
-          o.width.width, 1)
-
-        ctx.fillStyle = "red"
-        ctx.fillRect(x, y - o.width.fontBoundingBoxAscent,
-          o.width.width, 1)
-
-        ctx.fillStyle = "green"
-        ctx.fillRect(x, y - o.width.actualBoundingBoxAscent,
-          o.width.width, 1)
-        ctx.fillRect(x - 2, y - o.width.actualBoundingBoxAscent,
-          1, size)
-
-        ctx.fillStyle = "black"
-        x += o.width.width
-        ctx.fillText(o.value, x, y)
+        // o.x = w * 0.5
+        o.x = (w - o.width) * 0.5
+        o.y = (h + screen.cheight) * 0.5 - o.bottom
       }
     }
+
+    for (const o of screen.child) {
+      if (o.type === "text") {
+        // const s = t / 0.1
+        const s = t / 1000
+        // ctx.setTransform(new DOMMatrix().scale(t / 1000, t / 1000))
+        // ctx.setTransform(new DOMMatrix().scale3d(t / 1000, w * 0.5, h * 0.5))
+        ctx.setTransform(new DOMMatrix().translate(w, h).scale(s)
+          .translate(-o.width * 0.5, screen.cheight * 0.5 - o.bottom))
+        log(o.x, o.y)
+        ctx.font = o.size + " " + o.font
+        // ctx.fillText(o.text, 0, 0)
+      }
+    }
+
+    ctx.resetTransform()
+    ctx.fillRect(0, h, w * 2, 1)
+    ctx.fillRect(w, 0, 1, h * 2)
+
     ctx.restore()
   })
 }
