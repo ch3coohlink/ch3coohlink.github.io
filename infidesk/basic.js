@@ -90,8 +90,9 @@ $.genrd = seed => {
 }
 
 $.pnow = performance.now.bind(performance)
-$.frame = (f, c = Infinity, st = pnow(), l) =>
-  (l = t => c-- > 0 ? (requestAnimationFrame(l), f(t - st)) : 0, l(st))
+$.frame = (f, c = Infinity, st = pnow(), l) => (
+  l = t => c-- > 0 ? (requestAnimationFrame(l), f(t - st)) : 0,
+  requestAnimationFrame(l))
 
 $.newwrk = (p, ...a) => {
   let w = new Worker("./worker.js", ...a), r
