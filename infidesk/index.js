@@ -23,30 +23,27 @@ $.box = (...a) => {
     o.size = () => {
       let l = o.layout, w = l.width ?? 300
       let h = l.height ?? (child.length > 0 ? 5 : 100)
-      for (const i of child) {
+      for (let i of child) {
         let [dw, dh] = i.size()
         w = max(w, dw + 10), h += dh + 5
       } o.temp.w = w, o.temp.h = h
       return [w, h]
     }
-    o.pos = (p) => {
-      let pw = p.temp.w - 10
-      if (pw > temp.w) { temp.w = pw }
-
-      temp.lx = 5, temp.ly = 5
-      let l = o.layout, x, y
-      if (l.position) { [x, y] = l.position }
-      else {
-        x = p.temp.x + p.temp.lx
-        y = p.temp.y + p.temp.ly
-        p.temp.ly += temp.h + 5
-      } temp.x = x, temp.y = y; return [x, y]
+    o.pos = () => {
+      let { x, y, w } = temp, lx = 5, ly = 5
+      for (let i of child) {
+        let pw = w - 10, ix, iy; if (pw > i.temp.w) { i.temp.w = pw }
+        if (i.layout.position) { [ix, iy] = i.layout.position }
+        else {
+          ix = x + lx, iy = y + ly
+          ly += i.temp.h + 5
+        } i.temp.x = ix, i.temp.y = iy, i.pos()
+      }
     }
-    o.draw = (p) => {
-      pos(p)
-      ctx.fillStyle = "#00000010"
+    o.draw = () => {
+      ctx.fillStyle = "#00000050"
       ctx.fillRect(temp.x, temp.y, temp.w, temp.h)
-      for (let i of child) { i.draw(o) }
+      for (let i of child) { i.draw() }
       o.temp = {}
     }
   } return o
@@ -61,8 +58,17 @@ frame(t => {
   ctx.fillStyle = "white"
   ctx.fillRect(0, 0, cvs.width, cvs.height)
   for (let i of root) { i.size() }
-  // for (let i of root) { i.pos({ temp: { lx: 5, ly: 5 } }) }
   const o = { temp: { lx: 5, ly: 5, x: 0, y: 0 } }
+  let lx = 5, ly = 5, x = 0, y = 0, w = cvs.width
+  for (let i of root) {
+    let pw, ix, iy; if (i.layout.position) { [ix, iy] = i.layout.position }
+    else {
+      ix = x + lx, iy = y + ly
+      ly += i.temp.h + 5
+    } i.temp.x = ix, i.temp.y = iy
+    pw = w - i.temp.x - 5; if (pw > i.temp.w) { i.temp.w = pw }
+    i.pos(o)
+  }
   for (let i of root) { i.draw(o) }
 })
 
