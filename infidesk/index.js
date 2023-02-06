@@ -21,12 +21,11 @@ $.box = (...a) => {
     o.temp = {}
     o.layout = {}
     o.size = () => {
-      let l = o.layout, w = l.width ?? 300
-      let h = l.height ?? (child.length > 0 ? 5 : 100)
+      let l = o.layout, w = l.width ?? 300, h = 5
       for (let i of child) {
         let [dw, dh] = i.size()
         w = max(w, dw + 10), h += dh + 5
-      } o.temp.w = w, o.temp.h = h
+      } o.temp.w = w, h = o.temp.h = max(l.height ?? 100, h)
       return [w, h]
     }
     o.pos = () => {
@@ -49,27 +48,39 @@ $.box = (...a) => {
   } return o
 }
 
+$.button = () => { }
+
 $.root = []
 frame(t => {
   t /= 1000
-  panel.layout.position = [100 * Math.sin(t) + 200, 100 * Math.cos(t) + 200]
-  panel.layout.width = 500 + 100 * Math.sin(t * 3)
+
+  if (t < Infinity) {
+    panel.layout.position = [100 * Math.sin(t) + 200, 100 * Math.cos(t) + 200]
+    panel.layout.height = 500 + 200 * Math.sin(t)
+  }
 
   ctx.fillStyle = "white"
   ctx.fillRect(0, 0, cvs.width, cvs.height)
+
   for (let i of root) { i.size() }
-  const o = { temp: { lx: 5, ly: 5, x: 0, y: 0 } }
   let lx = 5, ly = 5, x = 0, y = 0, w = cvs.width
   for (let i of root) {
-    let pw, ix, iy; if (i.layout.position) { [ix, iy] = i.layout.position }
+    let ix, iy
+    if (i.layout.position) { [ix, iy] = i.layout.position }
     else {
       ix = x + lx, iy = y + ly
       ly += i.temp.h + 5
     } i.temp.x = ix, i.temp.y = iy
-    pw = w - i.temp.x - 5; if (pw > i.temp.w) { i.temp.w = pw }
-    i.pos(o)
+
+    let pw = w - i.temp.x - 5; if (pw > i.temp.w) { i.temp.w = pw }
+    i.pos()
   }
-  for (let i of root) { i.draw(o) }
+  for (let i of root) { i.draw() }
+
+  ctx.fillStyle = "black"
+  ctx.font = "25px consolas"
+  ctx.fillText("OK...", 100, 200)
+  ctx.fillText(pnow().toFixed(1), 100, 230)
 })
 
 $.panel = box(
@@ -78,5 +89,5 @@ $.panel = box(
   box(box(), box()),
   box(),
 )
-panel.layout.position = [100, 100]
+panel.layout.height = 800
 root.push(panel, box())
