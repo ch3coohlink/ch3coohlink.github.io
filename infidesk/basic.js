@@ -18,8 +18,9 @@ $.ishtml = e => e instanceof HTMLElement
 $.ashtml = e => ishtml(e) ? e : e.relm
 $.istarr = ArrayBuffer.isView
 
-$.funcbody = f => f.toString()
-  .replace(/^[^{]*{\s*/, "").replace(/\s*}[^}]*$/, "")
+// 凑合用吧，这个函数没有完整的parser是搞不定的
+$.funcbody = (f, s = f.toString()) =>
+  s.slice(s.indexOf("{") + 1, s.lastIndexOf("}"))
 
 $.debounce = (f, t = 100, i) => (...a) =>
   (clearTimeout(i), i = setTimeout(() => f(...a), t))
