@@ -22,6 +22,11 @@ $.istarr = ArrayBuffer.isView
 $.funcbody = (f, s = f.toString()) =>
   s.slice(s.indexOf("{") + 1, s.lastIndexOf("}"))
 
+$.fwith = (f, n, s = funcbody(f)) => (n ??= hash(s).toString(16),
+  new (f instanceof AsyncFunction ? AsyncFunction : Function)
+    ("__P__", "__A__", "$ = Object.assign(Object.create(__P__), __A__)",
+      "with($) {\n" + `//# sourceURL=${n}.js\n` + s + "\n} return $"))
+
 $.debounce = (f, t = 100, i) => (...a) =>
   (clearTimeout(i), i = setTimeout(() => f(...a), t))
 $.throttle = (f, t = 100, i) => (...a) =>
@@ -83,11 +88,21 @@ let sfc32 = (a, b, c, d) => () => {
   c = c + t | 0;
   return (t >>> 0) / 4294967296;
 }
+
 $.genrd = seed => {
   let seedrd = mb32(seed)
   let rd = (a = 1, b) => (b ? 0 : (b = a, a = 0), seedrd() * (b - a) + a)
   let rdi = (a, b) => Math.ceil(rd(a, b))
   return [rd, rdi]
+}
+
+$.hash = (s, seed = 0) => {
+  let h1 = 0xdeadbeef ^ seed, h2 = 0x41c6ce57 ^ seed
+  for (let i = 0, ch, l = s.length; i < l; i++) (ch = s.charCodeAt(i),
+    h1 = imul(h1 ^ ch, 2654435761), h2 = imul(h2 ^ ch, 1597334677))
+  h1 = imul(h1 ^ (h1 >>> 16), 2246822507) ^ imul(h2 ^ (h2 >>> 13), 3266489909)
+  h2 = imul(h2 ^ (h2 >>> 16), 2246822507) ^ imul(h1 ^ (h1 >>> 13), 3266489909)
+  return 4294967296 * (2097151 & h2) + (h1 >>> 0)
 }
 
 $.pnow = performance.now.bind(performance)
