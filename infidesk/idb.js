@@ -1,17 +1,28 @@
 $.name ??= "default", $.store ??= "default"
 
-$.dbp = new Promise((res, rej, r = indexedDB.open(name)) => (
-  r.onsuccess = () => res(r.result), r.onerror = () => rej(r.error),
-  r.onupgradeneeded = () => r.result.createObjectStore(store)))
+$.dbp = new Promise((r, j, d = indexedDB.open(name)) => (
+  d.onsuccess = () => r(d.result),
+  d.onerror = () => j(d.error),
+  d.onupgradeneeded = () => d.result.createObjectStore(store)))
 
-$.upgrade = f => dbp.then(db => $.dbp = new Promise(
+$.deletedatabase = () => dbp.then(db => (db.close(),
+  new Promise((r, j, d = indexedDB.deleteDatabase(name)) =>
+    (d.onerror = j, d.onsuccess = r))))
+
+$.upgrade = f => dbp.then(db => (db.close(), $.dbp = new Promise(
   (r, j, d = indexedDB.open(name, db.version + 1)) => (
-    d.onsuccess = () => r(d.result), d.onerror = () => j(d.error),
-    r.onupgradeneeded = () => f(d.result))))
+    d.onsuccess = () => r(d.result),
+    d.onerror = () => j(d.error),
+    d.onupgradeneeded = () => f(d.result)))))
 
-$.action = (type, cb) => dbp.then(db => new Promise(
-  (r, j, t = db.transaction(store, type)) => (
-    t.oncomplete = () => r(), t.onabort = t.onerror = () => j(t.error), cb(t))))
+$.action = (type, cb, s = store) => dbp.then(db => new Promise(
+  (r, j, t = db.transaction(s ?? db.objectStoreNames, type)) => (
+    t.oncomplete = () => r(),
+    t.onabort = t.onerror = () => j(t.error),
+    cb(t))))
+
+$.request = rq => new Promise((r, j) => (
+  rq.onsuccess = r(rq.result), rq.onerror = j))
 
 $.ro = f => action("readonly", t => f(t.objectStore(store)))
 $.rw = f => action("readwrite", t => f(t.objectStore(store)))

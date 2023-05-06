@@ -5,23 +5,7 @@
   <meta charset="UTF-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>InfiDesk Dev Page</title>
-  <style>
-    /* We must define the font face outside the shadowroot */
-    @font-face {
-      font-family: 'codicon';
-      src: url('node_modules/monaco-editor/min/vs/base/browser/ui/codicons/codicon/codicon.ttf') format('truetype');
-    }
-  </style>
-  <script src="node_modules/monaco-editor/min/vs/loader.js"></script>
-  <style>
-    body {
-      height: 100vh;
-      margin: 0;
-      box-sizing: border-box;
-      overflow: hidden;
-    }
-  </style>
+  <title>Indexed DB Test</title>
   <script>
     const $ = {}; (async () => {
       with ($) {
@@ -34,15 +18,14 @@
         $.require = (p, a = false) => gettext(p)
           .then(t => tofunc(t + `\n//# sourceURL=${p}`, a))
         $.loadsym = (p, e = $) => require(p, true).then(f => f(_, _, e))
-        await loadsym("./index.js")
+        await loadsym("./idbtest.js")
       }
     })()
   </script>
 </head>
 
 <body>
-  <div></div>
-  <script>document.body.innerHTML = ""</script>
+
 </body>
 
 </html>

@@ -53,12 +53,14 @@ if (self.document) {
     const e = elm(n); for (const k in o) {
       const v = o[k]; switch (k) {
         case "class": e.className = v; break;
-        case "child": compappend(e, ...asarr(v)); break;
+        case "child": e.append(...asarr(v)); break;
         case "style": style(e, ...asarr(v)); break;
         default: e[k] !== v ? e[k] = v : 0; break;
       }
     } if (p) { p.append(e) } return e
   }
+
+  $.body = document.body
 }
 
 $.uuid = (d = 32, r = 32) => [...crypto.getRandomValues(
@@ -73,24 +75,11 @@ $.eventtarget = $ => {
   return $
 }
 
-// unused long generator
-let sfc32 = (a, b, c, d) => () => {
-  a |= 0; b |= 0; c |= 0; d |= 0;
-  let t = (a + b | 0) + d | 0;
-  d = d + 1 | 0;
-  a = b ^ b >>> 9;
-  b = c + (c << 3) | 0;
-  c = c << 21 | c >>> 11;
-  c = c + t | 0;
-  return (t >>> 0) / 4294967296;
-}
-
 let { imul } = Math, mb32 = a => t =>
   (a = a + 1831565813 | 0,
     t = imul(a ^ a >>> 15, 1 | a),
     t = t + imul(t ^ t >>> 7, 61 | t) ^ t,
     (t ^ t >>> 14) >>> 0) / 4294967296
-
 $.genrd = seed => {
   let { log, cos, sqrt, ceil, PI } = Math, seedrd = mb32(seed)
   let rd = (a = 1, b) => (b ? 0 : (b = a, a = 0), seedrd() * (b - a) + a)
