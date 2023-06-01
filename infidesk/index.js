@@ -93,111 +93,69 @@ $.fullui = fwith(() => {
 compappend(body, fullui($))
 
 $.git = fwith(() => {
-  $.queue = [], $.tempobj = {}
-  $.dbget = async (k) => k in tempobj ? tempobj[k] : await db.get(k)
-  $.dbset = (k, v) => (tempobj[k] = v, queue.push(["put", k, v]))
-  $.dbdel = (k) => (tempobj[k] = undefined, queue.push(["delete", v]))
-  $.abort = () => { $.queue = [], $.tempobj = {} }
-  $.flush = () => db.rw(s => { for (const [o, ...a] of queue) { s[o](...a) } })
-  $.transaction = f => async (...a) => {
-    try { await f(...a), await flush() } finally { abort() }
+  $.pstr = (...a) => a.join("/")
+  $.fileref = id => idb.getpath(pstr("git/fileref", id)).then(a => a.length)
+  $.fileexist = id => fileref(id).then(n => n <= 0)
+  $.lastref = id => fileref(id).then(n => n === 1)
+
+  $.newgraph = (name) => {
+    const id = uuid()
+    idb.set(pstr("git/graphs", name), name)
+    idb.set(pstr("git/graphnode", name, id), id)
+    idb.set(pstr("git/nodegraph", id), name)
   }
-
-  $.splitpath = (p, si = path.lastIndexOf("/")) => [p.slice(0, si), p.slice(si + 1)]
-  $.validate = p => "/" + p.split("/").filter(v => v).join("/")
-
-  $.__create = async (path, { type, content, nodeid, originpath, checkpath, overwrite } = {}) => {
-    const pn = await dbget(path)
-    let id; switch (type) {
-      case "folder":
-        if (!pn) { id = uuid(), dbset(path, { path, type: "folder", id, create_time: new Date() }) }
-        else { id = pn.id } break
-      case "symbolink":
-        id = nodeid; let op = originpath
-        if (!id && !op) { throw "can't create symbolink since " }
-        if (!id) { }
-        if (!op) {
-          await dbget("fsnode/" + id,)
-        }
-        dbset(path, { type: "symbolink", id })
-        dbset("noderef/" + id + "/" + path, path)
-        break
-      case "file":
-        if (pn && !overwrite) { throw `the path "${path}" is occupied` }
-        if (pn && overwrite) { await _remove(path) }
-
-        if (nodeid) {
-          id = nodeid
-          dbset(path, { type: "file", id })
-          dbset("noderef/" + id + "/" + path, path)
-        } else {
-          id = uuid()
-          dbset(path, { type: "file", id })
-          dbset("fsnode/" + id, content)
-          dbset("metadata/" + id, { create_time: new Date() })
-          dbset("noderef/" + id + "/" + path, path)
-        } break
-      default: throw `unknown type "${type}" on filesystem`
-    }
-
-    // add to parent path
-    let [pp, n] = splitpath(path), pm = await dbget(pp)
-    if ((pp === "" || !checkpath) && !pm) {
-      dbset(pp, pm = { type: "folder", id: uuid(), create_time: new Date() })
-    } if (!pm) { throw `parent path: "${pp}" not exist!` }
-    if (pm.type !== "folder") {
-      if (pm.type === "folder link") { /* TODO */ }
-      else { throw `parent path: "${pp}" is not a folder!` }
-    }
-    dbset("nodechild/" + pm.id + "/" + n, { name: n, path })
+  $.newnode = async (prev) => {
+    const name = idb.get(pstr("git/nodegraph", prev)), curr = uuid()
+    idb.set(pstr("git/graphnode", name, curr), curr)
+    idb.set(pstr("git/nodegraph", curr), name)
+    idb.set(pstr("git/graphedge", prev, curr), curr)
+    // copy prev node file
+    const s = pstr("git/pointer", node), fs = await idb.getpath(s)
+    await Promise.all(fs.forEach(([k, { type, id }]) =>
+      write(curr, k.slice(s.length + 1), type, id)))
   }
-  $._create = async (path, args = {}, { checkpath } = args) => {
-    const paths = path.split("/").filter(v => v), n = paths.pop()
-    let pt = ""; if (!checkpath) for (const p of paths) {
-      await __create(pt += "/" + p, { type: "folder", checkpath })
-    } await __create(validate(path), args)
-  }
-  $._remove = async (path, { force } = {}) => {
-    path = validate(path); const meta = await dbget(path)
-    if (!meta) { throw `nothing found on path: "${path}"` }
-    // TODO: or maybe a symbol link
-
-    const { id, type } = meta; switch (type) {
-      case "file":
-        const refs = await db.getpath("noderef/" + id + "/")
-        dbdel("noderef/" + id + "/" + path)
-        if (refs.length === 1) {
-          dbdel("noderef/" + id + "/" + path)
-
-        }
-        break
-      case "folder":
-        // check folder empty?
-        if (!force) { throw `unable to delete folder on path: "${path}"` }
-        break
-      default: throw `unknown type "${type}" on filesystem`
-    }
-
-    dbdel("nodechild")
-  }
-  $._move = async (from, to) => {
-    // here, this process should be done in one transaction
-    // but I wrote it as is anyway
-    await read()
-    await _create()
-    await _remove()
-  }
-  $.read = (path) => { }
-  $.write = (path) => { }
-
-  $.solidify = (point) => { }
   $.merge = (a, b) => { }
-  $.newpoint = (prev) => { }
-  $.newgraph = () => { }
-  $.database = d => { $.db = d }
+
+  $.read = async (node, name, ref) => {
+    if (ref) {
+      const { id } = await idb.get(pstr("git/pointer", node, ref))
+      return await read(id, name)
+    } else {
+      const { id } = await idb.get(pstr("git/pointer", node, name))
+      return await idb.get(pstr("git/file", id))
+    }
+  }
+  $.write = async (node, name, type, content) => {
+    switch (type) {
+      case "raw":
+        let id = hash(content)
+        if (await fileexist(id)) {
+          await idb.set(pstr("git/file", id), content)
+        }
+        idb.set(pstr("git/fileref", id, node, name), { node, name })
+        idb.set(pstr("git/pointer", node, name), { type: "file", id })
+        break
+      case "file":
+        idb.set(pstr("git/fileref", content, node, name), { node, name })
+        idb.set(pstr("git/pointer", node, name), { type, id: content })
+        break
+      default:
+        idb.set(pstr("git/pointer", node, name), { type, id: content })
+        break
+    }
+  }
+  $.rename = async (node, oldname, newname) => {
+    // check file exists and type
+    const { type, id } = await idb.get()
+  }
+  $.remove = async (node, name) => {
+    // check file exists and type
+    // remove reference, if it's the last ref
+    // delete the file
+  }
 })
 
-$.g = git($, { db: idb })
-// g.newgraph("testproj")
-// const p = g.newpoint(null)
+$.g = git($)
+g.newgraph("testproj")
+// const p = g.newnode(null)
 // g.newfile(p, "test.js")
