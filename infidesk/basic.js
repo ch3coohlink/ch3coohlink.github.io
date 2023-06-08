@@ -8,6 +8,7 @@ $.hasown = (o, k) => o.hasOwnProperty(k)
 $.getown = (o, k) => o.hasOwnProperty(k) ? o[k] : _
 $.getset = (o, k, g, s) => Object.defineProperty(o, k, { get: g, set: s })
 $.objproto = proto({})
+$.panic = e => { throw e }
 
 $.array = (n, f) => [...Array(n).keys()].map(f)
 $.asarr = v => isarr(v) ? v : [v]
@@ -61,6 +62,9 @@ if (self.document) {
   }
 
   $.body = document.body
+
+  $.fitcvs = (c, r = window.devicePixelRatio) => (
+    c.width = c.clientWidth * r, c.height = c.clientHeight * r)
 }
 
 $.uuid = (d = 32, r = 32) => [...crypto.getRandomValues(

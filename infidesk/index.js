@@ -10,9 +10,9 @@ let [, newidb] = await Promise.all([
   new Promise(r => window.require(["vs/editor/editor.main"], r))
 ])
 
-$.idb = newidb($, { name: "infidesk" })
-$.save = idb.saveobj("lmm6keutnfvlhnuj08vq1nu1mhsfjrtm")
-await save.init
+// $.idb = newidb($, { name: "infidesk" })
+// $.save = idb.saveobj("lmm6keutnfvlhnuj08vq1nu1mhsfjrtm")
+// await save.init
 
 $.texteditor = fwith(() => {
   $.relm = dom({ class: "texteditor" })
@@ -90,72 +90,72 @@ $.fullui = fwith(() => {
   compappend(root, fl, te)
 })
 
-compappend(body, fullui($))
+// compappend(body, fullui($))
 
 $.git = fwith(() => {
-  $.pstr = (...a) => a.join("/")
-  $.fileref = id => idb.getpath(pstr("git/fileref", id)).then(a => a.length)
-  $.fileexist = id => fileref(id).then(n => n <= 0)
-  $.lastref = id => fileref(id).then(n => n === 1)
+  $.graphs = {}, $.nodes = {}, $.p$ = proto($)
+  $.stack = [], $.curr = null
 
-  $.newgraph = (name) => {
-    const id = uuid()
-    idb.set(pstr("git/graphs", name), name)
-    idb.set(pstr("git/graphnode", name, id), id)
-    idb.set(pstr("git/nodegraph", id), name)
-  }
-  $.newnode = async (prev) => {
-    const name = idb.get(pstr("git/nodegraph", prev)), curr = uuid()
-    idb.set(pstr("git/graphnode", name, curr), curr)
-    idb.set(pstr("git/nodegraph", curr), name)
-    idb.set(pstr("git/graphedge", prev, curr), curr)
-    // copy prev node file
-    const s = pstr("git/pointer", node), fs = await idb.getpath(s)
-    await Promise.all(fs.forEach(([k, { type, id }]) =>
-      write(curr, k.slice(s.length + 1), type, id)))
+  $.newgraph = (name) => (graphs[name] = {}, newnode(name))
+  $.newnode = (name, prev) => {
+    if (prev && !nodes[prev]) { throw `previous node: "${prev}" not exist` }
+    const id = uuid(), n = { to: {}, from: {}, files: {}, graph: name }
+    graphs[name][id] = nodes[id] = n; if (prev) {
+      n.files = deepcopy(nodes[prev].files)
+      n.from[prev] = 1
+      nodes[prev].to[id] = 1
+    } return id
   }
   $.merge = (a, b) => { }
 
-  $.read = async (node, name, ref) => {
-    if (ref) {
-      const { id } = await idb.get(pstr("git/pointer", node, ref))
-      return await read(id, name)
-    } else {
-      const { id } = await idb.get(pstr("git/pointer", node, name))
-      return await idb.get(pstr("git/file", id))
+  $.dir = n => nodes[n].files
+  $.read = (node, path) => {
+    if (!nodes[node]) { throw `node: "${node}" not exist` }
+    let [name, ref] = path.split("/")
+    const f = nodes[node].files[name]
+    if (!f) { throw `"${name}" not exist on node "${node}"` }
+    if (ref) { $.curr = f.id; return read(f.id, ref) } else {
+      $.stack.push(curr)
+      return f.content ?? panic("path not pointing a file")
     }
   }
-  $.write = async (node, name, type, content) => {
-    switch (type) {
-      case "raw":
-        let id = hash(content)
-        if (await fileexist(id)) {
-          await idb.set(pstr("git/file", id), content)
-        }
-        idb.set(pstr("git/fileref", id, node, name), { node, name })
-        idb.set(pstr("git/pointer", node, name), { type: "file", id })
-        break
-      case "file":
-        idb.set(pstr("git/fileref", content, node, name), { node, name })
-        idb.set(pstr("git/pointer", node, name), { type, id: content })
-        break
-      default:
-        idb.set(pstr("git/pointer", node, name), { type, id: content })
-        break
-    }
+
+  $.write = (node, name, content) => { nodes[node].files[name] = { content } }
+  $.writeref = (node, name, id) => { nodes[node].files[name] = { id } }
+  $.remove = (node, name) => { delete nodes[node].files[name] }
+  $.rename = (node, oldname, newname) => {
+    nodes[node].files[newname] = nodes[node].files[oldname]
+    remove(node, oldname)
   }
-  $.rename = async (node, oldname, newname) => {
-    // check file exists and type
-    const { type, id } = await idb.get()
-  }
-  $.remove = async (node, name) => {
-    // check file exists and type
-    // remove reference, if it's the last ref
-    // delete the file
+
+  $.checkwrite = n => Object.keys(nodes[n].to).length > 0
+    ? panic(`node "${n}" is not writable`) : 0
+  $.cwf = f => (n, ...a) => (checkwrite(n), f(n, ...a));
+  [$.write, $.writeref, $.remove, $.rename] =
+    [$.write, $.writeref, $.remove, $.rename].map(cwf)
+
+  $.loadjs = (p, n = stack[stack.length - 1], e = p$) => {
+    if (!n) { throw `no graph node provided for path: ${p}` }
+    let f; if (stack.length === 0) { stack.push(n), f = true }
+    let l = stack.length
+    fwith(_, _, read(n, p))(_, _, e)
+    if (l !== stack.length || f) { stack.pop() }
   }
 })
 
-$.g = git($)
-g.newgraph("testproj")
-// const p = g.newnode(null)
-// g.newfile(p, "test.js")
+$.comment = src => { body.append(dom({ innerHTML: src })) }
+$.code = src => (src = src.trim(),
+  setTimeout(() => fwith(...[, , src])(...[, , $])),
+  body.append(dom({ tag: "pre", child: src })))
+
+const src = await gettext("./index.dat.js")
+src.split("//!").map(t => {
+  const [f, ...rest] = t.split(/\r\n?/)
+  $.src = rest.join("\r\n")
+  fwith(_, _, f)(_, _, $)
+})
+
+log(g.dir(c))
+log(g.dir(t))
+// loadjs("test_file_explorer.js", t)
+// loadjs("testdrawtext.js", t)
