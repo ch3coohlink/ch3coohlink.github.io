@@ -14,7 +14,14 @@ let [, newidb] = await Promise.all([
 // $.save = idb.saveobj("lmm6keutnfvlhnuj08vq1nu1mhsfjrtm")
 // await save.init
 
-$.texteditor = fwith(() => {
+$.eventnode = fwith(() => {
+  $._handles = {}
+  $.emit = (t, o) => { (_handles[t] ?? []).forEach(f => f(o)) }
+  $.on = (t, f) => { (_handles[t] ??= []).push(f) }
+})
+$.combine = (f, ...fs) => (...a) => fs.reduce((p, v) => v(_, _, p), f(...a))
+
+$.texteditor = combine(fwith(() => {
   $.relm = dom({ class: "texteditor" })
   relm.style.height = "100%"
   $.root = relm.attachShadow({ mode: "open" })
@@ -45,7 +52,51 @@ $.texteditor = fwith(() => {
     folding: false,
     minimap: { enabled: false },
   })
-})
+}), eventnode)
+
+$.nodeselector_css = new CSSStyleSheet()
+nodeselector_css.replace(`
+svg {
+  width: 100%;
+}
+`)
+$.nodeselector = combine(fwith(() => {
+  $.relm = dom({ class: "nodeselector" })
+  $.root = relm.attachShadow({ mode: "open" })
+  root.adoptedStyleSheets = [nodeselector_css]
+
+  $.calxy = (s, h, x, y) => [`${100 / (s + 1) * (x + 1)}%`, h * (y + 1)]
+  $.update = repo => {
+    let prev = new Set([g.roots[repo]]), arr = [], ms = 0
+    while (prev.size > 0) {
+      arr.push(prev)
+      let curr = new Set
+      prev.forEach(n => Object.keys(g.nodes[n].to)
+        .forEach(n => curr.add(n)))
+      prev = curr
+      ms = Math.max(ms, prev.size)
+    }
+    $.se = svg({}, root)
+    let l = arr.length, hl = 40
+    se.style.height = (l + 1) * hl + "px"
+    for (let i = 0; i < l; i++) {
+      const e = [...arr[i]], s = e.length
+      const ne = [...arr[i + 1] ?? []], ns = ne.length
+      for (let j = 0; j < s; j++) {
+        const k = e[j], [x, y] = calxy(s, hl, j, i)
+        svg({ tag: "circle", r: 5, cx: x, cy: y }, se)
+        Object.keys(g.nodes[k].to).forEach(
+          t => {
+            let ti = 
+            let [tx, ty] = calxy(s, hl, ne.indexOf(t), i + 1)
+            let d = `M ${x} ${y} L ${tx} ${ty}`
+            svg({ tag: "path", d }, se)
+          }
+        )
+      }
+    }
+  }
+}), eventnode)
 
 $.filelist_css = new CSSStyleSheet()
 filelist_css.replace(`
@@ -53,15 +104,62 @@ filelist_css.replace(`
   height: 100%;
   display: flex;
   flex-direction: column;
+  user-select: none;
+}
+.vertical-list {
+  display: flex;
+  flex-direction: column;
 }
 `)
-$.filelist = fwith(() => {
+$.filelist = combine(fwith(() => {
   $.relm = dom({ class: "filelist" })
   $.root = relm.attachShadow({ mode: "open" })
   root.adoptedStyleSheets = [filelist_css]
 
-  root.append(dom({ tag: "button", child: "+" }))
-})
+  $.ns = nodeselector(proto($))
+
+  root.append(
+    dom({ tag: "input" }),
+    dom({
+      tag: "button", child: "new", onclick: () => {
+
+      }
+    }),
+    dom({
+      tag: "button", child: "rename", onclick: () => {
+
+      }
+    }),
+    dom({
+      tag: "button", child: "delete", onclick: () => {
+
+      }
+    }),
+    dom({ child: "-----", style: { textAlign: "center" } }),
+    $.lista = dom({ class: "vertical-list" }),
+    dom({ child: "-----", style: { textAlign: "center" } }),
+    $.listb = dom({ class: "vertical-list" }),
+    dom({ child: "-----", style: { textAlign: "center" } }),
+    dom({
+      tag: "button", child: "newref", onclick: () => newref().then(() => {
+
+      })
+    }),
+    ns.relm
+  )
+  $.update = n => {
+    const o = g.dir(n)
+    lista.innerHTML = "", listb.innerHTML = ""
+    Object.keys(o).forEach(k => {
+      const isref = !!o[k].id
+      const list = !isref ? lista : listb
+      list.append(dom({
+        tag: "button", child: k, onclick: () => emit(
+          isref ? "openref" : "openfile", { node: n, path: k })
+      }))
+    })
+  }
+}), eventnode)
 
 $.fullui_css = new CSSStyleSheet()
 fullui_css.replace(`
@@ -88,25 +186,36 @@ $.fullui = fwith(() => {
   $.te = texteditor(proto($))
 
   compappend(root, fl, te)
+
+  $.curr = null
+  fl.on("openfile", o => {
+    const { node, path } = o
+    const e = fui.te.editor, me = monaco.editor
+    const [ext] = path.split(".").slice(-1)
+    $.curr = o, e.setValue(g.read(node, path))
+    if (ext === "js") { me.setModelLanguage(e.getModel(), "javascript") }
+  })
 })
 
-// compappend(body, fullui($))
+$.git = combine(fwith(() => {
+  $.roots = {}, $.graphs = {}, $.nodes = {}, $.p$ = proto($), $.stack = []
 
-$.git = fwith(() => {
-  $.graphs = {}, $.nodes = {}, $.p$ = proto($)
-  $.stack = [], $.curr = null
-
-  $.newgraph = (name) => (graphs[name] = {}, newnode(name))
-  $.newnode = (name, prev) => {
-    if (prev && !nodes[prev]) { throw `previous node: "${prev}" not exist` }
-    const id = uuid(), n = { to: {}, from: {}, files: {}, graph: name }
+  $.newgraph = name => (graphs[name] = {}, roots[name] = newnode(name))
+  $.newnode = prev => {
+    let name, id = uuid(); if (!nodes[prev]) {
+      if (graphs[prev]) { name = prev, prev = null }
+      else throw `previous node: "${prev}" not exist`
+    } else { name = nodes[prev].graph }
+    const n = { to: {}, from: {}, files: {}, graph: name }
     graphs[name][id] = nodes[id] = n; if (prev) {
       n.files = deepcopy(nodes[prev].files)
-      n.from[prev] = 1
-      nodes[prev].to[id] = 1
+      n.from[prev] = nodes[prev].to[id] = 1
     } return id
   }
-  $.merge = (a, b) => { }
+  $.merge = (a, b) => { /* TODO */
+    if (!nodes[b]) { throw `previous node: "${b}" not exist` }
+    const n = newnode(a); nodes[n].from[b] = nodes[b].to[n] = 1; return n
+  }
 
   $.dir = n => nodes[n].files
   $.read = (node, path) => {
@@ -114,14 +223,16 @@ $.git = fwith(() => {
     let [name, ref] = path.split("/")
     const f = nodes[node].files[name]
     if (!f) { throw `"${name}" not exist on node "${node}"` }
-    if (ref) { $.curr = f.id; return read(f.id, ref) } else {
-      $.stack.push(curr)
-      return f.content ?? panic("path not pointing a file")
+    if (ref) { return read(f.id, ref) } else {
+      $.stack.push(node); return f.content
+        ?? panic("path not pointing a file")
     }
   }
 
-  $.write = (node, name, content) => { nodes[node].files[name] = { content } }
-  $.writeref = (node, name, id) => { nodes[node].files[name] = { id } }
+  $.write = (node, name, c, mode) => {
+    if (nodes[node].files[name]) { throw `path "${name}" has been occupied` }
+    nodes[node].files[name] = mode === "ref" ? { id: c } : { content: c }
+  }
   $.remove = (node, name) => { delete nodes[node].files[name] }
   $.rename = (node, oldname, newname) => {
     nodes[node].files[newname] = nodes[node].files[oldname]
@@ -130,23 +241,22 @@ $.git = fwith(() => {
 
   $.checkwrite = n => Object.keys(nodes[n].to).length > 0
     ? panic(`node "${n}" is not writable`) : 0
-  $.cwf = f => (n, ...a) => (checkwrite(n), f(n, ...a));
-  [$.write, $.writeref, $.remove, $.rename] =
-    [$.write, $.writeref, $.remove, $.rename].map(cwf)
+  $.cwf = f => (n, ...a) => (checkwrite(n), f(n, ...a), emit("filewrite"));
+  [$.write, $.remove, $.rename] = [$.write, $.remove, $.rename].map(cwf)
 
-  $.loadjs = (p, n = stack[stack.length - 1], e = p$) => {
-    if (!n) { throw `no graph node provided for path: ${p}` }
-    let f; if (stack.length === 0) { stack.push(n), f = true }
-    let l = stack.length
-    fwith(_, _, read(n, p))(_, _, e)
-    if (l !== stack.length || f) { stack.pop() }
+  $.loadjs = (p, n, e = p$) => {
+    if (n) { $.stack = [] } else { [n] = stack.slice(-1) }
+    fwith(_, _, read(n, p))(_, _, e), stack.pop()
   }
-})
+}), eventnode)
 
-$.comment = src => { body.append(dom({ innerHTML: src })) }
-$.code = src => (src = src.trim(),
-  setTimeout(() => fwith(...[, , src])(...[, , $])),
-  body.append(dom({ tag: "pre", child: src })))
+// loadjs("test_file_explorer.js", t)
+// loadjs("testdrawtext.js", t)
+
+$.g = git($)
+$.loadjs = g.loadjs
+$.c = g.newgraph("codebase")
+$.t = g.newgraph("testbase")
 
 const src = await gettext("./index.dat.js")
 src.split("//!").map(t => {
@@ -155,7 +265,9 @@ src.split("//!").map(t => {
   fwith(_, _, f)(_, _, $)
 })
 
-log(g.dir(c))
-log(g.dir(t))
-// loadjs("test_file_explorer.js", t)
-// loadjs("testdrawtext.js", t)
+loadjs("generate_repo.js", t)
+
+$.fui = fullui($)
+compappend(body, fui)
+fui.fl.update(t)
+fui.fl.ns.update("fuzzy_generate_repo")
