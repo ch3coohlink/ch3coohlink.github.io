@@ -10,7 +10,7 @@ $.getset = (o, k, g, s) => Object.defineProperty(o, k, { get: g, set: s })
 $.objproto = proto({})
 $.panic = e => { throw e }
 
-$.array = (n, f) => [...Array(n).keys()].map(f)
+$.array = (n, f, r = [...Array(n).keys()]) => f ? r.map(f) : r
 $.asarr = v => isarr(v) ? v : [v]
 $.isarr = Array.isArray
 $.isnum = v => typeof v === "number"
@@ -48,6 +48,18 @@ if (self.document) {
 
   $.compappend = (e, ...a) => e.append(...a.map(v => !isobj(v) ?
     dom({ innerText: v }) : ishtml(v) ? v : v.relm ?? dom({ innerText: v })))
+
+  $.svg = (o = {}, p, n = o.tag ?? "svg") => {
+    const e = document.createElementNS("http://www.w3.org/2000/svg", n)
+    for (const k in o) {
+      const v = o[k]; switch (k) {
+        case "class": e.className = v; break;
+        case "child": e.append(...asarr(v)); break;
+        case "style": style(e, ...asarr(v)); break;
+        default: e[k] !== v ? e.setAttribute(k, v) : 0; break;
+      }
+    } if (p) { p.append(e) } return e
+  }
 
   const elm = document.createElement.bind(document)
   $.dom = (o = {}, p, n = o.tag ?? "div") => {

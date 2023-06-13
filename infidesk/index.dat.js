@@ -1,8 +1,3 @@
-//! fwith(_, _, src)(_, _, $)
-$.g = git($)
-$.loadjs = g.loadjs
-$.c = g.newgraph("codebase")
-$.t = g.newgraph("testbase")
 //! g.write(c, "draw.js", src)
 $.cvs = dom({ tag: "canvas" }, body)
 cvs.style.width = "100%"
@@ -27,8 +22,8 @@ $.drawtext = (s, x, y, h = 20, w) => {
   ctx.fillStyle = "black"
   ctx.fillText(s, x + bbl, y + fba, w)
 }
-//! g.writeref(t, "lib", c)
-//! g.write(t, "testdraw.js", src)
+//! g.write(t, "lib", c, "ref")
+//! g.write(t, "draw.js", src)
 body.innerHTML = ""
 loadjs("lib/draw.js")
 frame(t => {
@@ -36,7 +31,7 @@ frame(t => {
   drawrect(10, 100 + 50 * Math.sin(t / 1000 + 1),
     100 + 50 * Math.sin(t / 1000), 200)
 })
-//! g.write(t, "testdrawtext.js", src)
+//! g.write(t, "drawtext.js", src)
 body.innerHTML = ""
 loadjs("lib/draw.js")
 $.s = "The quick brown fox jumps over the lazy dog"
@@ -77,9 +72,21 @@ frame(() => {
 $.file_explorer = n => {
   g.dir(n)
 }
-//! g.write(t, "test_file_explorer.js", src)
+//! g.write(t, "file_explorer.js", src)
 loadjs("lib/draw.js")
 loadjs("lib/file_explorer.js")
 frame(() => {
   file_explorer()
 })
+//! g.write(t, "generate_repo.js", src)
+let curr = [g.newgraph("fuzzy_generate_repo")];
+[$.rd, $.rdi] = genrd(999999999)
+for (const i of array(10)) {
+  let l = curr.length
+  curr = [].concat(...curr.map((v, i) => {
+    if (rd() > 2 / 3) { return [g.newnode(v), g.newnode(v)] }
+    else if (rd() > 1 / 3) { return g.newnode(v) }
+    else if (l > 1) { return g.merge(v, curr[i + 1] ?? curr[i - 1]) }
+    else return []
+  }))
+}
