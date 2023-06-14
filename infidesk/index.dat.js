@@ -86,7 +86,7 @@ for (const i of array(10)) {
   curr = [].concat(...curr.map((v, i) => {
     if (rd() > 2 / 3) { return [g.newnode(v), g.newnode(v)] }
     else if (rd() > 1 / 3) { return g.newnode(v) }
-    else if (l > 1) { return g.merge(v, curr[i + 1] ?? curr[i - 1]) }
+    // else if (l > 1) { return g.merge(v, curr[i + 1] ?? curr[i - 1]) }
     else return []
   }))
 }
