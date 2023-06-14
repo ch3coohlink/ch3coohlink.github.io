@@ -59,13 +59,23 @@ nodeselector_css.replace(`
 svg {
   width: 100%;
 }
+circle {
+  r: 3px;
+}
+circle:hover{
+  fill: red;
+}
+path {
+  stroke-width: 1px;
+  stroke: black;
+}
 `)
 $.nodeselector = combine(fwith(() => {
   $.relm = dom({ class: "nodeselector" })
   $.root = relm.attachShadow({ mode: "open" })
   root.adoptedStyleSheets = [nodeselector_css]
 
-  $.calxy = (s, h, x, y) => [`${100 / (s + 1) * (x + 1)}%`, h * (y + 1)]
+  $.calxy = (w, h, x, y) => [w * (x + 1), h * (y + 1)]
   $.update = repo => {
     let prev = new Set([g.roots[repo]]), arr = [], ms = 0
     while (prev.size > 0) {
@@ -77,18 +87,17 @@ $.nodeselector = combine(fwith(() => {
       ms = Math.max(ms, prev.size)
     }
     $.se = svg({}, root)
-    let l = arr.length, hl = 40
+    let l = arr.length, hl = 40, wl = se.clientWidth / (ms + 1)
     se.style.height = (l + 1) * hl + "px"
     for (let i = 0; i < l; i++) {
       const e = [...arr[i]], s = e.length
-      const ne = [...arr[i + 1] ?? []], ns = ne.length
+      const ne = [...arr[i + 1] ?? []]
       for (let j = 0; j < s; j++) {
-        const k = e[j], [x, y] = calxy(s, hl, j, i)
-        svg({ tag: "circle", r: 5, cx: x, cy: y }, se)
+        const k = e[j], [x, y] = calxy(wl, hl, j, i)
+        svg({ tag: "circle", cx: x, cy: y }, se)
         Object.keys(g.nodes[k].to).forEach(
           t => {
-            let ti = 
-            let [tx, ty] = calxy(s, hl, ne.indexOf(t), i + 1)
+            let [tx, ty] = calxy(wl, hl, ne.indexOf(t), i + 1)
             let d = `M ${x} ${y} L ${tx} ${ty}`
             svg({ tag: "path", d }, se)
           }
@@ -206,7 +215,7 @@ $.git = combine(fwith(() => {
       if (graphs[prev]) { name = prev, prev = null }
       else throw `previous node: "${prev}" not exist`
     } else { name = nodes[prev].graph }
-    const n = { to: {}, from: {}, files: {}, graph: name }
+    const n = { to: {}, from: {}, files: {}, graph: name, time: new Date }
     graphs[name][id] = nodes[id] = n; if (prev) {
       n.files = deepcopy(nodes[prev].files)
       n.from[prev] = nodes[prev].to[id] = 1
