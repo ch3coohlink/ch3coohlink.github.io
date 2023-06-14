@@ -50,7 +50,8 @@ if (self.document) {
     dom({ innerText: v }) : ishtml(v) ? v : v.relm ?? dom({ innerText: v })))
 
   $.svg = (o = {}, p, n = o.tag ?? "svg") => {
-    const e = document.createElementNS("http://www.w3.org/2000/svg", n)
+    let e; if (o instanceof SVGElement) { e = o, o = p, p = undefined }
+    else { e = document.createElementNS("http://www.w3.org/2000/svg", n) }
     for (const k in o) {
       const v = o[k]; switch (k) {
         case "class": e.className = v; break;
@@ -63,7 +64,8 @@ if (self.document) {
 
   const elm = document.createElement.bind(document)
   $.dom = (o = {}, p, n = o.tag ?? "div") => {
-    const e = elm(n); for (const k in o) {
+    let e; if (o instanceof HTMLElement) { e = o, o = p, p = undefined }
+    else { e = elm(n) } for (const k in o) {
       const v = o[k]; switch (k) {
         case "class": e.className = v; break;
         case "child": e.append(...asarr(v)); break;

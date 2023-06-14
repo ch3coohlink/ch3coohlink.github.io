@@ -75,8 +75,10 @@ $.nodeselector = combine(fwith(() => {
   $.root = relm.attachShadow({ mode: "open" })
   root.adoptedStyleSheets = [nodeselector_css]
 
-  $.calxy = (w, h, x, y) => [w * (x + 1), h * (y + 1)]
+  $.calx = (w, x) => 100 / (w + 1) * (x + 1)
+  $.calxy = (w, h, x, y) => [calx(w, x), calx(h, y)]
   $.update = repo => {
+    $.cirs = [], $.pats = [], root.innerHTML = ""
     let prev = new Set([g.roots[repo]]), arr = [], ms = 0
     while (prev.size > 0) {
       arr.push(prev)
@@ -87,24 +89,41 @@ $.nodeselector = combine(fwith(() => {
       ms = Math.max(ms, prev.size)
     }
     $.se = svg({}, root)
-    let l = arr.length, hl = 40, wl = se.clientWidth / (ms + 1)
+    let l = arr.length, hl = 40
     se.style.height = (l + 1) * hl + "px"
     for (let i = 0; i < l; i++) {
       const e = [...arr[i]], s = e.length
       const ne = [...arr[i + 1] ?? []]
       for (let j = 0; j < s; j++) {
-        const k = e[j], [x, y] = calxy(wl, hl, j, i)
-        svg({ tag: "circle", cx: x, cy: y }, se)
-        Object.keys(g.nodes[k].to).forEach(
-          t => {
-            let [tx, ty] = calxy(wl, hl, ne.indexOf(t), i + 1)
-            let d = `M ${x} ${y} L ${tx} ${ty}`
-            svg({ tag: "path", d }, se)
-          }
-        )
+        const k = e[j], [x, y] = calxy(ms, l, j, i)
+        let se = svg({ tag: "circle" })
+        se.onclick = () => log(k)
+        se.data = { x, y, node: k }
+        cirs.push(se)
+        Object.keys(g.nodes[k].to).forEach(t => {
+          let [bx, by] = calxy(ms, l, ne.indexOf(t), i + 1)
+          let se = svg({ tag: "path" })
+          se.data = { ax: x, ay: y, bx, by }
+          pats.push(se)
+        })
       }
     }
+    se.append(...pats, ...cirs)
+    update_svgpos()
   }
+  $.cirs = [], $.pats = []
+  $.update_svgpos = () => {
+    const w = se.clientWidth * 0.01, h = se.clientHeight * 0.01
+    for (const p of pats) {
+      const { ax, ay, bx, by } = p.data
+      svg(p, { d: `M ${w * ax} ${h * ay} L ${w * bx} ${h * by}` })
+    }
+    for (const c of cirs) {
+      const { x, y } = c.data
+      svg(c, { cx: w * x, cy: h * y })
+    }
+  }
+  new ResizeObserver(update_svgpos).observe(relm)
 }), eventnode)
 
 $.filelist_css = new CSSStyleSheet()
