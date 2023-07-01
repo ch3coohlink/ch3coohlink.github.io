@@ -56,7 +56,7 @@ $.texteditor = combine(fwith(() => {
 
 $.nodeselector_css = new CSSStyleSheet()
 nodeselector_css.replace(`
-svg {
+svg, select {
   width: 100%;
 }
 circle {
@@ -75,20 +75,28 @@ $.nodeselector = combine(fwith(() => {
   $.root = relm.attachShadow({ mode: "open" })
   root.adoptedStyleSheets = [nodeselector_css]
 
+  $.selrep = dom({ tag: "select", oninput: () => update(selrep.value) }, root)
+  $.update_repo = () => {
+    selrep.innerHTML = ""
+    selrep.append(...Object.keys(g.graphs)
+      .map(k => dom({ tag: "option", child: k })))
+  }
+
+  $.se = svg({}, root)
   $.calx = (w, x) => 100 / (w + 1) * (x + 1)
   $.calxy = (w, h, x, y) => [calx(w, x), calx(h, y)]
   $.update = repo => {
-    $.cirs = [], $.pats = [], root.innerHTML = ""
+    $.cirs = [], $.pats = [], se.innerHTML = ""
     let prev = new Set([g.roots[repo]]), arr = [], ms = 0
     while (prev.size > 0) {
       arr.push(prev)
+      ms = Math.max(ms, prev.size)
       let curr = new Set
       prev.forEach(n => Object.keys(g.nodes[n].to)
         .forEach(n => curr.add(n)))
       prev = curr
-      ms = Math.max(ms, prev.size)
     }
-    $.se = svg({}, root)
+
     let l = arr.length, hl = 40
     se.style.height = (l + 1) * hl + "px"
     for (let i = 0; i < l; i++) {
@@ -298,4 +306,5 @@ loadjs("generate_repo.js", t)
 $.fui = fullui($)
 compappend(body, fui)
 fui.fl.update(t)
+fui.fl.ns.update_repo()
 fui.fl.ns.update("fuzzy_generate_repo")

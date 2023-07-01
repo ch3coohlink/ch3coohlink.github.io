@@ -80,7 +80,8 @@ frame(() => {
 })
 //! g.write(t, "generate_repo.js", src)
 let curr = [g.newgraph("fuzzy_generate_repo")];
-[$.rd, $.rdi] = genrd(999999999)
+// [$.rd, $.rdi] = genrd(999999999)
+[$.rd, $.rdi] = genrd(999999999 * Math.random())
 for (const i of array(10)) {
   let l = curr.length
   curr = [].concat(...curr.map((v, i) => {
