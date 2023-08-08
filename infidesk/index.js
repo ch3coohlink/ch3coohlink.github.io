@@ -10,9 +10,9 @@ let [, newidb] = await Promise.all([
   new Promise(r => window.require(["vs/editor/editor.main"], r))
 ])
 
-// $.idb = newidb($, { name: "infidesk" })
-// $.save = idb.saveobj("lmm6keutnfvlhnuj08vq1nu1mhsfjrtm")
-// await save.init
+$.idb = newidb($, { name: "infidesk" })
+$.save = idb.saveobj("lmm6keutnfvlhnuj08vq1nu1mhsfjrtm")
+await save.init
 
 $.eventnode = fwith(() => {
   $._handles = {}
@@ -52,6 +52,14 @@ $.texteditor = combine(fwith(() => {
     folding: false,
     minimap: { enabled: false },
   })
+
+  editor.addAction({
+    id: "save-text-file",
+    label: "save file",
+    keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS],
+    run: ed => log(ed.getValue()),
+  });
+
 }), eventnode)
 
 $.nodeselector_css = new CSSStyleSheet()
@@ -155,32 +163,22 @@ $.filelist = combine(fwith(() => {
   $.ns = nodeselector(proto($))
 
   root.append(
-    dom({ tag: "input" }),
     dom({
       tag: "button", child: "new", onclick: () => {
-
+        // create a temp file naming dialog
       }
     }),
-    dom({
-      tag: "button", child: "rename", onclick: () => {
-
-      }
-    }),
-    dom({
-      tag: "button", child: "delete", onclick: () => {
-
-      }
-    }),
-    dom({ child: "-----", style: { textAlign: "center" } }),
-    $.lista = dom({ class: "vertical-list" }),
-    dom({ child: "-----", style: { textAlign: "center" } }),
-    $.listb = dom({ class: "vertical-list" }),
-    dom({ child: "-----", style: { textAlign: "center" } }),
     dom({
       tag: "button", child: "newref", onclick: () => newref().then(() => {
 
       })
     }),
+    dom({ child: "-----", style: { textAlign: "center" } }),
+    $.lista = dom({ class: "vertical-list" }),
+    dom({ child: "-----", style: { textAlign: "center" } }),
+    $.tempfiledom = dom(),
+    $.listb = dom({ class: "vertical-list" }),
+    dom({ child: "-----", style: { textAlign: "center" } }),
     ns.relm
   )
   $.update = n => {
@@ -188,7 +186,7 @@ $.filelist = combine(fwith(() => {
     lista.innerHTML = "", listb.innerHTML = ""
     Object.keys(o).forEach(k => {
       const isref = !!o[k].id
-      const list = !isref ? lista : listb
+      const list = isref ? lista : listb
       list.append(dom({
         tag: "button", child: k, onclick: () => emit(
           isref ? "openref" : "openfile", { node: n, path: k })
@@ -236,9 +234,17 @@ $.fullui = fwith(() => {
 $.git = combine(fwith(() => {
   $.roots = {}, $.graphs = {}, $.nodes = {}, $.p$ = proto($), $.stack = []
 
-  $.newgraph = name => (graphs[name] = {}, roots[name] = newnode(name))
-  $.newnode = prev => {
-    let name, id = uuid(); if (!nodes[prev]) {
+  // 创建新的代码库
+  $.newrepo = async name => {
+    idb.set(`graphs/${name}`, {})
+    const root = await newver(name)
+    idb.set(`roots/${name}`, root)
+    idb.set(`current/${name}`, root)
+  }
+  // 创建新的版本
+  $.newver = async () => {
+    let name, id = uuid()
+    if (!nodes[prev]) {
       if (graphs[prev]) { name = prev, prev = null }
       else throw `previous node: "${prev}" not exist`
     } else { name = nodes[prev].graph }
@@ -247,10 +253,6 @@ $.git = combine(fwith(() => {
       n.files = deepcopy(nodes[prev].files)
       n.from[prev] = nodes[prev].to[id] = 1
     } return id
-  }
-  $.merge = (a, b) => { /* TODO */
-    if (!nodes[b]) { throw `previous node: "${b}" not exist` }
-    const n = newnode(a); nodes[n].from[b] = nodes[b].to[n] = 1; return n
   }
 
   $.dir = n => nodes[n].files
@@ -286,25 +288,8 @@ $.git = combine(fwith(() => {
   }
 }), eventnode)
 
-// loadjs("test_file_explorer.js", t)
-// loadjs("testdrawtext.js", t)
-
 $.g = git($)
 $.loadjs = g.loadjs
-$.c = g.newgraph("codebase")
-$.t = g.newgraph("testbase")
-
-const src = await gettext("./index.dat.js")
-src.split("//!").map(t => {
-  const [f, ...rest] = t.split(/\r\n?/)
-  $.src = rest.join("\r\n")
-  fwith(_, _, f)(_, _, $)
-})
-
-loadjs("generate_repo.js", t)
 
 $.fui = fullui($)
 compappend(body, fui)
-fui.fl.update(t)
-fui.fl.ns.update_repo()
-fui.fl.ns.update("fuzzy_generate_repo")
