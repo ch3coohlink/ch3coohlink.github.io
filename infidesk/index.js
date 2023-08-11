@@ -277,16 +277,44 @@ $.git = combine(fwith(() => {
     remove(node, oldname)
   }
 
+  // 检查是否为叶子节点
   $.checkwrite = n => Object.keys(nodes[n].to).length > 0
     ? panic(`node "${n}" is not writable`) : 0
   $.cwf = f => (n, ...a) => (checkwrite(n), f(n, ...a), emit("filewrite"));
   [$.write, $.remove, $.rename] = [$.write, $.remove, $.rename].map(cwf)
 
-  $.loadjs = (p, n, e = p$) => {
-    if (n) { $.stack = [] } else { [n] = stack.slice(-1) }
-    fwith(_, _, read(n, p))(_, _, e), stack.pop()
+  $.loadjs = (path, node, e = p$) => {
+    if (node) { $.stack = [] } else { [node] = stack.slice(-1) }
+    fwith(_, _, read(node, path))(_, _, e), stack.pop()
   }
 }), eventnode)
+
+{
+  // node 版本 path 路径
+  // read(ver1, "filename")
+  // read(ver1, "refname/anotherfile")
+  // read(ver1, "refname") // ERROR
+  //let read = (node, path) => { }
+  //let dir = (node) => { }
+  // 文件模式：node 版本 name 文件名 content 文件内容 /mode "file"
+  // 引用模式：node 版本 name 引用名 content 版本库的ID /mode "ref"
+  //let write = (node, name, content, mode) => { }
+  //let remove = (node, name) => { }
+  //let rename = (node, oldname, newname) => { }
+
+  // name 代码库名字
+  //let newrepo = (name) => { }
+  //let newver = (name, parent) => { }
+
+  // uuid用uuid()就可以生成
+  // node是uuid，也就是字符串
+
+  // 用idb库编写
+}
+//版本管理
+let read = (node, path) => {
+    
+}
 
 $.g = git($)
 $.loadjs = g.loadjs
