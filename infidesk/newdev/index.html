@@ -5,6 +5,15 @@
   <meta charset="UTF-8" name="viewport" content="width=device-width, initial-scale=1.0">
   <title>newdev</title>
 
+  <style>
+    /* We must define the font face outside the shadowroot */
+    @font-face {
+      font-family: 'codicon';
+      src: url('node_modules/monaco-editor/min/vs/base/browser/ui/codicons/codicon/codicon.ttf') format('truetype');
+    }
+  </style>
+  <script src="../node_modules/monaco-editor/min/vs/loader.js"></script>
+
   <script src="./basic.js"></script>
   <script src="./idb.js"></script>
   <script src="./git.js"></script>
