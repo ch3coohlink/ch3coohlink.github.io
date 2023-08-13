@@ -1,7 +1,5 @@
 $.idb = (name = "default", store = "default") => {
-  let $ = { name, store }
-
-  with ($) {
+  let $ = { name, store }; with ($) {
     $.dbp = new Promise((r, j, d = indexedDB.open(name)) => (
       d.onsuccess = () => r(d.result),
       d.onerror = () => j(d.error),
@@ -43,7 +41,8 @@ $.idb = (name = "default", store = "default") => {
     const fcc = String.fromCharCode
     const inc = (s, l = s.length - 1) => s.substring(0, l) + fcc(s.charCodeAt(l) + 1)
     $.path = s => IDBKeyRange.bound(s, inc(s), 0, 1)
-    $.getpath = s => search(path(s))
+    $.getpath = (s, l = s.length) => search(path(
+      s[l - 1] === "/" ? s + "/" : s)).then(v => (v[0] = v[0].slice(l), v))
 
     const debounce = (f, t = 100, o = {}) => (k, v) => (
       clearTimeout(o[k]), o[k] = setTimeout(() => f(k, v), t))
@@ -57,48 +56,41 @@ $.idb = (name = "default", store = "default") => {
       const o = eventtarget({ init, remove, id })
       return new Proxy(Object.create(o), { set: pset, deleteProperty: pdel })
     }
-  }
-
-  return $
+  } return $
 }
 
 // test
 const main = async () => {
   const db = idb("test_db")
 
-  db.dbp // valid
+  log(db)
+  await db.set("key1", 12)
+  log(await db.get("key1"))
+  await db.del("key1")
 
   await Promise.all([
-    db.set("somekey", 1), // 将somekey设置为1
-    db.set("somekey1", 1),// 将somekey1设置为1
-    db.set("somekey2", 1), // 将somekey2设置为1
+    db.set("key2/a", 1),
+    db.set("key2/b", 2),
+    db.set("key2/c", 3),
+    db.set("key2/d", 4),
+    db.set("key2/e", 5),
   ])
+  log(await db.getpath("key2"))
 
-  // 等设置完之后
-  log(db.get("somekey")) // 读取somekey
-  // [object Promise]
-  log(await db.get("somekey")) // 读取somekey
-  // 1
+  const ob = db.saveobj("id1")
+  ob.a = 1
+  log(ob.a)
 
-  // 
-  db.set("a/b/c", 1)
-  db.set("a/b/d", 2)
-  db.set("a/b/somepath", 3)
-
-  await db.getpath("a/b")
-  [["a/b/c", 1], ["a/b/d", 2], ["a/b/somepath", 3]]
-
-  // 单层saveobj
-  let so = db.saveobj("fdksajkfi2gii3ivj43o09df")
-  let so2 = db.saveobj("fdksajkfi2gii3ivj43o09df")
-  so.a = 1
-  db.set("fdksajkfi2gii3ivj43o09df/a", 1)
-  so.a // 1
-  so2.a === so.a
-
-  // 多层saveobj（未实现）
-  so.b = {}
-  db.set("fdksajkfi2gii3ivj43o09df/b", {})
-  so.b.a = 1
-  db.set("fdksajkfi2gii3ivj43o09df/b/a", 1)
+  // const wo = db.waitobj("id2")
+  // wo.a = 1 // 1
+  // await (wo.a = 1) // Promise
+  // log(wo.a) // Promise = [1]
+  // log(await wo.a) // 1
+  // log(wo)
+  const wo = db.waitobj("id2")
+  await wo.set("a", 1) // await (wo.a = 1)
+  log(wo.get("a")) //
+  log(await wo.get("a")) // await wo.a
+  await wo.set("b", { a: 1 })
+  await wo.b.get("")
 }
