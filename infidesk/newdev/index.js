@@ -1,13 +1,40 @@
 require.config({ paths: { vs: '../node_modules/monaco-editor/min/vs' } });
 require(['vs/editor/editor.main'], () => { })
 
+dom({
+  tag: "style", child: `
+html, body {
+  height: 100%;
+  margin: 0;
+}
+
+.container {
+  display: flex;
+  height: 100%;
+}
+
+.v-ctn {
+  flex-direction: column;
+}` }, document.head)
+
 window.addEventListener("load", () => {
+  $.topctn = dom({ class: "container" }, document.body)
+  $.sidectn = dom({ class: "container v-ctn", style: { flexBasis: "25%" } }, topctn)
+  $.mainctn = dom({ class: "container v-ctn", style: { width: "100%" } }, topctn)
+  $.textctn = dom({ class: "container" }, mainctn)
+  $.evalctn = dom({ style: { position: "absolute" } }, mainctn)
 
-  document.documentElement.style.height = "100%"
-  document.body.style.height = "100%"
-  document.body.style.margin = "0"
+  $.newrepobtn = dom({ tag: "button", child: "newrepo" }, sidectn)
+  $.newfilebtn = dom({ tag: "button", child: "newfile" }, sidectn)
+  $.newrefbtn = dom({ tag: "button", child: "newref" }, sidectn)
 
-  $.editor = monaco.editor.create(document.body, {
+  $.allitemctn = dom({ class: "container v-ctn" }, sidectn)
+  $.nodectn = dom({ class: "container v-ctn" }, sidectn)
+  $.reposlt = dom({ tag: "select" }, nodectn)
+  $.nodesvg = svg({}, nodectn)
+  $.description = dom({ tag: "textarea" }, nodectn)
+
+  $.editor = monaco.editor.create(textctn, {
     value: "",
     language: "javascript",
     theme: "vs-light",

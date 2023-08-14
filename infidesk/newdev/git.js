@@ -58,12 +58,17 @@ $.git = (db) => {
       let k = fstr(node), a = await db.getpath(k)
       return a.map(([p, o]) => (o.path = p, o))
     }
-    $.write = async (node, name, content, mode = "file") => {
-      const k = fstr(node, name) // 检查路径是否被占用
-      if (await db.get(k)) { throw `path "${node}:${name}" has been occupied` }
+    $.writecheck = node => {
+      if (!await db.get(`git/nodes/${node}`)) { throw `node:"${node}" not exist` }
+      const a = await db.getpath(`git/node_to/${prev}/${id}`)
+      if (a.length > 1) { throw `node:"${node}" is not a leaf node` }
+    }
+    $.write = async (node, name, content, mode = "file", force = false) => {
+      await writecheck(node); const k = fstr(node, name) // 检查路径是否被占用
+      if (!force && await db.get(k)) { throw `path "${node}:${name}" has been occupied` }
       await db.set(k, { mode, content })
     }
-    $.remove = (node, name) => db.del(fstr(node, name))
+    $.remove = async (node, name) => (await writecheck(), await db.del(fstr(node, name)))
     $.rename = (node, oldname, newname) => read(node, oldname).then(v =>
       Promise.all([write(node, newname, v), remove(node, oldname)]))
 
@@ -79,18 +84,19 @@ $.git = (db) => {
         n.from[prev] = nodes[prev].to[id] = 1
       } return id
     }
-    $.newrepo = async (repo) => {
-      if (await db.get(`git/repos/${repo}`))
-        throw `repo "${repo}" already exists`
-      let id = uuid()
+    $.newrepo = async (name) => {
+      if (await db.get(`git/repos/${name}`))
+        throw `repo "${name}" already exists`
+      let id = uuid(), repo = uuid()
       await Promise.all([
-        db.set(`git/repos/${repo}`, true),
+        db.set(`git/repo_name/${repo}`, name),
+        db.set(`git/name_repo/${name}`, repo),
         db.set(`git/nodes/${id}`, repo),
         db.set(`git/repo_node/${repo}/${id}`, true),
       ])
       return id
     }
-    $.newnode = async (prev) => {
+    $.newnode = async (prev, commiter) => {
       let repo = await db.get(`git/repos/${prev}`)
       if (!repo) throw `previous node "${prev}" not exist`
       let id = uuid(), a = await db.getpath(fstr(prev))
@@ -102,5 +108,11 @@ $.git = (db) => {
         ...a.map(([p, o]) => db.set(fstr(id, p), o))])
       return id
     }
+
+    $.write_nodedescription = async node => { }
+    $.read_nodedescription = async node => { }
+    $.getrepos = async () => { }
+    $.getnodes = async repo => { }
+    $.renamerepo = async (oldn, newn) => { }
   } return $
 }
