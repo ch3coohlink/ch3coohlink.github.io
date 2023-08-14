@@ -58,7 +58,7 @@ $.git = (db) => {
       let k = fstr(node), a = await db.getpath(k)
       return a.map(([p, o]) => (o.path = p, o))
     }
-    $.writecheck = node => {
+    $.writecheck = async node => {
       if (!await db.get(`git/nodes/${node}`)) { throw `node:"${node}" not exist` }
       const a = await db.getpath(`git/node_to/${prev}/${id}`)
       if (a.length > 1) { throw `node:"${node}" is not a leaf node` }
@@ -85,7 +85,7 @@ $.git = (db) => {
       } return id
     }
     $.newrepo = async (name) => {
-      if (await db.get(`git/repos/${name}`))
+      if (await db.get(`git/name_repo/${name}`))
         throw `repo "${name}" already exists`
       let id = uuid(), repo = uuid()
       await Promise.all([
