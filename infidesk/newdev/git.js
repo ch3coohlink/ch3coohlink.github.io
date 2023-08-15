@@ -111,8 +111,13 @@ $.git = (db) => {
 
     $.write_nodedescription = async node => { }
     $.read_nodedescription = async node => { }
-    $.getrepos = async () => { }
-    $.getnodes = async repo => { }
+    $.readrepos = () => db.getpath("git/name_repo/")
+    $.readnodes = async name => {
+      const repo = await db.get(`git/name_repo/${name}`)
+      if (!repo) { throw `repo "${name}" not exist` }
+      const a = await db.getpath(`git/repo_node/${repo}`)
+      return a.map(([v]) => v)
+    }
     $.renamerepo = async (oldn, newn) => { }
   } return $
 }

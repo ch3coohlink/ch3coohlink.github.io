@@ -41,8 +41,8 @@ $.idb = (name = "default", store = "default") => {
     const fcc = String.fromCharCode
     const inc = (s, l = s.length - 1) => s.substring(0, l) + fcc(s.charCodeAt(l) + 1)
     $.path = s => IDBKeyRange.bound(s, inc(s), 0, 1)
-    $.getpath = (s, l = s.length) => search(path(
-      s[l - 1] === "/" ? s + "/" : s)).then(v => (v[0] = v[0].slice(l), v))
+    $.getpath = s => search(path(s = s[s.length - 1] === "/" ? s : s + "/"))
+      .then(a => (a ?? []).map(v => (v[0] = v[0].slice(s.length), v)))
 
     const debounce = (f, t = 100, o = {}) => (k, v) => (
       clearTimeout(o[k]), o[k] = setTimeout(() => f(k, v), t))
