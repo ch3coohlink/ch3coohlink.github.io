@@ -45,7 +45,7 @@ $.git = (db) => {
 
 $.git = (db) => {
   let $ = { db, stack: [] }; with ($) {
-    let fstr = (n, f) => `git/files/${n}/` + f ?? ""
+    let fstr = (n, f) => `git/files/${n}/` + (f ?? "")
 
     $.read = async (node, path) => {
       let [a, b] = path.split("/"), f = await db.get(fstr(node, a))
@@ -60,7 +60,7 @@ $.git = (db) => {
     }
     $.writecheck = async node => {
       if (!await db.get(`git/nodes/${node}`)) { throw `node:"${node}" not exist` }
-      const a = await db.getpath(`git/node_to/${prev}/${id}`)
+      const a = await db.getpath(`git/node_to/${node}`)
       if (a.length > 1) { throw `node:"${node}" is not a leaf node` }
     }
     $.write = async (node, name, content, mode = "file", force = false) => {
@@ -109,12 +109,10 @@ $.git = (db) => {
       return id
     }
 
-    $.write_nodedescription = async node => { }
-    $.read_nodedescription = async node => { }
+    $.write_node_description = async node => { }
+    $.read_node_description = async node => { }
     $.readrepos = () => db.getpath("git/name_repo/")
-    $.readnodes = async name => {
-      const repo = await db.get(`git/name_repo/${name}`)
-      if (!repo) { throw `repo "${name}" not exist` }
+    $.readnodes = async repo => {
       const a = await db.getpath(`git/repo_node/${repo}`)
       return a.map(([v]) => v)
     }

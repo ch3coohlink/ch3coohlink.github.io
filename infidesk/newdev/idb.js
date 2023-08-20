@@ -51,9 +51,9 @@ $.idb = (name = "default", store = "default") => {
       const dset = debounce((k, v) => set(key + k, v))
       const pset = (o, k, v) => (dset(k, v), rset(o, k, v))
       const pdel = (o, k) => (del(key + k), rdel(o, k))
-      const remove = () => del(path(key)), key = `/saveobj/${id}/`, kl = key.length
-      const init = getpath(key).then(a => a.forEach(([k, v]) => o[k.slice(kl)] = v))
-      const o = eventtarget({ init, remove, id })
+      const remove = () => del(path(key)), key = `/saveobj/${id}/`
+      const init = getpath(key).then(a => a.forEach(([k, v]) => o[k] = v))
+      const o = eventnode({ init, remove, id })
       return new Proxy(Object.create(o), { set: pset, deleteProperty: pdel })
     }
   } return $

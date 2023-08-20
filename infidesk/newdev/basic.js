@@ -86,13 +86,13 @@ if (self.document) {
 $.uuid = (d = 32, r = 32) => [...crypto.getRandomValues(
   new Uint8Array(d))].map(v => (v % r).toString(r)).join("")
 
-$.eventtarget = $ => {
-  const eventdict = {}
-  $.trigger = (k, ...a) => (eventdict[k] ?? []).forEach(f => f(...a))
-  $.on = (k, f) => (eventdict[k] ??= new Set).add(f)
-  $.cancel = (k, f) => (eventdict[k]?.delete(f),
-    eventdict[k].size > 0 ? 0 : delete eventdict[k])
-  return $
+$.eventnode = ($ = {}) => {
+  $._handles = {}; with ($) {
+    $.emit = (t, ...a) => _handles[t]?.forEach(f => f(...a))
+    $.on = (t, f) => (_handles[t] ??= new Set).add(f)
+    $.off = (t, f) => (_handles[t]?.delete(f),
+      _handles[t].size > 0 ? 0 : delete _handles[t])
+  } return $
 }
 
 let { imul } = Math, mb32 = a => t =>

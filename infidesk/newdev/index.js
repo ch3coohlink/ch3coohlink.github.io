@@ -28,17 +28,30 @@ html, body {
 
 textarea {
   resize: none;
+}
+
+svg {
+  height: 100%;
+}
+
+circle {
+  r: 3px;
+}
+
+circle:hover {
+  fill: red;
 }` }, document.head)
 
 $.db = idb("infidesk/newdev")
 $.gt = git(db)
 
-window.addEventListener("load", () => {
+window.addEventListener("load", async () => {
   // 当前文件/代码库/版本
   $.save = db.saveobj("6s80s1u052ftdj009g2fd7brflbv1iq8")
+  await save.init
 
   $.topctn = dom({ class: "container" }, document.body)
-  $.sidectn = dom({ class: "container v-ctn", style: { flexBasis: "25%" } }, topctn)
+  $.sidectn = dom({ class: "container v-ctn", style: { flexBasis: "15%" } }, topctn)
   $.mainctn = dom({ class: "container v-ctn", style: { width: "100%" } }, topctn)
   $.textctn = dom({ class: "container" }, mainctn)
   $.evalctn = dom({ style: { position: "absolute" } }, mainctn)
@@ -84,19 +97,20 @@ window.addEventListener("load", () => {
   newrepobtn.addEventListener("click", single_input_message(async (ipt) => {
     if (!ipt.value) { throw `invalid repo name: "${ipt.value}"` }
     await gt.newrepo(ipt.value)
-    // TODO: update repo graph
+    await ndslt.update_repo()
   }))
   $.newfilebtn = dom({ tag: "button", child: "newfile" }, sidectn)
-  newfilebtn.addEventListener("click", single_input_message(async () => {
-    await gt.write(current.node, ipt.value, "")
-    // TODO: update file list
+  newfilebtn.addEventListener("click", single_input_message(async (ipt) => {
+    await gt.write(save.node, ipt.value, "")
+    await fllst.update_file(save.node)
   }))
   $.newrefbtn = dom({ tag: "button", child: "newref" }, sidectn)
   newrefbtn.addEventListener("click", async () => {
     openmessage()
     const ctn = dom({ class: "window" }, messagectn)
+    const ns = dom({ class: "container v-ctn" }, ctn)
+    create_node_selector(ns)
     const ipt = dom({ tag: "input" }, ctn)
-    // const svg = svg({}, ctn) // TODO: draw version
     const btn = dom({ tag: "button", child: "Enter" }, ctn)
     btn.addEventListener("click", async () => {
       try {
@@ -116,119 +130,113 @@ window.addEventListener("load", () => {
     } else { textctn.style.display = "none" }
   })
 
-  $.filectn = dom({ class: "container v-ctn" }, sidectn)
-  $.nodectn = dom({ class: "container v-ctn" }, sidectn)
+  $.filectn = dom({ class: "container v-ctn", style: { paddingTop: 10 } }, sidectn)
+  $.fllst = create_file_list(filectn)
+  fllst.update_file(save.node)
+  fllst.on("fileselect", ({ content, path }) => {
+    save.file = path
+    editor.setValue(content)
+  })
 
-  create_node_selector(nodectn)
+  $.nodectn = dom({ class: "container v-ctn" }, sidectn)
+  $.ndslt = create_node_selector(nodectn)
+  ndslt.on("nodeselect", id => {
+    save.node = id
+    fllst.update_file(id)
+  }) // TODO: fix this initialization
+  await ndslt.update_repo()
+  if (save.node) { ndslt.reposlt.value = save.node }
+  await ndslt.update_node(save.node ?? ndslt.reposlt.value)
 })
 
-$.create_node_selector = async (parent) => {
-  let reposlt = dom({ tag: "select" }, parent)
-  let nodesvg = svg({}, parent)
-  let description = dom({ tag: "textarea" }, parent)
+$.create_file_list = (parent) => {
+  let $ = eventnode({ parent }); with ($) {
+    $.update_file = async (id) => {
+      let filelist = await gt.dir(id)
+      filelist.forEach(v => {
+        // {mode: 'file', content: '', path: 'dfadfs'}
+        // {mode: 'file', content: '', path: 'dfasfd'}
+        const e = dom({ tag: "button", child: v.path }, parent)
+        e.onclick = () => emit("fileselect", { id, ...v })
+      })
+    }
+  } return $
+}
 
-  let update_repo = async () => {
-    const a = await gt.readrepos()
-    reposlt.innerHTML = ""
-    reposlt.append(...a.map(([n]) => dom({ tag: "option", child: n })))
-  }
-  let update_node = async (name) => {
-    if (!name) { return }
-    const a = await gt.readnodes(name)
-    if (a.length === 0) { throw `repo: "${name}" has no nodes` }
-    // find root node
-    log(a)
-    let c = a[0], n
-    while ([[n]] = await db.getpath(`git/node_from/${c}`)) { c = n }
-    // c is root
-    log(c)
-    nodesvg.innerHTML = ""
-    let dict = {}, current = new Set([c]), array = [], maxs = 0
-    while (current.size > 0) {
-      array.push(current)
-      maxs = Math.max(maxs, current.size)
-      let next = new Set
-      for (const id of current) {
-        const a = await db.getpath(`git/node_to/${id}/`)
-        dict[id] = a.map(([v]) => (next.add(v), v))
+$.create_node_selector = (parent) => {
+  let $ = eventnode({ parent }); with ($) {
+    $.reposlt = dom({ tag: "select" }, parent)
+    $.nodesvg = svg({}, parent)
+    $.description = dom({ tag: "textarea" }, parent)
+    description.style.height = "30%"
+
+    $.update_repo = async () => {
+      const a = await gt.readrepos()
+      $.repoinfo_name = {}, $.repoinfo_id = {}
+      a.forEach(([k, v]) => (repoinfo_name[k] = v, repoinfo_id[v] = k))
+      reposlt.innerHTML = ""
+      reposlt.append(...a.map(([n]) => dom({ tag: "option", child: n })))
+    }
+    $.update_node = async (name) => {
+      const id = repoinfo_name[name]
+      if (!id) { throw `repo "${name}" not exist` }
+      const a = await gt.readnodes(id)
+      if (a.length === 0) { throw `repo: "${name}" has no nodes` }
+
+      position = {}
+      nodesvg.innerHTML = ""
+
+      let root = a[0], n // find root node
+      while (([n] = await db.getpath(`git/node_from/${root}`), n)) { root = n[0] }
+
+      let dict = {}, current = new Set([root]), array = [], maxs = 0
+      while (current.size > 0) {
+        array.push(current)
+        maxs = Math.max(maxs, current.size)
+        let next = new Set
+        for (const id of current) {
+          const a = await db.getpath(`git/node_to/${id}/`)
+          dict[id] = a.map(([v]) => (next.add(v), v))
+        }
+        current = next
+      } position.width = maxs
+      position.height = array.length
+
+      for (let y = 0, l = array.length; y < l; y++) {
+        let x = 0; for (const id of array[y]) {
+          position[id] = { x: ++x, y: y + 1 }
+          const e = svg({ tag: "circle" }, nodesvg)
+          e.onclick = () => emit("nodeselect", id)
+          e.info = id
+          dict[id].map(v => {
+            const e = svg({ tag: "path" }, nodesvg)
+            e.info = { a: id, b: v }
+            return e
+          })
+        }
       }
-      current = next
-    }
-    log(array)
-  }
-  update_repo().then(() => update_node(reposlt.value))
-}
 
-$.nodeselector_css = new CSSStyleSheet()
-nodeselector_css.replace(`
-svg, select {
-  width: 100%;
-}
-circle {
-  r: 3px;
-}
-circle:hover{
-  fill: red;
-}
-path {
-  stroke-width: 1px;
-  stroke: black;
-}
-`)
-$.nodeselector = combine(fwith(() => {
-  $.se = svg({}, root)
-  $.calx = (w, x) => 100 / (w + 1) * (x + 1)
-  $.calxy = (w, h, x, y) => [calx(w, x), calx(h, y)]
-  $.update = repo => {
-    $.cirs = [], $.pats = [], se.innerHTML = ""
-    let prev = new Set([g.roots[repo]]), arr = [], ms = 0
-    while (prev.size > 0) {
-      arr.push(prev)
-      ms = Math.max(ms, prev.size)
-      let curr = new Set
-      prev.forEach(n => Object.keys(g.nodes[n].to)
-        .forEach(n => curr.add(n)))
-      prev = curr
+      update_position()
     }
-
-    let l = arr.length, hl = 40
-    se.style.height = (l + 1) * hl + "px"
-    for (let i = 0; i < l; i++) {
-      const e = [...arr[i]], s = e.length
-      const ne = [...arr[i + 1] ?? []]
-      for (let j = 0; j < s; j++) {
-        const k = e[j], [x, y] = calxy(ms, l, j, i)
-        let se = svg({ tag: "circle" })
-        se.onclick = () => log(k)
-        se.data = { x, y, node: k }
-        cirs.push(se)
-        Object.keys(g.nodes[k].to).forEach(t => {
-          let [bx, by] = calxy(ms, l, ne.indexOf(t), i + 1)
-          let se = svg({ tag: "path" })
-          se.data = { ax: x, ay: y, bx, by }
-          pats.push(se)
-        })
+    $.update_position = () => {
+      const w = nodesvg.clientWidth / (position.width + 1)
+      const h = nodesvg.clientHeight / (position.height + 1)
+      for (const e of nodesvg.children) {
+        if (e.tagName === "circle") {
+          const { x, y } = position[e.info]
+          svg(e, { cx: w * x, cy: h * y })
+        } else {
+          let { a, b } = e.info
+          a = position[a], b = position[b]
+          svg(e, { d: `M ${w * a.x} ${h * a.y} L ${w * b.x} ${h * b.y}` })
+        }
       }
     }
-    se.append(...pats, ...cirs)
-    update_svgpos()
-  }
-  $.cirs = [], $.pats = []
-  $.update_svgpos = () => {
-    const w = se.clientWidth * 0.01, h = se.clientHeight * 0.01
-    for (const p of pats) {
-      const { ax, ay, bx, by } = p.data
-      svg(p, { d: `M ${w * ax} ${h * ay} L ${w * bx} ${h * by}` })
-    }
-    for (const c of cirs) {
-      const { x, y } = c.data
-      svg(c, { cx: w * x, cy: h * y })
-    }
-  }
-  new ResizeObserver(update_svgpos).observe(relm)
-}), eventnode)
-
-
+    $.position = {}
+    new ResizeObserver(update_position).observe(nodesvg)
+    reposlt.addEventListener("change", () => update_node(reposlt.value))
+  } return $
+}
 $.create_editor = (parent) => {
   let editor = monaco.editor.create(parent, {
     value: "",
