@@ -56,6 +56,7 @@ window.addEventListener("load", async () => {
   $.textctn = dom({ class: "container" }, mainctn)
   $.evalctn = dom({ style: { position: "absolute" } }, mainctn)
   $.editor = create_editor(textctn)
+  editor.close()
 
   $.messagectn = dom({
     class: "container",
@@ -93,12 +94,26 @@ window.addEventListener("load", async () => {
     })
   }
 
-  $.newrepobtn = dom({ tag: "button", child: "newrepo" }, sidectn)
-  newrepobtn.addEventListener("click", single_input_message(async (ipt) => {
-    if (!ipt.value) { throw `invalid repo name: "${ipt.value}"` }
-    await gt.newrepo(ipt.value)
+  // 新建一个repo，当没有处于一个版本的时候，切换到这个新repo的根节点
+  $.new_repo = async (name) => {
+    if (!name) { throw `invalid repo name: "${name}"` }
+    await gt.newrepo(name)
     await ndslt.update_repo()
-  }))
+    await ndslt.update_node()
+    save.node ??= (await gt.readnodes(await gt.getrepoid(name)))[0]
+  }
+  $.change_node = (node) => {
+    save.node = node
+    fllst.update_file(node)
+    if (save[save.node + "/file"]) {
+      openfile({ path: save[save.node + "/file"] })
+    } else {
+      editor.close()
+    }
+  }
+  $.newrepobtn = dom({ tag: "button", child: "newrepo" }, sidectn)
+  newrepobtn.addEventListener("click",
+    single_input_message((ipt) => new_repo(ipt.value)))
   $.newfilebtn = dom({ tag: "button", child: "newfile" }, sidectn)
   newfilebtn.addEventListener("click", single_input_message(async (ipt) => {
     await gt.write(save.node, ipt.value, "")
@@ -109,7 +124,9 @@ window.addEventListener("load", async () => {
     openmessage()
     const ctn = dom({ class: "window" }, messagectn)
     const ns = dom({ class: "container v-ctn" }, ctn)
-    create_node_selector(ns)
+    const ndslt = create_node_selector(ns)
+    await ndslt.update_repo()
+    await ndslt.update_node()
     const ipt = dom({ tag: "input" }, ctn)
     const btn = dom({ tag: "button", child: "Enter" }, ctn)
     btn.addEventListener("click", async () => {
@@ -123,39 +140,38 @@ window.addEventListener("load", async () => {
     })
   })
 
-  $.tempbtn = dom({ tag: "button", child: "hide editor" }, sidectn)
-  tempbtn.addEventListener("click", () => {
-    if (textctn.style.display === "none") {
-      textctn.style.display = ""
-    } else { textctn.style.display = "none" }
-  })
-
+  $.openfile = async ({ path }) => {
+    // TODO：有没有正在编辑的文件？如果有那么弹出对话框询问用户是否保存
+    save[save.node + "/file"] = path
+    editor.open()
+    const v = await gt.read(save.node, save[save.node + "/file"])
+    editor.editor.setValue(v)
+  }
   $.filectn = dom({ class: "container v-ctn", style: { paddingTop: 10 } }, sidectn)
   $.fllst = create_file_list(filectn)
   fllst.update_file(save.node)
-  fllst.on("fileselect", ({ content, path }) => {
-    save.file = path
-    editor.setValue(content)
+  fllst.on("fileselect", openfile)
+  editor.on("filesave", content => {
+    gt.write(save.node, save.file, content, "file", true)
   })
 
   $.nodectn = dom({ class: "container v-ctn" }, sidectn)
   $.ndslt = create_node_selector(nodectn)
-  ndslt.on("nodeselect", id => {
-    save.node = id
-    fllst.update_file(id)
-  }) // TODO: fix this initialization
+  ndslt.on("nodeselect", change_node)
   await ndslt.update_repo()
-  if (save.node) { ndslt.reposlt.value = save.node }
-  await ndslt.update_node(save.node ?? ndslt.reposlt.value)
+  if (save.node) { await ndslt.change_repo_by_node(save.node) }
+  if (save.file) { await openfile({ path: save.file }) }
+
+  $.description = dom({ tag: "textarea" }, nodectn)
+  description.style.height = "30%"
 })
 
 $.create_file_list = (parent) => {
   let $ = eventnode({ parent }); with ($) {
     $.update_file = async (id) => {
+      parent.innerHTML = ""
       let filelist = await gt.dir(id)
       filelist.forEach(v => {
-        // {mode: 'file', content: '', path: 'dfadfs'}
-        // {mode: 'file', content: '', path: 'dfasfd'}
         const e = dom({ tag: "button", child: v.path }, parent)
         e.onclick = () => emit("fileselect", { id, ...v })
       })
@@ -167,9 +183,15 @@ $.create_node_selector = (parent) => {
   let $ = eventnode({ parent }); with ($) {
     $.reposlt = dom({ tag: "select" }, parent)
     $.nodesvg = svg({}, parent)
-    $.description = dom({ tag: "textarea" }, parent)
-    description.style.height = "30%"
 
+    $.change_repo_by_node = async (node) => {
+      try {
+        reposlt.value = await gt.getnoderepo(node)
+        await update_node()
+      } catch (e) {
+        throw `change repo by id failed using id "${node}" with error:\n` + e
+      }
+    }
     $.update_repo = async () => {
       const a = await gt.readrepos()
       $.repoinfo_name = {}, $.repoinfo_id = {}
@@ -177,11 +199,8 @@ $.create_node_selector = (parent) => {
       reposlt.innerHTML = ""
       reposlt.append(...a.map(([n]) => dom({ tag: "option", child: n })))
     }
-    $.update_node = async (name) => {
-      const id = repoinfo_name[name]
-      if (!id) { throw `repo "${name}" not exist` }
-      const a = await gt.readnodes(id)
-      if (a.length === 0) { throw `repo: "${name}" has no nodes` }
+    $.update_node = async (name = reposlt.value) => {
+      const a = await gt.readnodes(await gt.getrepoid(name))
 
       position = {}
       nodesvg.innerHTML = ""
@@ -238,32 +257,35 @@ $.create_node_selector = (parent) => {
   } return $
 }
 $.create_editor = (parent) => {
-  let editor = monaco.editor.create(parent, {
-    value: "",
-    language: "javascript",
-    theme: "vs-light",
-    renderWhitespace: "all",
-    renderControlCharacters: true,
-    tabSize: 2,
-    lineNumbers: "off",
-    lightbulb: { enabled: false },
-    glyphMargin: false,
-    overviewRulerBorder: false,
-    cursorBlinking: "smooth",
-    cursorSmoothCaretAnimation: "on",
-    smoothScrolling: true,
-    folding: false,
-    minimap: { enabled: false },
-  })
+  let $ = eventnode({ parent }); with ($) {
+    $.editor = monaco.editor.create(parent, {
+      value: "",
+      language: "javascript",
+      theme: "vs-light",
+      renderWhitespace: "all",
+      renderControlCharacters: true,
+      tabSize: 2,
+      lineNumbers: "off",
+      lightbulb: { enabled: false },
+      glyphMargin: false,
+      overviewRulerBorder: false,
+      cursorBlinking: "smooth",
+      cursorSmoothCaretAnimation: "on",
+      smoothScrolling: true,
+      folding: false,
+      minimap: { enabled: false },
+    })
 
-  new ResizeObserver(() => editor.layout()).observe(parent)
+    new ResizeObserver(() => editor.layout()).observe(parent)
 
-  editor.addAction({
-    id: "save-text-file",
-    label: "save file",
-    keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS],
-    run: ed => log(ed.getValue()),
-  })
+    editor.addAction({
+      id: "save-text-file",
+      label: "save file",
+      keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS],
+      run: ed => emit("filesave", ed.getValue()),
+    })
 
-  return editor
+    $.open = () => { parent.style.display = "" }
+    $.close = () => { parent.style.display = "none" }
+  } return $
 }

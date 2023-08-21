@@ -65,7 +65,7 @@ $.git = (db) => {
     }
     $.write = async (node, name, content, mode = "file", force = false) => {
       await writecheck(node); const k = fstr(node, name) // 检查路径是否被占用
-      if (!force && await db.get(k)) { throw `path "${node}:${name}" has been occupied` }
+      if (!force && await db.get(k)) { throw `path "${node}/${name}" has been occupied` }
       await db.set(k, { mode, content })
     }
     $.remove = async (node, name) => (await writecheck(), await db.del(fstr(node, name)))
@@ -109,11 +109,24 @@ $.git = (db) => {
       return id
     }
 
+    $.getnoderepo = async node => {
+      const repo = await db.get(`git/nodes/${node}`)
+      if (!repo) { throw `node ${node} is not exist` }
+      const name = await db.get(`git/repo_name/${repo}`)
+      if (!name) { throw `repo ${repo} is not exist` }
+      return name
+    }
+    $.getrepoid = async name => {
+      const id = await db.get(`git/name_repo/${name}`)
+      if (!id) { throw `repo "${name}" not exist` }
+      return id
+    }
     $.write_node_description = async node => { }
     $.read_node_description = async node => { }
     $.readrepos = () => db.getpath("git/name_repo/")
     $.readnodes = async repo => {
       const a = await db.getpath(`git/repo_node/${repo}`)
+      if (a.length === 0) { throw `repo: "${name}" has no nodes` }
       return a.map(([v]) => v)
     }
     $.renamerepo = async (oldn, newn) => { }
