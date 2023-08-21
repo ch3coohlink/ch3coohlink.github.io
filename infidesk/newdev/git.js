@@ -96,8 +96,8 @@ $.git = (db) => {
       ])
       return id
     }
-    $.newnode = async (prev, commiter) => {
-      let repo = await db.get(`git/repos/${prev}`)
+    $.newnode = async (prev) => {
+      let repo = await db.get(`git/nodes/${prev}`)
       if (!repo) throw `previous node "${prev}" not exist`
       let id = uuid(), a = await db.getpath(fstr(prev))
       await Promise.all([

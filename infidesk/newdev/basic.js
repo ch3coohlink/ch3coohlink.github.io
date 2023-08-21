@@ -1,5 +1,6 @@
 const $ = globalThis
 
+$._ = undefined
 $.log = (...a) => (console.log(...a), a[a.length - 1])
 $.assign = Object.assign
 const obj = Object.create

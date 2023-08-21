@@ -40,6 +40,11 @@ circle {
 
 circle:hover {
   fill: red;
+}
+
+path {
+  stroke-width: 1px;
+  stroke: black;
 }` }, document.head)
 
 $.db = idb("infidesk/newdev")
@@ -83,7 +88,7 @@ window.addEventListener("load", async () => {
     const ctn = dom({ class: "window" }, messagectn)
     const ipt = dom({ tag: "input" }, ctn)
     const btn = dom({ tag: "button", child: "Enter" }, ctn)
-    btn.addEventListener("click", async () => {
+    const apply = async () => {
       try {
         await f(ipt)
         closemessage()
@@ -91,7 +96,9 @@ window.addEventListener("load", async () => {
         openmessage()
         messagectn.append(dom({ child: e }))
       }
-    })
+    }
+    ipt.addEventListener("change", apply)
+    btn.addEventListener("click", apply)
   }
 
   // 新建一个repo，当没有处于一个版本的时候，切换到这个新repo的根节点
@@ -102,23 +109,48 @@ window.addEventListener("load", async () => {
     await ndslt.update_node()
     save.node ??= (await gt.readnodes(await gt.getrepoid(name)))[0]
   }
-  $.change_node = (node) => {
+  $.change_node = async (node) => {
+    await checkfilesave()
     save.node = node
-    fllst.update_file(node)
-    if (save[save.node + "/file"]) {
-      openfile({ path: save[save.node + "/file"] })
+    await fllst.update_file(node)
+    if (get_current_path()) {
+      await openfile({ path: get_current_path() })
     } else {
       editor.close()
     }
   }
+  $.new_file = async v => {
+    await gt.write(save.node, v, "")
+    await fllst.update_file(save.node)
+    fllst.highlight(get_current_path())
+  }
+  $.get_current_path = () => save[save.node + "/file"]
+  $.set_current_path = v => save[save.node + "/file"] = v
+
   $.newrepobtn = dom({ tag: "button", child: "newrepo" }, sidectn)
   newrepobtn.addEventListener("click",
-    single_input_message((ipt) => new_repo(ipt.value)))
+    single_input_message(ipt => new_repo(ipt.value)))
+  $.newnodebtn = dom({ tag: "button", child: "newnode" }, sidectn)
+  newnodebtn.addEventListener("click",
+    () => {
+      openmessage()
+      const ctn = dom({ class: "window" }, messagectn)
+      dom({ child: "This action will lock current version, and you will no longer being able to edit it, proceed?" }, ctn)
+      const btn = dom({ tag: "button", child: "Yes" }, ctn)
+      btn.onclick = async () => {
+        try {
+          const newnode = await gt.newnode(save.node)
+          await change_node(newnode)
+          await ndslt.update_repo()
+          await ndslt.change_repo_by_node(save.node)
+        } finally {
+          closemessage()
+        }
+      }
+    })
   $.newfilebtn = dom({ tag: "button", child: "newfile" }, sidectn)
-  newfilebtn.addEventListener("click", single_input_message(async (ipt) => {
-    await gt.write(save.node, ipt.value, "")
-    await fllst.update_file(save.node)
-  }))
+  newfilebtn.addEventListener("click",
+    single_input_message(ipt => new_file(ipt.value)))
   $.newrefbtn = dom({ tag: "button", child: "newref" }, sidectn)
   newrefbtn.addEventListener("click", async () => {
     openmessage()
@@ -140,41 +172,88 @@ window.addEventListener("load", async () => {
     })
   })
 
-  $.openfile = async ({ path }) => {
-    // TODO：有没有正在编辑的文件？如果有那么弹出对话框询问用户是否保存
-    save[save.node + "/file"] = path
-    editor.open()
-    const v = await gt.read(save.node, save[save.node + "/file"])
-    editor.editor.setValue(v)
+  $.checkfilesave = async () => {
+    // 有没有正在编辑的文件？如果有那么弹出对话框询问用户是否保存
+    if (current_file_changed) {
+      await new Promise(acc => {
+        openmessage()
+        const ctn = dom({ class: "window" }, messagectn)
+        dom({ child: "File has been changed, do you want to save it?" }, ctn)
+        const btnyes = dom({ tag: "button", child: "Yes" }, ctn)
+        const btnno = dom({ tag: "button", child: "No" }, ctn)
+        btnyes.onclick = async () => {
+          await savefile(editor.editor.getValue())
+          acc(), closemessage()
+        }
+        btnno.onclick = () => { closemessage() }
+      })
+    }
   }
+  $.current_file_changed = false
+  editor.on("change", () => current_file_changed = true)
+  $.savefile = v => gt.write(save.node,
+    get_current_path(), v, "file", true)
+    .then(() => $.current_file_changed = false)
+  $.openfile = async ({ path }) => {
+    editor.open()
+    try {
+      set_current_path(path)
+      const v = await gt.read(save.node, path)
+      editor.editor.setValue(v)
+      $.current_file_changed = false
+      fllst.highlight(path)
+    } catch (e) {
+      console.error(e)
+      editor.close()
+    }
+  }
+  // TODO: new ref
+  // TODO: delete rename file/ref
+  // TODO: change language mode based on file name
+  // TODO: node description
+
   $.filectn = dom({ class: "container v-ctn", style: { paddingTop: 10 } }, sidectn)
   $.fllst = create_file_list(filectn)
   fllst.update_file(save.node)
-  fllst.on("fileselect", openfile)
-  editor.on("filesave", content => {
-    gt.write(save.node, save.file, content, "file", true)
+  fllst.on("fileselect", async v => {
+    await checkfilesave()
+    await openfile(v)
   })
+  editor.on("filesave", savefile)
 
   $.nodectn = dom({ class: "container v-ctn" }, sidectn)
   $.ndslt = create_node_selector(nodectn)
   ndslt.on("nodeselect", change_node)
-  await ndslt.update_repo()
-  if (save.node) { await ndslt.change_repo_by_node(save.node) }
-  if (save.file) { await openfile({ path: save.file }) }
 
   $.description = dom({ tag: "textarea" }, nodectn)
   description.style.height = "30%"
+
+  // 初始化
+  await ndslt.update_repo()
+  if (save.node) {
+    await ndslt.change_repo_by_node(save.node)
+    ndslt.highlight(save.node)
+  }
+  if (get_current_path()) { await openfile({ path: get_current_path() }) }
 })
 
 $.create_file_list = (parent) => {
   let $ = eventnode({ parent }); with ($) {
     $.update_file = async (id) => {
       parent.innerHTML = ""
-      let filelist = await gt.dir(id)
+      $.filedict = {}
+      $.filelist = await gt.dir(id)
       filelist.forEach(v => {
         const e = dom({ tag: "button", child: v.path }, parent)
         e.onclick = () => emit("fileselect", { id, ...v })
+        filedict[v.path] = e
       })
+    }
+    $.highlight = (path) => {
+      for (const k in filedict) {
+        filedict[k].style.color = ""
+      }
+      if (filedict[path]) { filedict[path].style.color = "red" }
     }
   } return $
 }
@@ -199,41 +278,57 @@ $.create_node_selector = (parent) => {
       reposlt.innerHTML = ""
       reposlt.append(...a.map(([n]) => dom({ tag: "option", child: n })))
     }
+    $.highlight = (id) => {
+      if ($.current_node) {
+        const e = position[current_node]?.e
+        if (e) { e.style.fill = "" }
+      }
+      $.current_node = id
+      const e = position[id]?.e
+      if (e) { e.style.fill = "red" }
+    }
     $.update_node = async (name = reposlt.value) => {
       const a = await gt.readnodes(await gt.getrepoid(name))
 
-      position = {}
+      $.position = {}
       nodesvg.innerHTML = ""
 
       let root = a[0], n // find root node
       while (([n] = await db.getpath(`git/node_from/${root}`), n)) { root = n[0] }
 
-      let dict = {}, current = new Set([root]), array = [], maxs = 0
+      let nodeto = {}, current = new Set([root]), array = [], maxs = 0
       while (current.size > 0) {
         array.push(current)
         maxs = Math.max(maxs, current.size)
         let next = new Set
         for (const id of current) {
           const a = await db.getpath(`git/node_to/${id}/`)
-          dict[id] = a.map(([v]) => (next.add(v), v))
+          nodeto[id] = a.map(([v]) => (next.add(v), v))
         }
         current = next
       } position.width = maxs
       position.height = array.length
 
+      const paths = [], circles = []
       for (let y = 0, l = array.length; y < l; y++) {
         let x = 0; for (const id of array[y]) {
-          position[id] = { x: ++x, y: y + 1 }
-          const e = svg({ tag: "circle" }, nodesvg)
-          e.onclick = () => emit("nodeselect", id)
+          const e = svg({ tag: "circle" })
+          position[id] = { x: ++x, y: y + 1, e }
+          circles.push(e)
+          e.onclick = () => {
+            emit("nodeselect", id)
+            highlight(id)
+          }
           e.info = id
-          dict[id].map(v => {
-            const e = svg({ tag: "path" }, nodesvg)
+          nodeto[id].map(v => {
+            const e = svg({ tag: "path" })
+            paths.push(e)
             e.info = { a: id, b: v }
             return e
           })
         }
       }
+      nodesvg.append(...paths, ...circles)
 
       update_position()
     }
@@ -253,14 +348,25 @@ $.create_node_selector = (parent) => {
     }
     $.position = {}
     new ResizeObserver(update_position).observe(nodesvg)
-    reposlt.addEventListener("change", () => update_node(reposlt.value))
+    reposlt.addEventListener("change", async () => {
+      const v = reposlt.value
+      await update_node(v)
+      highlight(current_node)
+    })
   } return $
 }
 $.create_editor = (parent) => {
   let $ = eventnode({ parent }); with ($) {
-    $.editor = monaco.editor.create(parent, {
+    const root = parent.attachShadow({ mode: "open" })
+    $.css = document.createElement("style")
+    css.innerText =
+      `@import "../node_modules/monaco-editor/min/vs/editor/editor.main.css";`
+    root.append($.div = dom({ class: "monaco-editor-div" }), css)
+    style(div, { width: "100%", height: "100%" })
+
+    $.editor = monaco.editor.create(div, {
       value: "",
-      language: "javascript",
+      language: "plaintext",
       theme: "vs-light",
       renderWhitespace: "all",
       renderControlCharacters: true,
@@ -276,7 +382,10 @@ $.create_editor = (parent) => {
       minimap: { enabled: false },
     })
 
-    new ResizeObserver(() => editor.layout()).observe(parent)
+    $.change_language = l =>
+      monaco.editor.setModelLanguage(editor.getModel(), l)
+
+    new ResizeObserver(() => editor.layout()).observe(div)
 
     editor.addAction({
       id: "save-text-file",
@@ -285,6 +394,7 @@ $.create_editor = (parent) => {
       run: ed => emit("filesave", ed.getValue()),
     })
 
+    editor.onDidChangeModelContent(() => emit("change"))
     $.open = () => { parent.style.display = "" }
     $.close = () => { parent.style.display = "none" }
   } return $
