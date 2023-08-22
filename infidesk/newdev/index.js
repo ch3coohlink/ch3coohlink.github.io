@@ -1,5 +1,10 @@
-require.config({ paths: { vs: '../node_modules/monaco-editor/min/vs' } });
-require(['vs/editor/editor.main'], () => { })
+require.config({
+  paths: {
+    vs: "../node_modules/monaco-editor/min/vs",
+    "vs/css": { disabled: true }
+  }
+});
+require(["vs/editor/editor.main"], () => { })
 
 dom({
   tag: "style", child: `
@@ -23,7 +28,7 @@ html, body {
   background: white;
   border-radius: 5px;
   overflow: hidden;
-  paddding: 5px;
+  padding: 5px;
 }
 
 textarea {
@@ -35,7 +40,7 @@ svg {
 }
 
 circle {
-  r: 3px;
+  r: 5px;
 }
 
 circle:hover {
@@ -131,23 +136,22 @@ window.addEventListener("load", async () => {
   newrepobtn.addEventListener("click",
     single_input_message(ipt => new_repo(ipt.value)))
   $.newnodebtn = dom({ tag: "button", child: "newnode" }, sidectn)
-  newnodebtn.addEventListener("click",
-    () => {
-      openmessage()
-      const ctn = dom({ class: "window" }, messagectn)
-      dom({ child: "This action will lock current version, and you will no longer being able to edit it, proceed?" }, ctn)
-      const btn = dom({ tag: "button", child: "Yes" }, ctn)
-      btn.onclick = async () => {
-        try {
-          const newnode = await gt.newnode(save.node)
-          await change_node(newnode)
-          await ndslt.update_repo()
-          await ndslt.change_repo_by_node(save.node)
-        } finally {
-          closemessage()
-        }
+  newnodebtn.addEventListener("click", () => {
+    openmessage()
+    const ctn = dom({ class: "window" }, messagectn)
+    dom({ child: "This action will lock current version, and you will no longer being able to edit it, proceed?" }, ctn)
+    const btn = dom({ tag: "button", child: "Yes" }, ctn)
+    btn.onclick = async () => {
+      try {
+        const newnode = await gt.newnode(save.node)
+        await change_node(newnode)
+        await ndslt.update_repo()
+        await ndslt.change_repo_by_node(save.node)
+      } finally {
+        closemessage()
       }
-    })
+    }
+  })
   $.newfilebtn = dom({ tag: "button", child: "newfile" }, sidectn)
   newfilebtn.addEventListener("click",
     single_input_message(ipt => new_file(ipt.value)))
@@ -212,7 +216,10 @@ window.addEventListener("load", async () => {
   // TODO: change language mode based on file name
   // TODO: node description
 
-  $.filectn = dom({ class: "container v-ctn", style: { paddingTop: 10 } }, sidectn)
+  $.filectn = dom({
+    class: "container v-ctn",
+    style: { paddingTop: 10 }
+  }, sidectn)
   $.fllst = create_file_list(filectn)
   fllst.update_file(save.node)
   fllst.on("fileselect", async v => {
@@ -250,9 +257,7 @@ $.create_file_list = (parent) => {
       })
     }
     $.highlight = (path) => {
-      for (const k in filedict) {
-        filedict[k].style.color = ""
-      }
+      for (const k in filedict) { filedict[k].style.color = "" }
       if (filedict[path]) { filedict[path].style.color = "red" }
     }
   } return $
@@ -313,6 +318,10 @@ $.create_node_selector = (parent) => {
       for (let y = 0, l = array.length; y < l; y++) {
         let x = 0; for (const id of array[y]) {
           const e = svg({ tag: "circle" })
+          e.addEventListener("pointerenter", () => e.innerHTML =
+            `<title>id: ${id}</title>`)
+          e.addEventListener("pointerleave", () => e.innerHTML = "")
+
           position[id] = { x: ++x, y: y + 1, e }
           circles.push(e)
           e.onclick = () => {
@@ -351,7 +360,7 @@ $.create_node_selector = (parent) => {
     reposlt.addEventListener("change", async () => {
       const v = reposlt.value
       await update_node(v)
-      highlight(current_node)
+      highlight($.current_node)
     })
   } return $
 }
