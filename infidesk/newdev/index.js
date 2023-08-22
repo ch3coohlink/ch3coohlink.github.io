@@ -83,6 +83,10 @@ textarea {
   resize: none;
 }
 
+pre {
+  font-family: Consolas, "Courier New", monospace;
+}
+
 svg {
   height: 100%;
 }
@@ -152,9 +156,9 @@ window.addEventListener("load", async () => {
       set_current_path(path)
       const v = await gt.read(save.node, path)
       const ext = path.match(/\.([^\.]+)$/)?.[1] ?? ""
-      editor.editor.setValue("")
+      editor.value = ""
       editor.change_language(language_setting[ext] ?? "plaintext")
-      editor.editor.setValue(v)
+      editor.value = v
       $.current_file_changed = false
       fllst.highlight(path)
     } catch (e) {
@@ -232,7 +236,7 @@ window.addEventListener("load", async () => {
         const btnyes = dom({ tag: "button", child: "Yes" }, ctn)
         const btnno = dom({ tag: "button", child: "No" }, ctn)
         btnyes.onclick = commit_dialog(async () => (
-          await save_file(editor.editor.getValue()), acc()))
+          await save_file(editor.value), acc()))
         btnno.onclick = commit_dialog(() => acc())
       })
     }
@@ -240,7 +244,7 @@ window.addEventListener("load", async () => {
   $.eval_code = (code) => {
     if ($.evalroot) { evalroot.remove() }
     $.evalroot = dom({ style: { width: "100%", height: "100%" } }, evalshadow)
-    new Function("root", code.content)(evalroot)
+    const f = new Function("root", code); f(evalroot)
   }
 
   $.topctn = dom({ class: "container", style: { userSelect: "none" } }, document.body)
@@ -288,10 +292,11 @@ window.addEventListener("load", async () => {
 
   $.current_file_changed = false
   editor.on("change", () => current_file_changed = true)
-  $.save_file = commit_dialog(async v => {
-    await gt.write(save.node, get_current_path(), v, "file", true)
+  $.save_file = async content => {
+    log(content)
+    await gt.write(save.node, get_current_path(), content, "file", true)
     $.current_file_changed = false
-  })
+  }
   $.language_setting = { js: "javascript" }
 
   $.filectn = dom({ class: "container v-ctn" }, sidectn)
@@ -304,7 +309,7 @@ window.addEventListener("load", async () => {
   })
   const _rrdf = rename_ref_dialog(false)
   fllst.on("refselect", _rrdf)
-  editor.on("filesave", save_file)
+  editor.on("filesave", commit_dialog(save_file))
   $.rename_file_dialog = v => {
     openmessage()
     const ctn = dom({ class: "window" }, messagectn)
@@ -331,7 +336,7 @@ window.addEventListener("load", async () => {
     }
   })
   fllst.on("execute", commit_dialog(async v => {
-    if ($.current_file_changed && v.path === get_current_path()) { await save_file(v) }
+    if (current_file_changed && v.path === get_current_path()) { await save_file(editor.value) }
     eval_code(await gt.read(save.node, v.path))
   }))
 
@@ -518,7 +523,11 @@ $.create_editor = (parent) => {
       id: "save-text-file",
       label: "save file",
       keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS],
-      run: ed => emit("filesave", ed.getValue()),
+      run: ed => emit("filesave", value),
+    })
+
+    Object.defineProperty($, "value", {
+      get: () => editor.getValue(), set: v => editor.setValue(v)
     })
 
     editor.onDidChangeModelContent(() => emit("change"))
