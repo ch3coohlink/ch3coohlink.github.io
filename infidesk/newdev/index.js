@@ -55,6 +55,12 @@ path {
 $.db = idb("infidesk/newdev")
 $.gt = git(db)
 
+// TODO: new ref
+// TODO: context menu
+// TODO: delete rename file/ref/repo
+// TODO: delete node(?) / move node(?)
+// TODO: node description
+
 window.addEventListener("load", async () => {
   // 当前文件/代码库/版本
   $.save = db.saveobj("6s80s1u052ftdj009g2fd7brflbv1iq8")
@@ -165,15 +171,23 @@ window.addEventListener("load", async () => {
     await ndslt.update_node()
     const ipt = dom({ tag: "input" }, ctn)
     const btn = dom({ tag: "button", child: "Enter" }, ctn)
-    btn.addEventListener("click", async () => {
+    const f = async () => {
       try {
-        await f(ipt)
+        const n = ipt.value
+        const i = ndslt.current_node
+        if (n !== "" && i) { await gt.write(save.node, n, i, "ref") }
+        else { throw `new ref failed because of invalid argument` }
+        await fllst.update_file(save.node)
+        fllst.highlight(get_current_path())
         closemessage()
       } catch (e) {
+        console.error(e)
         openmessage()
         messagectn.append(dom({ child: e }))
       }
-    })
+    }
+    ipt.addEventListener("change", f)
+    btn.addEventListener("click", f)
   })
 
   $.checkfilesave = async () => {
@@ -198,11 +212,15 @@ window.addEventListener("load", async () => {
   $.savefile = v => gt.write(save.node,
     get_current_path(), v, "file", true)
     .then(() => $.current_file_changed = false)
+  $.language_setting = { js: "javascript" }
   $.openfile = async ({ path }) => {
     editor.open()
     try {
       set_current_path(path)
       const v = await gt.read(save.node, path)
+      const ext = path.match(/\.([^\.]+)$/)?.[1] ?? ""
+      editor.editor.setValue("")
+      editor.change_language(language_setting[ext] ?? "plaintext")
       editor.editor.setValue(v)
       $.current_file_changed = false
       fllst.highlight(path)
@@ -211,10 +229,6 @@ window.addEventListener("load", async () => {
       editor.close()
     }
   }
-  // TODO: new ref
-  // TODO: delete rename file/ref
-  // TODO: change language mode based on file name
-  // TODO: node description
 
   $.filectn = dom({
     class: "container v-ctn",
