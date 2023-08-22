@@ -31,6 +31,15 @@ html, body {
   padding: 5px;
 }
 
+button {
+  border: 0px;
+  margin-bottom: 1px;
+}
+
+button.repo-reference {
+  background: #f7e8f7;
+}
+
 textarea {
   resize: none;
 }
@@ -55,7 +64,6 @@ path {
 $.db = idb("infidesk/newdev")
 $.gt = git(db)
 
-// TODO: new ref
 // TODO: context menu
 // TODO: delete rename file/ref/repo
 // TODO: delete node(?) / move node(?)
@@ -145,7 +153,9 @@ window.addEventListener("load", async () => {
   newnodebtn.addEventListener("click", () => {
     openmessage()
     const ctn = dom({ class: "window" }, messagectn)
-    dom({ child: "This action will lock current version, and you will no longer being able to edit it, proceed?" }, ctn)
+    const warning = "This action will lock current version," +
+      " and you will no longer being able to edit it, proceed?"
+    dom({ child: warning }, ctn)
     const btn = dom({ tag: "button", child: "Yes" }, ctn)
     btn.onclick = async () => {
       try {
@@ -158,37 +168,48 @@ window.addEventListener("load", async () => {
       }
     }
   })
+
+  $.rename_ref_dialog = (new_ref = true) =>
+    async ({ content, path } = {}) => {
+      openmessage()
+      const ctn = dom({ class: "window" }, messagectn)
+      const ns = dom({ class: "container v-ctn" }, ctn)
+      const ndslt = create_node_selector(ns)
+      await ndslt.update_repo()
+      await ndslt.update_node()
+      const ipt = dom({ tag: "input" }, ctn)
+      const btn = dom({ tag: "button", child: "Enter" }, ctn)
+      if (content && path) {
+        ipt.value = path
+        await ndslt.change_repo_by_node(content)
+      }
+      const f = async () => {
+        try {
+          const n = ipt.value
+          const i = ndslt.current_node
+          if (n && i) {
+            if (new_ref) { await gt.write(save.node, n, i, "ref") }
+            else { await gt.rename(save.node, path, n) }
+          }
+          else { throw `new ref failed because of invalid argument` }
+          await fllst.update_file(save.node)
+          fllst.highlight(get_current_path())
+          closemessage()
+        } catch (e) {
+          openmessage()
+          messagectn.append(dom({ child: e }))
+          throw e
+        }
+      }
+      ipt.addEventListener("change", f)
+      btn.addEventListener("click", f)
+    }
+
   $.newfilebtn = dom({ tag: "button", child: "newfile" }, sidectn)
   newfilebtn.addEventListener("click",
     single_input_message(ipt => new_file(ipt.value)))
   $.newrefbtn = dom({ tag: "button", child: "newref" }, sidectn)
-  newrefbtn.addEventListener("click", async () => {
-    openmessage()
-    const ctn = dom({ class: "window" }, messagectn)
-    const ns = dom({ class: "container v-ctn" }, ctn)
-    const ndslt = create_node_selector(ns)
-    await ndslt.update_repo()
-    await ndslt.update_node()
-    const ipt = dom({ tag: "input" }, ctn)
-    const btn = dom({ tag: "button", child: "Enter" }, ctn)
-    const f = async () => {
-      try {
-        const n = ipt.value
-        const i = ndslt.current_node
-        if (n !== "" && i) { await gt.write(save.node, n, i, "ref") }
-        else { throw `new ref failed because of invalid argument` }
-        await fllst.update_file(save.node)
-        fllst.highlight(get_current_path())
-        closemessage()
-      } catch (e) {
-        console.error(e)
-        openmessage()
-        messagectn.append(dom({ child: e }))
-      }
-    }
-    ipt.addEventListener("change", f)
-    btn.addEventListener("click", f)
-  })
+  newrefbtn.addEventListener("click", rename_ref_dialog())
 
   $.checkfilesave = async () => {
     // 有没有正在编辑的文件？如果有那么弹出对话框询问用户是否保存
@@ -230,16 +251,15 @@ window.addEventListener("load", async () => {
     }
   }
 
-  $.filectn = dom({
-    class: "container v-ctn",
-    style: { paddingTop: 10 }
-  }, sidectn)
+  $.filectn = dom({ class: "container v-ctn" }, sidectn)
+  filectn.style.paddingTop = "10px"
   $.fllst = create_file_list(filectn)
   fllst.update_file(save.node)
   fllst.on("fileselect", async v => {
     await checkfilesave()
     await openfile(v)
   })
+  fllst.on("refselect", rename_ref_dialog(false))
   editor.on("filesave", savefile)
 
   $.nodectn = dom({ class: "container v-ctn" }, sidectn)
@@ -251,10 +271,7 @@ window.addEventListener("load", async () => {
 
   // 初始化
   await ndslt.update_repo()
-  if (save.node) {
-    await ndslt.change_repo_by_node(save.node)
-    ndslt.highlight(save.node)
-  }
+  if (save.node) { await ndslt.change_repo_by_node(save.node) }
   if (get_current_path()) { await openfile({ path: get_current_path() }) }
 })
 
@@ -266,7 +283,9 @@ $.create_file_list = (parent) => {
       $.filelist = await gt.dir(id)
       filelist.forEach(v => {
         const e = dom({ tag: "button", child: v.path }, parent)
-        e.onclick = () => emit("fileselect", { id, ...v })
+        const rf = v.mode === "ref"
+        if (rf) { e.className = "repo-reference" }
+        e.onclick = () => emit(rf ? "refselect" : "fileselect", (v.id = id, v))
         filedict[v.path] = e
       })
     }
@@ -276,7 +295,6 @@ $.create_file_list = (parent) => {
     }
   } return $
 }
-
 $.create_node_selector = (parent) => {
   let $ = eventnode({ parent }); with ($) {
     $.reposlt = dom({ tag: "select" }, parent)
@@ -284,6 +302,7 @@ $.create_node_selector = (parent) => {
 
     $.change_repo_by_node = async (node) => {
       try {
+        $.current_node = node
         reposlt.value = await gt.getnoderepo(node)
         await update_node()
       } catch (e) {
@@ -297,8 +316,9 @@ $.create_node_selector = (parent) => {
       reposlt.innerHTML = ""
       reposlt.append(...a.map(([n]) => dom({ tag: "option", child: n })))
     }
+    $.current_node = null
     $.highlight = (id) => {
-      if ($.current_node) {
+      if (current_node) {
         const e = position[current_node]?.e
         if (e) { e.style.fill = "" }
       }
@@ -354,6 +374,7 @@ $.create_node_selector = (parent) => {
       nodesvg.append(...paths, ...circles)
 
       update_position()
+      highlight(current_node)
     }
     $.update_position = () => {
       const w = nodesvg.clientWidth / (position.width + 1)
@@ -374,7 +395,6 @@ $.create_node_selector = (parent) => {
     reposlt.addEventListener("change", async () => {
       const v = reposlt.value
       await update_node(v)
-      highlight($.current_node)
     })
   } return $
 }

@@ -47,12 +47,13 @@ $.git = (db) => {
   let $ = { db, stack: [] }; with ($) {
     let fstr = (n, f) => `git/files/${n}/` + (f ?? "")
 
-    $.read = async (node, path) => {
+    $.read = (...a) => _read(...a).then(v => v.content)
+    $._read = async (node, path) => {
       let [a, b] = path.split("/"), f = await db.get(fstr(node, a))
       if (!f) { throw `path "${node}:${a}" not exist` }
-      if (f.mode === "file") { $.stack.push(a); return f.content }
-      if (f.mode === "ref" && b) { return read(f.content, b) }
-      else { throw `try to read a ref "${a}"` }
+      if (f.mode === "file") { $.stack.push(a); return f }
+      if (f.mode === "ref" && b) { return _read(f.content, b) }
+      else { return f }
     }
     $.dir = async (node) => {
       let k = fstr(node), a = await db.getpath(k)
@@ -68,9 +69,11 @@ $.git = (db) => {
       if (!force && await db.get(k)) { throw `path "${node}/${name}" has been occupied` }
       await db.set(k, { mode, content })
     }
-    $.remove = async (node, name) => (await writecheck(), await db.del(fstr(node, name)))
-    $.rename = (node, oldname, newname) => read(node, oldname).then(v =>
-      Promise.all([write(node, newname, v), remove(node, oldname)]))
+    $.remove = async (node, name) => (
+      await writecheck(node), await db.del(fstr(node, name)))
+    $.rename = (node, oldname, newname) => _read(node, oldname).then(
+      ({ content: v, mode: m }) => Promise.all([
+        write(node, newname, v, m), remove(node, oldname)]))
 
     $.newgraph = name => (graphs[name] = {}, roots[name] = newnode(name))
     $.newnode = prev => {
