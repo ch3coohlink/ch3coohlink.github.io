@@ -50,17 +50,33 @@ html, body {
 }
 
 .context-menu > button {
-  height: 3em;
+  height: 2em;
   background: #f7f5e8;
+  text-align: right;
 }
 
 button {
+  text-align: left;
   border: 0px;
-  margin-bottom: 1px;
+  padding: 4px;
+  border-bottom: 1px solid black;
+}
+
+button:focus {
+  outline: none;
+  filter: brightness(0.8);
+}
+
+button:hover {
+  filter: brightness(0.8);
 }
 
 button.repo-reference {
   background: #f7e8f7;
+}
+
+.error {
+  color: red;
 }
 
 textarea {
@@ -103,16 +119,8 @@ window.addEventListener("load", async () => {
     const ctn = dom({ class: "window" }, messagectn)
     const ipt = dom({ tag: "input" }, ctn)
     const btn = dom({ tag: "button", child: "Enter" }, ctn)
-    const apply = async () => {
-      try {
-        await f(ipt)
-        closemessage()
-      } catch (e) {
-        openmessage()
-        messagectn.append(dom({ child: e }))
-      }
-    }
-    ipt.addEventListener("change", apply)
+    const apply = commit_dialog(f)
+    ipt.addEventListener("keydown", e => e.key === "Enter" ? apply() : 0)
     btn.addEventListener("click", apply)
   }
   // 新建一个repo，当没有处于一个版本的时候，切换到这个新repo的根节点
@@ -124,7 +132,7 @@ window.addEventListener("load", async () => {
     save.node ??= (await gt.readnodes(await gt.getrepoid(name)))[0]
   }
   $.change_node = async (node) => {
-    await checkfilesave()
+    await check_file_save_dialog()
     save.node = node
     await fllst.update_file(node)
     if (get_current_path()) {
@@ -174,11 +182,18 @@ window.addEventListener("load", async () => {
       }
     }
   }
+  $.commit_dialog = f => async (...a) => {
+    try { await f(...a); closemessage() } catch (e) {
+      openmessage(); console.error(e)
+      messagectn.append(dom({ class: "error", child: e }))
+    }
+  }
   $.rename_ref_dialog = (new_ref = true) => async (v = {}) => {
     openmessage()
     const ctn = dom({ class: "window" }, messagectn)
     const ns = dom({ class: "container v-ctn" }, ctn)
     const ndslt = create_node_selector(ns)
+    ndslt.nodesvg.style.height = "500px"
     await ndslt.update_repo()
     await ndslt.update_node()
     const ipt = dom({ tag: "input" }, ctn)
@@ -187,29 +202,25 @@ window.addEventListener("load", async () => {
       ipt.value = v.path
       await ndslt.change_repo_by_node(v.content)
     }
-    const f = async () => {
-      try {
-        const n = ipt.value
-        const i = ndslt.current_node
-        if (n && i) {
-          if (new_ref) { await gt.write(save.node, n, i, "ref") }
-          else { await gt.rename(save.node, path, n) }
+    const apply = commit_dialog(async () => {
+      const n = ipt.value
+      const i = ndslt.current_node
+      if (n && i) {
+        if (new_ref) { await gt.write(save.node, n, i, "ref") }
+        else if (v.path) {
+          await gt.remove(save.node, v.path)
+          await gt.write(save.node, n, i, "ref")
         }
-        else { throw `new ref failed because of invalid argument` }
-        await fllst.update_file(save.node)
-        fllst.highlight(get_current_path())
-        closemessage()
-      } catch (e) {
-        openmessage()
-        messagectn.append(dom({ child: e }))
-        throw e
       }
-    }
-    ipt.addEventListener("change", f)
-    btn.addEventListener("click", f)
+      else { throw `new ref failed because of invalid argument` }
+      await fllst.update_file(save.node)
+      fllst.highlight(get_current_path())
+    })
+    ipt.addEventListener("keydown", e => e.key === "Enter" ? apply() : 0)
+    btn.addEventListener("click", apply)
   }
-  $.checkfilesave = async () => {
-    // 有没有正在编辑的文件？如果有那么弹出对话框询问用户是否保存
+  // 有没有正在编辑的文件？如果有那么弹出对话框询问用户是否保存
+  $.check_file_save_dialog = async () => {
     if (current_file_changed) {
       await new Promise(acc => {
         openmessage()
@@ -217,26 +228,25 @@ window.addEventListener("load", async () => {
         dom({ child: "File has been changed, do you want to save it?" }, ctn)
         const btnyes = dom({ tag: "button", child: "Yes" }, ctn)
         const btnno = dom({ tag: "button", child: "No" }, ctn)
-        btnyes.onclick = async () => {
-          await savefile(editor.editor.getValue())
-          acc(), closemessage()
-        }
-        btnno.onclick = () => { closemessage() }
+        btnyes.onclick = commit_dialog(async () => {
+          await save_file(editor.editor.getValue()); acc()
+        })
+        btnno.onclick = commit_dialog(() => { acc() })
       })
     }
   }
 
   $.topctn = dom({ class: "container", style: { userSelect: "none" } }, document.body)
-  $.sidectn = dom({ class: "container v-ctn", style: { flexBasis: "15%" } }, topctn)
-  $.mainctn = dom({ class: "container v-ctn", style: { width: "100%" } }, topctn)
+  $.sidectn = dom({ class: "container v-ctn", style: { width: "150px" } }, topctn)
+  $.mainctn = dom({ class: "container v-ctn", style: { width: "700px" } }, topctn)
+  $.evalctn = dom({ style: { width: "calc(100% - 850px)", height: "100%" } }, topctn)
   $.textctn = dom({ class: "container" }, mainctn)
-  $.evalctn = dom({ style: { position: "absolute" } }, mainctn)
   $.editor = create_editor(textctn)
   editor.close()
 
   $.opencontextmenu = (x, y) => {
-    contextmenuctn.style.left = x - 10 + "px"
-    contextmenuctn.style.top = y - 10 + "px"
+    contextmenuctn.style.left = x - 1 + "px"
+    contextmenuctn.style.top = y - 1 + "px"
     contextmenuctn.style.display = ""
     contextmenuctn.innerHTML = ""
   }
@@ -270,9 +280,10 @@ window.addEventListener("load", async () => {
 
   $.current_file_changed = false
   editor.on("change", () => current_file_changed = true)
-  $.savefile = v => gt.write(save.node,
-    get_current_path(), v, "file", true)
-    .then(() => $.current_file_changed = false)
+  $.save_file = commit_dialog(async v => {
+    await gt.write(save.node, get_current_path(), v, "file", true)
+    $.current_file_changed = false
+  })
   $.language_setting = { js: "javascript" }
 
   $.filectn = dom({ class: "container v-ctn" }, sidectn)
@@ -280,30 +291,24 @@ window.addEventListener("load", async () => {
   $.fllst = create_file_list(filectn)
   fllst.update_file(save.node)
   fllst.on("fileselect", async v => {
-    await checkfilesave()
+    await check_file_save_dialog()
     await openfile(v)
   })
   const _rrdf = rename_ref_dialog(false)
   fllst.on("refselect", _rrdf)
-  editor.on("filesave", savefile)
+  editor.on("filesave", save_file)
   $.rename_file_dialog = v => {
     openmessage()
     const ctn = dom({ class: "window" }, messagectn)
     const ipt = dom({ tag: "input", value: v.path }, ctn)
     const btn = dom({ tag: "button", child: "Enter" }, ctn)
-    const apply = async () => {
-      try {
-        const oldname = v.path, newname = ipt.value
-        await gt.rename(save.node, oldname, newname)
-        await fllst.update_file(save.node)
-        await openfile({ path: newname })
-        closemessage()
-      } catch (e) {
-        openmessage()
-        messagectn.append(dom({ child: e }))
-      }
-    }
-    ipt.addEventListener("change", apply)
+    const apply = commit_dialog(async () => {
+      const oldname = v.path, newname = ipt.value
+      await gt.rename(save.node, oldname, newname)
+      await fllst.update_file(save.node)
+      await openfile({ path: newname })
+    })
+    ipt.addEventListener("keydown", e => e.key === "Enter" ? apply() : 0)
     btn.addEventListener("click", apply)
   }
   fllst.on("filerename", v => {
@@ -344,6 +349,10 @@ $.create_file_list = (parent) => {
         e.onclick = () => emit(rf ? "refselect" : "fileselect", v)
         e.oncontextmenu = e => {
           opencontextmenu(e.pageX, e.pageY)
+          if (v.mode === "file") {
+            const eb = dom({ tag: "button", child: "execute" }, contextmenuctn)
+            eb.onclick = () => (closecontextmenu(), emit("execute", v))
+          }
           const rb = dom({ tag: "button", child: "rename" }, contextmenuctn)
           const db = dom({ tag: "button", child: "delete" }, contextmenuctn)
           rb.onclick = () => (closecontextmenu(), emit("filerename", v))

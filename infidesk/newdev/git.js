@@ -2,6 +2,7 @@ $.git = (db) => {
   let $ = { db, stack: [] }; with ($) {
     let fstr = (n, f) => `git/files/${n}/` + (f ?? "")
 
+    $.version_lock = true
     $.read = (...a) => _read(...a).then(v => v.content)
     $._read = async (node, path) => {
       let [a, b] = path.split("/"), f = await db.get(fstr(node, a))
@@ -16,8 +17,9 @@ $.git = (db) => {
     }
     $.writecheck = async node => {
       if (!await db.get(`git/nodes/${node}`)) { throw `node:"${node}" not exist` }
+      if (!version_lock) { return }
       const a = await db.getpath(`git/node_to/${node}`)
-      if (a.length > 1) { throw `node:"${node}" is not a leaf node` }
+      if (a.length > 0) { throw `node:"${node}" is not a leaf node` }
     }
     $.write = async (node, name, content, mode = "file", force = false) => {
       await writecheck(node); const k = fstr(node, name) // 检查路径是否被占用
@@ -26,9 +28,11 @@ $.git = (db) => {
     }
     $.remove = async (node, name) => (
       await writecheck(node), await db.del(fstr(node, name)))
-    $.rename = (node, oldname, newname) => _read(node, oldname).then(
-      ({ content: v, mode: m }) => Promise.all([
-        write(node, newname, v, m), remove(node, oldname)]))
+    $.rename = async (node, oldname, newname) => {
+      const { content: v, mode: m } = await read(node, oldname)
+      await remove(node, oldname)
+      await write(node, newname, v, m)
+    }
 
     $.newgraph = name => (graphs[name] = {}, roots[name] = newnode(name))
     $.newnode = prev => {
