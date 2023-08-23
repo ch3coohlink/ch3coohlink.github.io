@@ -110,7 +110,6 @@ $.gt = git(db)
 // TODO: delete rename repo
 // TODO: delete node(?) / move node(?)
 // TODO: node description
-// TODO: execution
 
 window.addEventListener("load", async () => {
   // 当前文件/代码库/版本
@@ -241,17 +240,12 @@ window.addEventListener("load", async () => {
       })
     }
   }
-  $.eval_code = (code) => {
-    if ($.evalroot) { evalroot.remove() }
-    $.evalroot = dom({ style: { width: "100%", height: "100%" } }, evalshadow)
-    const f = new Function("root", code); f(evalroot)
-  }
 
   $.topctn = dom({ class: "container", style: { userSelect: "none" } }, document.body)
   $.sidectn = dom({ class: "container v-ctn", style: { width: "150px" } }, topctn)
   $.mainctn = dom({ class: "container v-ctn", style: { width: "700px" } }, topctn)
   $.evalctn = dom({ style: { width: "calc(100% - 850px)", height: "100%" } }, topctn)
-  $.evalshadow = evalctn.attachShadow({ mode: "open" })
+  $.sdbx = sandbox(evalctn)
   $.textctn = dom({ class: "container" }, mainctn)
   $.editor = create_editor(textctn)
   editor.close()
@@ -336,7 +330,8 @@ window.addEventListener("load", async () => {
   })
   $.exec_dialog = commit_dialog(async v => {
     if (current_file_changed && v.path === get_current_path()) { await save_file(editor.value) }
-    eval_code(await gt.read(save.node, v.path))
+    const code = await gt.read(save.node, v.path)
+    sdbx.stop(), sdbx.exec(code)
   })
   fllst.on("execute", exec_dialog)
   window.addEventListener("keydown", e => {
