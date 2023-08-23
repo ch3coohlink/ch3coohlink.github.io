@@ -16,7 +16,7 @@ $.sandbox = (parent) => {
       $[set] = set === "setInterval"
         ? (f, t) => { const i = sf(f, t); cbs.add(i); return i }
         : (f, t) => {
-          const i = sf((...a) => (cbs.delete(i), f(...a)), t)
+          const i = sf(() => (cbs.delete(i), f()), t)
           cbs.add(i); return i
         }
       $[clear] = i => (cbs.delete(i), cf(i))
