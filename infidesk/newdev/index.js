@@ -293,7 +293,6 @@ window.addEventListener("load", async () => {
   $.current_file_changed = false
   editor.on("change", () => current_file_changed = true)
   $.save_file = async content => {
-    log(content)
     await gt.write(save.node, get_current_path(), content, "file", true)
     $.current_file_changed = false
   }
@@ -335,10 +334,18 @@ window.addEventListener("load", async () => {
       editor.close()
     }
   })
-  fllst.on("execute", commit_dialog(async v => {
+  $.exec_dialog = commit_dialog(async v => {
     if (current_file_changed && v.path === get_current_path()) { await save_file(editor.value) }
     eval_code(await gt.read(save.node, v.path))
-  }))
+  })
+  fllst.on("execute", exec_dialog)
+  window.addEventListener("keydown", e => {
+    const k = e.key.toLowerCase()
+    if (k === "e" && e.altKey) {
+      e.preventDefault()
+      exec_dialog({ path: get_current_path() })
+    }
+  })
 
   $.nodectn = dom({ class: "container v-ctn" }, sidectn)
   $.ndslt = create_node_selector(nodectn)
