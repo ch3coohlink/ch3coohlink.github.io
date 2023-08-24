@@ -525,8 +525,8 @@ $.create_editor = (parent) => {
   let $ = eventnode({ parent }); with ($) {
     const root = parent.attachShadow({ mode: "open" })
     $.css = document.createElement("style")
-    css.innerText =
-      `@import "../node_modules/monaco-editor/min/vs/editor/editor.main.css";`
+    css.innerText = `@import "../node_modules` +
+      `/monaco-editor/min/vs/editor/editor.main.css";`
     root.append($.div = dom({ class: "monaco-editor-div" }), css)
     style(div, { width: "100%", height: "100%" })
 
@@ -547,24 +547,18 @@ $.create_editor = (parent) => {
       folding: false,
       minimap: { enabled: false },
     })
-
-    $.change_language = l =>
-      monaco.editor.setModelLanguage(editor.getModel(), l)
-
-    new ResizeObserver(() => editor.layout()).observe(div)
-
     editor.addAction({
-      id: "save-text-file",
-      label: "save file",
+      id: "save-text-file", label: "save file",
       keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS],
       run: ed => emit("filesave", value),
     })
 
-    Object.defineProperty($, "value", {
-      get: () => editor.getValue(), set: v => editor.setValue(v)
-    })
-
+    $.change_language = l =>
+      monaco.editor.setModelLanguage(editor.getModel(), l)
+    new ResizeObserver(() => editor.layout()).observe(div)
     editor.onDidChangeModelContent(() => emit("change"))
+    Object.defineProperty($, "value",
+      { get: () => editor.getValue(), set: v => editor.setValue(v) })
     $.open = () => { parent.style.display = "" }
     $.close = () => { parent.style.display = "none" }
   } return $
