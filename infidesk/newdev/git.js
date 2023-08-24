@@ -2,7 +2,7 @@ $.git = (db) => {
   let $ = { db, stack: [] }; with ($) {
     let fstr = (n, f) => `git/files/${n}/` + (f ?? "")
 
-    $.version_lock = true
+    $.version_lock = false
     $.read = (...a) => _read(...a).then(v => v.content)
     $._read = async (node, path) => {
       let [a, b] = path.split("/"), f = await db.get(fstr(node, a))

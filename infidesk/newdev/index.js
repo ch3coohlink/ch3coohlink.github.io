@@ -75,6 +75,11 @@ button.repo-reference {
   background: #f7e8f7;
 }
 
+.message-background button, .message-background input {
+  height: 2em;
+  box-sizing: border-box;
+}
+
 .error {
   color: red;
 }
@@ -110,7 +115,15 @@ $.gt = git(db)
 // TODO: delete rename repo
 // TODO: delete node(?) / move node(?)
 // TODO: node description
+// TODO: mobile UI support
+// TODO: save file option: yes discard no
 
+window.addEventListener("beforeunload", (e) => {
+  if (current_file_changed) {
+    check_file_save_dialog()
+    return e.returnValue = "file has been changed"
+  }
+})
 window.addEventListener("load", async () => {
   // 当前文件/代码库/版本
   $.save = db.saveobj("6s80s1u052ftdj009g2fd7brflbv1iq8")
@@ -132,7 +145,11 @@ window.addEventListener("load", async () => {
     await gt.newrepo(name)
     await ndslt.update_repo()
     await ndslt.update_node()
-    save.node ??= (await gt.readnodes(await gt.getrepoid(name)))[0]
+    if (!save.node) {
+      const node = (await gt.readnodes(await gt.getrepoid(name)))[0]
+      save.node = node
+      await fllst.update_file(node)
+    }
   }
   $.change_node = async (node) => {
     await check_file_save_dialog()
@@ -160,6 +177,7 @@ window.addEventListener("load", async () => {
       editor.value = v
       $.current_file_changed = false
       fllst.highlight(path)
+      fllst.set_modified(path, false)
     } catch (e) {
       console.error(e)
       editor.close()
@@ -233,10 +251,15 @@ window.addEventListener("load", async () => {
         const ctn = dom({ class: "window" }, messagectn)
         dom({ child: "File has been changed, do you want to save it?" }, ctn)
         const btnyes = dom({ tag: "button", child: "Yes" }, ctn)
+        const btndis = dom({ tag: "button", child: "Discard" }, ctn)
         const btnno = dom({ tag: "button", child: "No" }, ctn)
         btnyes.onclick = commit_dialog(async () => (
           await save_file(editor.value), acc()))
-        btnno.onclick = commit_dialog(() => acc())
+        btndis.onclick = commit_dialog(() => {
+          fllst.set_modified(get_current_path(), false)
+          acc()
+        })
+        btnno.onclick = () => closemessage()
       })
     }
   }
@@ -285,10 +308,15 @@ window.addEventListener("load", async () => {
   newrefbtn.addEventListener("click", rename_ref_dialog())
 
   $.current_file_changed = false
-  editor.on("change", () => current_file_changed = true)
+  editor.on("change", () => {
+    current_file_changed = true
+    fllst.set_modified(get_current_path(), true)
+  })
   $.save_file = async content => {
-    await gt.write(save.node, get_current_path(), content, "file", true)
+    const p = get_current_path()
+    await gt.write(save.node, p, content, "file", true)
     $.current_file_changed = false
+    fllst.set_modified(p, false)
   }
   $.language_setting = { js: "javascript" }
 
@@ -383,6 +411,10 @@ $.create_file_list = (parent) => {
     $.highlight = (path) => {
       for (const k in filedict) { filedict[k].style.color = "" }
       if (filedict[path]) { filedict[path].style.color = "red" }
+    }
+    $.set_modified = (path, flag) => {
+      const e = filedict[path]
+      if (e) e.innerText = path + (flag ? " *" : "")
     }
   } return $
 }
