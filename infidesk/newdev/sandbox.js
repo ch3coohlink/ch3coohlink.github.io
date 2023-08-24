@@ -10,47 +10,46 @@
   let AsyncFunction = (async () => { }).constructor
 
   $.sandbox = (parent) => {
-    let gen_timeout = () => {
-      for (const [set, clear] of timeout_functions) {
-        let cbs = new Set; cbss[clear] = cbs
-        const sf = window[set].bind(window)
-        const cf = window[clear].bind(window)
-        $[set] = set === "setInterval"
-          ? (f, t) => { const i = sf(f, t); cbs.add(i); return i }
-          : (f, t) => {
-            const i = sf(() => (cbs.delete(i), f()), t)
-            cbs.add(i); return i
-          }
-        $[clear] = i => (cbs.delete(i), cf(i))
-      }
-    }
-    let gen_constructor = () => {
-      for (const k in constructors) {
-        let cf = window[k], a = cos[k] = []
-        $[k] = function (...v) {
-          let r = new WeakRef(new cf(...v))
-          a.push(r); return r
+    let start = async (extra = {}) => {
+      let root = dom({ style: { width: "100%", height: "100%" } }, shadow)
+      let $ = {}, o = { root, ...$, ...extra }, cbss = {}, cos = {}
+      let gen_timeout = () => {
+        for (const [set, clear] of timeout_functions) {
+          let cbs = new Set; cbss[clear] = cbs
+          const sf = window[set].bind(window)
+          const cf = window[clear].bind(window)
+          $[set] = set === "setInterval"
+            ? (f, t) => { const i = sf(f, t); cbs.add(i); return i }
+            : (f, t) => {
+              const i = sf(() => (cbs.delete(i), f()), t)
+              cbs.add(i); return i
+            }
+          $[clear] = i => (cbs.delete(i), cf(i))
         }
       }
-    }
-    let exec = async (code, extra = {}) => {
-      const f = new AsyncFunction("$", `with($) {\n${code}\n}`)
-      await f({ ...$, ...extra })
-    }
-    let stop = () => {
-      if ($.root) { $.root.remove() }
-      $.root = dom({ style: { width: "100%", height: "100%" } }, shadow)
-      for (const k in cbss) { cbss[k].forEach($[k]); cbss[k].clear() }
-      for (const k in cos) {
-        const f = constructors[k]
-        cos[k].forEach(r => (r = r.deref(), r ? f(r) : 0))
-        cos[k] = []
+      let gen_constructor = () => {
+        for (const k in constructors) {
+          let cf = window[k], a = cos[k] = []
+          $[k] = function (...v) {
+            let r = new WeakRef(new cf(...v))
+            a.push(r); return r
+          }
+        }
       }
+      let clear = async () => {
+        await o.onclose?.()
+        root.remove()
+        for (const k in cbss) { cbss[k].forEach($[k]) }
+        for (const k in cos) {
+          const f = constructors[k]
+          cos[k].forEach(r => (r = r.deref(), r ? f(r) : 0))
+        }
+      }
+      let exec = async (code) => await new AsyncFunction("$", `with($) {\n${code}\n}`)(o)
+      gen_timeout(), gen_constructor()
+      return { clear, exec }
     }
-    // call back set s // contructed object s
-    let $ = {}, cbss = {}, cos = {}
     let shadow = parent.attachShadow({ mode: "open" })
-    gen_timeout(), gen_constructor()
-    return { $, exec, stop }
+    return { start }
   }
 }

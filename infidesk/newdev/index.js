@@ -116,6 +116,9 @@ $.gt = git(db)
 // TODO: delete node(?) / move node(?)
 // TODO: node description
 // TODO: mobile UI support
+// TODO: multiple tab
+// rename a modified file
+// support parallel exec
 
 $.single_input_message = f => async () => {
   openmessage()
@@ -135,7 +138,8 @@ $.new_repo = async (name) => {
   if (!save.node) {
     const node = (await gt.readnodes(await gt.getrepoid(name)))[0]
     save.node = node
-    await fllst.update_file(node)
+    await ndslt.change_repo_by_node(node)
+    ndslt.highlight(node)
   }
 }
 $.change_node = async (node) => {
@@ -254,7 +258,7 @@ $.check_file_save_dialog = async () => {
     })
   }
 }
-$.simple_rename_dialog = (v, f) => {
+$.simple_rename_dialog = async (v, f) => {
   openmessage()
   const ctn = dom({ class: "window" }, messagectn)
   const ipt = dom({ tag: "input", value: v }, ctn)
@@ -263,20 +267,29 @@ $.simple_rename_dialog = (v, f) => {
   ipt.addEventListener("keydown", e => e.key === "Enter" ? apply(v, ipt.value) : 0)
   btn.addEventListener("click", () => apply(v, ipt.value))
 }
-$.rename_file_dialog = v => simple_rename_dialog(v.path, async (o, n) => {
-  await gt.rename(save.node, o, n)
-  await fllst.update_file(save.node)
-  await open_file({ path: n })
-})
+$.rename_file_dialog = async v => {
+  await check_file_save_dialog()
+  simple_rename_dialog(v.path, async (o, n) => {
+    await gt.rename(save.node, o, n)
+    await fllst.update_file(save.node)
+    await open_file({ path: n })
+  })
+}
 $.rename_repo_dialog = async () => simple_rename_dialog(
   await gt.getnoderepo(save.node), async (o, n) => {
     await gt.renamerepo(o, n)
     await ndslt.update_repo()
   })
-$.execjs = (a, b) => gt.read_relative(a, b, async v => await sdbx.exec(v, { execjs }))
+$.exec_result = []
 $.exec_dialog = commit_dialog(async v => {
   if (current_file_changed && v.path === get_current_path()) { await save_file(editor.value) }
-  save.last_exec = v; sdbx.stop(); await execjs(v.path, v.node)
+  save.last_exec = v
+  exec_result.forEach(f => f())
+  $.exec_result = []
+  const loadjs = (path, node) => gt.read_relative(path, node, e)
+  const o = await sdbx.start({ loadjs }), e = o.exec
+  await loadjs(v.path, v.node)
+  exec_result.push(o.clear)
 })
 $.opencontextmenu = (x, y) => {
   contextmenuctn.style.left = x - 1 + "px"
@@ -301,7 +314,7 @@ window.addEventListener("load", async () => {
   $.topctn = dom({ class: "container", style: { userSelect: "none" } }, document.body)
   $.sidectn = dom({ class: "container v-ctn", style: { width: "150px" } }, topctn)
   $.mainctn = dom({ class: "container v-ctn", style: { width: "700px" } }, topctn)
-  $.evalctn = dom({ style: { width: "calc(100% - 850px)", height: "100%" } }, topctn)
+  $.evalctn = dom({ class: "container v-ctn", style: { width: "calc(100% - 850px)" } }, topctn)
   $.sdbx = sandbox(evalctn)
   $.textctn = dom({ class: "container" }, mainctn)
   $.editor = create_editor(textctn)
@@ -311,7 +324,7 @@ window.addEventListener("load", async () => {
   }, document.body)
   $.messagectn = dom({
     class: "container message-background", style: { display: "none" },
-    onclick: e => { if (e.target === messagectn) { closemessage() } }
+    onpointerdown: e => { if (e.target === messagectn) { closemessage() } }
   }, document.body)
   $.newrepobtn = dom({ tag: "button", child: "newrepo" }, sidectn)
   $.renamerepobtn = dom({ tag: "button", child: "renamerepo" }, sidectn)

@@ -33,7 +33,7 @@ $.git = (db) => {
     $.remove = async (node, name) => (
       await writecheck(node), await db.del(fstr(node, name)))
     $.rename = async (node, oldname, newname) => {
-      const { content: v, mode: m } = await read(node, oldname)
+      const { content: v, mode: m } = await _read(node, oldname)
       await remove(node, oldname)
       await write(node, newname, v, m)
     }

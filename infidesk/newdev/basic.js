@@ -31,6 +31,7 @@ $.fwith = (f, n, s = funcbody(f)) => (n ??= hash(s).toString(16),
     ("__P__", "__A__", "$ = Object.assign(Object.create(__P__), __A__)",
       "with($) {\n" + `//# sourceURL=${n}.js\n` + s + "\n} return $"))
 
+$.wait = t => new Promise(ac => setTimeout(ac, t))
 $.debounce = (f, t = 100, i) => (...a) =>
   (clearTimeout(i), i = setTimeout(() => f(...a), t))
 $.throttle = (f, t = 100, i) => (...a) =>
