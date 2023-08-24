@@ -122,7 +122,7 @@ $.single_input_message = f => async () => {
   const ctn = dom({ class: "window" }, messagectn)
   const ipt = dom({ tag: "input" }, ctn)
   const btn = dom({ tag: "button", child: "Enter" }, ctn)
-  const apply = commit_dialog(f)
+  const apply = commit_dialog(f); ipt.focus()
   ipt.addEventListener("keydown", e => e.key === "Enter" ? apply(ipt) : 0)
   btn.addEventListener("click", () => apply(ipt))
 }
@@ -259,7 +259,7 @@ $.simple_rename_dialog = (v, f) => {
   const ctn = dom({ class: "window" }, messagectn)
   const ipt = dom({ tag: "input", value: v }, ctn)
   const btn = dom({ tag: "button", child: "Enter" }, ctn)
-  const apply = commit_dialog(f)
+  const apply = commit_dialog(f); ipt.focus()
   ipt.addEventListener("keydown", e => e.key === "Enter" ? apply(v, ipt.value) : 0)
   btn.addEventListener("click", () => apply(v, ipt.value))
 }
