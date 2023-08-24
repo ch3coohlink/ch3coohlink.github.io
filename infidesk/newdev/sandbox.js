@@ -7,6 +7,7 @@
     AudioContext: v => v.close(),
     Worker: v => v.terminate(),
   }
+  let AsyncFunction = (async () => { }).constructor
 
   $.sandbox = (parent) => {
     let gen_timeout = () => {
@@ -32,12 +33,13 @@
         }
       }
     }
-    let exec = (code) => {
-      $.root = dom({ style: { width: "100%", height: "100%" } }, shadow)
-      const f = new Function("$", `with($) {\n${code}\n}`); f($)
+    let exec = async (code, extra = {}) => {
+      const f = new AsyncFunction("$", `with($) {\n${code}\n}`)
+      await f({ ...$, ...extra })
     }
     let stop = () => {
       if ($.root) { $.root.remove() }
+      $.root = dom({ style: { width: "100%", height: "100%" } }, shadow)
       for (const k in cbss) { cbss[k].forEach($[k]); cbss[k].clear() }
       for (const k in cos) {
         const f = constructors[k]

@@ -116,7 +116,6 @@ $.gt = git(db)
 // TODO: delete node(?) / move node(?)
 // TODO: node description
 // TODO: mobile UI support
-// TODO: save file option: yes discard no
 
 window.addEventListener("beforeunload", (e) => {
   if (current_file_changed) {
@@ -141,7 +140,7 @@ window.addEventListener("load", async () => {
   }
   // 新建一个repo，当没有处于一个版本的时候，切换到这个新repo的根节点
   $.new_repo = async (name) => {
-    if (!name) { throw `invalid repo name: "${name}"` }
+    if (!name) { panic(`invalid repo name: "${name}"`) }
     await gt.newrepo(name)
     await ndslt.update_repo()
     await ndslt.update_node()
@@ -179,8 +178,8 @@ window.addEventListener("load", async () => {
       fllst.highlight(path)
       fllst.set_modified(path, false)
     } catch (e) {
-      console.error(e)
       editor.close()
+      throw e
     }
   }
   $.get_current_path = () => save[save.node + "/file"]
@@ -205,11 +204,13 @@ window.addEventListener("load", async () => {
   }
   $.commit_dialog = f => async (...a) => {
     try { await f(...a); closemessage() } catch (e) {
-      openmessage(); console.error(e)
+      log(e)
+      openmessage()
       messagectn.append(dom({
         tag: "pre", class: "error",
         child: e.message + "\n" + e.stack
       }))
+      throw e
     }
   }
   $.rename_ref_dialog = (new_ref = true) => async (v = {}) => {
@@ -236,7 +237,7 @@ window.addEventListener("load", async () => {
           await gt.write(save.node, n, i, "ref")
         }
       }
-      else { throw `new ref failed because of invalid argument` }
+      else { panic(`new ref failed because of invalid argument`) }
       await fllst.update_file(save.node)
       fllst.highlight(get_current_path())
     })
@@ -255,10 +256,8 @@ window.addEventListener("load", async () => {
         const btnno = dom({ tag: "button", child: "No" }, ctn)
         btnyes.onclick = commit_dialog(async () => (
           await save_file(editor.value), acc()))
-        btndis.onclick = commit_dialog(() => {
-          fllst.set_modified(get_current_path(), false)
-          acc()
-        })
+        btndis.onclick = commit_dialog(() =>
+          (fllst.set_modified(get_current_path(), false), acc()))
         btnno.onclick = () => closemessage()
       })
     }
@@ -356,17 +355,22 @@ window.addEventListener("load", async () => {
       editor.close()
     }
   })
+  $.execjs = (a, b) => gt.read_relative(a, b, async v => await sdbx.exec(v, { execjs }))
   $.exec_dialog = commit_dialog(async v => {
     if (current_file_changed && v.path === get_current_path()) { await save_file(editor.value) }
-    const code = await gt.read(save.node, v.path)
-    sdbx.stop(), sdbx.exec(code)
+    save.last_exec = v; sdbx.stop(); await execjs(v.path, v.node)
   })
   fllst.on("execute", exec_dialog)
   window.addEventListener("keydown", e => {
     const k = e.key.toLowerCase()
-    if (k === "e" && e.altKey) {
+    if (e.altKey) {
       e.preventDefault()
-      exec_dialog({ path: get_current_path() })
+      if (k === "e") {
+        exec_dialog({ path: get_current_path(), node: save.node })
+      } else if (k === "q") {
+        const v = save.last_exec; if (v) { exec_dialog(v) }
+        else { exec_dialog({ path: get_current_path(), node: save.node }) }
+      }
     }
   })
 
@@ -389,11 +393,12 @@ $.add_context_menu_item = (event, emit, ...a) => {
 }
 $.create_file_list = (parent) => {
   let $ = eventnode({ parent }); with ($) {
-    $.update_file = async (id) => {
+    $.update_file = async (node) => {
       parent.innerHTML = ""
       $.filedict = {}
-      $.filelist = await gt.dir(id)
+      $.filelist = await gt.dir(node)
       filelist.forEach(v => {
+        v.node = node
         const e = dom({ tag: "button", child: v.path }, parent)
         const rf = v.mode === "ref"
         if (rf) { e.className = "repo-reference" }
@@ -429,7 +434,7 @@ $.create_node_selector = (parent) => {
         reposlt.value = await gt.getnoderepo(node)
         await update_node()
       } catch (e) {
-        throw `change repo by id failed using id "${node}" with error:\n` + e
+        panic(`change repo by id failed using id "${node}" with error:\n` + e)
       }
     }
     $.update_repo = async () => {

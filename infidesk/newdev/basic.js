@@ -11,7 +11,7 @@ $.hasown = (o, k) => o.hasOwnProperty(k)
 $.getown = (o, k) => o.hasOwnProperty(k) ? o[k] : _
 $.getset = (o, k, g, s) => Object.defineProperty(o, k, { get: g, set: s })
 $.objproto = proto({})
-$.panic = e => { throw e }
+$.panic = e => { throw new Error(e) }
 
 $.array = (n, f, r = [...Array(n).keys()]) => f ? r.map(f) : r
 $.asarr = v => isarr(v) ? v : [v]
