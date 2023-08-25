@@ -280,16 +280,16 @@ $.rename_repo_dialog = async () => simple_rename_dialog(
     await gt.renamerepo(o, n)
     await ndslt.update_repo()
   })
-$.exec_result = []
+$.exec_result = [], $.exec_count = 0
 $.exec_dialog = commit_dialog(async v => {
   if (current_file_changed && v.path === get_current_path()) { await save_file(editor.value) }
-  save.last_exec = v
-  exec_result.forEach(f => f())
-  $.exec_result = []
-  const loadjs = (path, node) => gt.read_relative(path, node, e)
-  const o = await sdbx.start({ loadjs }), e = o.exec
-  await loadjs(v.path, v.node)
-  exec_result.push(o.clear)
+  save.last_exec = v, exec_result.forEach(f => f())
+  $.exec_count -= exec_result.length, $.exec_result = []
+  if (exec_count >= 10) { return } $.exec_count += 1; let o; try {
+    const loadjs = (path, node) => gt.read_relative(path, node, e)
+    o = await sdbx.start({ loadjs }), e = o.exec
+    await loadjs(v.path, v.node)
+  } finally { exec_result.push(o.clear) }
 })
 $.opencontextmenu = (x, y) => {
   contextmenuctn.style.left = x - 1 + "px"
