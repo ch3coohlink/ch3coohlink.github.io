@@ -56,6 +56,7 @@ html, body {
 }
 
 button {
+  word-break: break-all;
   text-align: left;
   border: 0px;
   padding: 4px;
@@ -184,23 +185,19 @@ $.open_file = async ({ path }) => {
 }
 $.get_current_path = () => save[save.node + "/file"]
 $.set_current_path = v => save[save.node + "/file"] = v
-$.new_node_dialog = () => {
-  openmessage()
+$.new_node_dialog = async () => {
+  await check_file_save_dialog(); openmessage()
   const ctn = dom({ class: "window" }, messagectn)
   const warning = "This action will lock current version," +
     " and you will no longer being able to edit it, proceed?"
   dom({ child: warning }, ctn)
   const btn = dom({ tag: "button", child: "Yes" }, ctn)
-  btn.onclick = async () => {
-    try {
-      const newnode = await gt.newnode(save.node)
-      await change_node(newnode)
-      await ndslt.update_repo()
-      await ndslt.change_repo_by_node(save.node)
-    } finally {
-      closemessage()
-    }
-  }
+  btn.onclick = commit_dialog(async () => {
+    const newnode = await gt.newnode(save.node)
+    await change_node(newnode)
+    await ndslt.update_repo()
+    await ndslt.change_repo_by_node(save.node)
+  })
 }
 $.commit_dialog = f => async (...a) => {
   try { await f(...a); closemessage() } catch (e) {
@@ -333,6 +330,7 @@ window.addEventListener("load", async () => {
   $.newfilebtn = dom({ tag: "button", child: "newfile" }, sidectn)
   $.newrefbtn = dom({ tag: "button", child: "newref" }, sidectn)
   $.filectn = dom({ class: "container v-ctn" }, sidectn)
+  filectn.style.overflow = "auto"
   filectn.style.paddingTop = "10px"
   $.fllst = create_file_list(filectn)
   $.nodectn = dom({ class: "container v-ctn" }, sidectn)

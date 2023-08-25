@@ -12,7 +12,6 @@
   $.sandbox = (parent) => {
     let start = async (extra = {}) => {
       let root = dom({ style: { width: "100%", height: "100%" } }, shadow)
-      let $ = {}, o = { root, ...$, ...extra }, cbss = {}, cos = {}
       let gen_timeout = () => {
         for (const [set, clear] of timeout_functions) {
           let cbs = new Set; cbss[clear] = cbs
@@ -21,7 +20,7 @@
           $[set] = set === "setInterval"
             ? (f, t) => { const i = sf(f, t); cbs.add(i); return i }
             : (f, t) => {
-              const i = sf(() => (cbs.delete(i), f()), t)
+              const i = sf(t => (cbs.delete(i), f(t)), t)
               cbs.add(i); return i
             }
           $[clear] = i => (cbs.delete(i), cf(i))
@@ -46,7 +45,9 @@
         }
       }
       let exec = async (code) => await new AsyncFunction("$", `with($) {\n${code}\n}`)(o)
+      let $ = {}, cbss = {}, cos = {}
       gen_timeout(), gen_constructor()
+      let o = { root, ...$, ...extra }
       return { clear, exec }
     }
     let shadow = parent.attachShadow({ mode: "open" })
