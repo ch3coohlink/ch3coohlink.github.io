@@ -541,6 +541,7 @@ $.create_editor = (parent) => {
     root.append($.div = dom({ class: "monaco-editor-div" }), css)
     style(div, { width: "100%", height: "100%" })
 
+    $.wordWrap = "on"
     $.editor = monaco.editor.create(div, {
       value: "",
       language: "plaintext",
@@ -557,11 +558,18 @@ $.create_editor = (parent) => {
       smoothScrolling: true,
       folding: false,
       minimap: { enabled: false },
+      wordWrap,
     })
     editor.addAction({
       id: "save-text-file", label: "save file",
       keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS],
-      run: ed => emit("filesave", value),
+      run: () => emit("filesave", value),
+    })
+    editor.addAction({
+      id: "toggle-word-warp", label: "toggle word warp",
+      keybindings: [monaco.KeyMod.Alt | monaco.KeyCode.KeyZ],
+      run: () => ($.wordWrap = wordWrap === "on" ? "off" : "on",
+        editor.updateOptions({ wordWrap })),
     })
 
     $.change_language = l =>
