@@ -1,23 +1,19 @@
 $.git = (db) => {
-  let $ = { db, stack: [] }; with ($) {
+  let $ = { db }; with ($) {
     let fstr = (n, f) => `git/files/${n}/` + (f ?? "")
 
     $.version_lock = false
-    $.read_relative = async (path, node, f) => {
-      if (node) { $.stack = [] } else { [node] = stack.slice(-1) }
-      await f(await read(node, path)), stack.pop()
-    }
     $.read = (...a) => _read(...a).then(v => v.content)
     $._read = async (node, path) => {
       let [a, b] = path.split("/"), f = await db.get(fstr(node, a))
       if (!f) { panic(`path "${node}:${a}" not exist`) }
-      if (f.mode === "file") { $.stack.push(node); return f }
+      if (f.mode === "file") { return { node, path, ...f } }
       if (f.mode === "ref" && b) { return _read(f.content, b) }
-      else { return f }
+      else { return { node, path, ...f } }
     }
     $.dir = async (node) => {
       let k = fstr(node), a = await db.getpath(k)
-      return a.map(([p, o]) => (o.path = p, o))
+      return a.map(([path, o]) => ({ node, path, ...o }))
     }
     $.writecheck = async node => {
       if (!await db.get(`git/nodes/${node}`)) { panic(`node:"${node}" not exist`) }

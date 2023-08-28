@@ -1,3 +1,4 @@
+let AsyncFunction = (async () => { }).constructor
 {
   let timeout_functions = `requestIdleCallback cancelIdleCallback,
     requestAnimationFrame cancelAnimationFrame,
@@ -7,16 +8,15 @@
     AudioContext: v => v.close(),
     Worker: v => v.terminate(),
   }
-  let AsyncFunction = (async () => { }).constructor
 
-  $.sandbox = (parent) => {
+  $.sandbox = (parent, $g = window) => {
     let start = async (extra = {}) => {
       let root = dom({ style: { width: "100%", height: "100%" } }, shadow)
       let gen_timeout = () => {
         for (const [set, clear] of timeout_functions) {
           let cbs = new Set; cbss[clear] = cbs
-          const sf = window[set].bind(window)
-          const cf = window[clear].bind(window)
+          const sf = $g[set].bind($g)
+          const cf = $g[clear].bind($g)
           $[set] = set === "setInterval"
             ? (f, t) => { const i = sf(f, t); cbs.add(i); return i }
             : (f, t) => {
@@ -28,7 +28,7 @@
       }
       let gen_constructor = () => {
         for (const k in constructors) {
-          let cf = window[k], a = cos[k] = []
+          let cf = $g[k], a = cos[k] = []
           $[k] = function (...v) {
             let r = new WeakRef(new cf(...v))
             a.push(r); return r

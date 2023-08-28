@@ -282,10 +282,11 @@ $.exec_dialog = commit_dialog(async v => {
   if (current_file_changed && v.path === get_current_path()) { await save_file(editor.value) }
   save.last_exec = v, exec_result.forEach(f => f())
   $.exec_count -= exec_result.length, $.exec_result = []
-  if (exec_count >= 10) { return } $.exec_count += 1; let o; try {
-    const loadjs = (path, node) => gt.read_relative(path, node, e)
-    o = await sdbx.start({ loadjs }), e = o.exec
-    await loadjs(v.path, v.node)
+  if (exec_count >= 10) { return } $.exec_count += 1; let o, e; try {
+    o = await sdbx.start({ rawread: gt._read, sandbox }), e = o.exec
+    await e(`const _cnode_ = "${v.node}";\n` +
+      `const read = async p => (await rawread(_cnode_, p)).content;\n\n` +
+      await gt.read(v.node, v.path))
   } finally { exec_result.push(o.clear) }
 })
 $.opencontextmenu = (x, y) => {
@@ -404,7 +405,6 @@ $.create_file_list = (parent) => {
       $.filedict = {}
       $.filelist = await gt.dir(node)
       filelist.forEach(v => {
-        v.node = node
         const e = dom({ tag: "button", child: v.path }, parent)
         const rf = v.mode === "ref"
         if (rf) { e.className = "repo-reference" }
@@ -556,17 +556,17 @@ $.create_editor = (parent) => {
       cursorBlinking: "smooth",
       cursorSmoothCaretAnimation: "on",
       smoothScrolling: true,
-      folding: false,
+      // folding: false,
       minimap: { enabled: false },
       wordWrap,
     })
     editor.addAction({
-      id: "save-text-file", label: "save file",
+      id: "save-text-file", label: "Save File",
       keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS],
       run: () => emit("filesave", value),
     })
     editor.addAction({
-      id: "toggle-word-warp", label: "toggle word warp",
+      id: "toggle-word-warp", label: "Toggle Word Warp",
       keybindings: [monaco.KeyMod.Alt | monaco.KeyCode.KeyZ],
       run: () => ($.wordWrap = wordWrap === "on" ? "off" : "on",
         editor.updateOptions({ wordWrap })),
