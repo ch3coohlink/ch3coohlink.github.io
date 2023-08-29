@@ -277,16 +277,21 @@ $.rename_repo_dialog = async () => simple_rename_dialog(
     await gt.renamerepo(o, n)
     await ndslt.update_repo()
   })
+$._packcode_ = v =>
+  `const _cnode_ = "${v.node}";\n` +
+  `const read = async p => (await rawread(_cnode_, p)).content;\n` +
+  `const loadjs = async p => new AsyncFunction("$",
+  \`with($) {\n\${_packcode_(await rawread(_cnode_, p))}\n}\`)($);\n` +
+  "\n" + v.content
 $.exec_result = [], $.exec_count = 0
 $.exec_dialog = commit_dialog(async v => {
   if (current_file_changed && v.path === get_current_path()) { await save_file(editor.value) }
   save.last_exec = v, exec_result.forEach(f => f())
   $.exec_count -= exec_result.length, $.exec_result = []
-  if (exec_count >= 10) { return } $.exec_count += 1; let o, e; try {
-    o = await sdbx.start({ rawread: gt._read, sandbox }), e = o.exec
-    await e(`const _cnode_ = "${v.node}";\n` +
-      `const read = async p => (await rawread(_cnode_, p)).content;\n\n` +
-      await gt.read(v.node, v.path))
+  if (exec_count >= 10) { return } $.exec_count += 1; let o; try {
+    v = await gt._read(v.node, v.path)
+    o = await sdbx.start({ rawread: gt._read, sandbox, _packcode_ })
+    await o.exec(_packcode_(v))
   } finally { exec_result.push(o.clear) }
 })
 $.opencontextmenu = (x, y) => {
