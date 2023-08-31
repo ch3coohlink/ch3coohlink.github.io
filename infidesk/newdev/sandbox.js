@@ -11,7 +11,8 @@ let AsyncFunction = (async () => { }).constructor
 
   $.sandbox = (parent, $g = window) => {
     let start = async (extra = {}) => {
-      let root = dom({ style: { width: "100%", height: "100%" } }, shadow)
+      let root = dom({}, shadow)
+      style(root, { width: "100%", height: "100%", overflow: "auto" })
       let gen_timeout = () => {
         for (const [set, clear] of timeout_functions) {
           let cbs = new Set; cbss[clear] = cbs

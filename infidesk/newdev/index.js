@@ -317,7 +317,9 @@ window.addEventListener("load", async () => {
   $.topctn = dom({ class: "container", style: { userSelect: "none" } }, document.body)
   $.sidectn = dom({ class: "container v-ctn", style: { width: "150px" } }, topctn)
   $.mainctn = dom({ class: "container v-ctn", style: { width: "700px" } }, topctn)
-  $.evalctn = dom({ class: "container v-ctn", style: { width: "calc(100% - 850px)" } }, topctn)
+  $.evalctn = dom({ class: "container v-ctn" }, topctn)
+  evalctn.style.width = "calc(100% - 850px)"
+  evalctn.style.userSelect = "text"
   $.sdbx = sandbox(evalctn)
   $.textctn = dom({ class: "container" }, mainctn)
   $.editor = create_editor(textctn)
@@ -378,6 +380,8 @@ window.addEventListener("load", async () => {
   fllst.on("execute", exec_dialog)
   window.addEventListener("keydown", e => {
     const k = e.key.toLowerCase()
+    log(k)
+    if (k === "escape") { closemessage() }
     if (e.altKey) {
       e.preventDefault()
       if (k === "e") {
