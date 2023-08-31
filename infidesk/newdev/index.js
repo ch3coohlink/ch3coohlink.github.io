@@ -380,7 +380,6 @@ window.addEventListener("load", async () => {
   fllst.on("execute", exec_dialog)
   window.addEventListener("keydown", e => {
     const k = e.key.toLowerCase()
-    log(k)
     if (k === "escape") { closemessage() }
     if (e.altKey) {
       e.preventDefault()
