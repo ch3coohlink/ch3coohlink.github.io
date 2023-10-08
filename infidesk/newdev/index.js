@@ -383,7 +383,7 @@ window.addEventListener("load", async () => {
     if (k === "escape") { closemessage() }
     if (e.altKey) {
       e.preventDefault()
-      if (k === "e") {
+      if (k === "e" || k === "enter") {
         exec_dialog({ path: get_current_path(), node: save.node })
       } else if (k === "q") {
         const v = save.last_exec; if (v) { exec_dialog(v) }
