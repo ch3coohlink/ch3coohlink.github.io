@@ -31,7 +31,8 @@ let AsyncFunction = (async () => { }).constructor
         for (const k in constructors) {
           let cf = $g[k], a = cos[k] = []
           $[k] = function (...v) {
-            let r = new WeakRef(new cf(...v))
+            const o = new cf(...v)
+            let r = new WeakRef(o)
             a.push(r); return r
           }
         }
@@ -40,14 +41,15 @@ let AsyncFunction = (async () => { }).constructor
         await o.onclose?.()
         root.remove()
         for (const k in cbss) { cbss[k].forEach($[k]) }
-        for (const k in cos) {
-          const f = constructors[k]
-          cos[k].forEach(r => (r = r.deref(), r ? f(r) : 0))
-        }
+        // for (const k in cos) {
+        //   const f = constructors[k]
+        //   cos[k].forEach(r => (r = r.deref(), r ? f(r) : 0))
+        // }
       }
       let exec = async (code) => await new AsyncFunction("$", `with($) {\n${code}\n}`)(o)
       let $ = {}, cbss = {}, cos = {}
-      gen_timeout(), gen_constructor()
+      gen_timeout()
+      // gen_constructor()
       let o = { root, ...$, ...extra }
       return { clear, exec }
     }
