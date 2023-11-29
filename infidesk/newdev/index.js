@@ -378,7 +378,7 @@ window.addEventListener("load", async () => {
     }
   })
   fllst.on("execute", exec_dialog)
-  window.addEventListener("keydown", e => {
+  window.addEventListener("keydown", async e => {
     const k = e.key.toLowerCase()
     if (k === "escape") { closemessage() }
     if (e.altKey) {
@@ -386,6 +386,7 @@ window.addEventListener("load", async () => {
       if (k === "e" || k === "enter") {
         exec_dialog({ path: get_current_path(), node: save.node })
       } else if (k === "q") {
+        await save_file(editor.value)
         const v = save.last_exec; if (v) { exec_dialog(v) }
         else { exec_dialog({ path: get_current_path(), node: save.node }) }
       }
