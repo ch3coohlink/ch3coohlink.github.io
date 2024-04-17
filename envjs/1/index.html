@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>env.js</title>
+  <script>
+    (async $ => (Object.defineProperty($, "$", { value: $ }),
+      Function("$", 'with ($) { return async () => {\n' +
+        `${await (await fetch("./index.js")).text()}\n} }`)($)()))({})
+    /*      WARP EVERYTHING INTO DYNAMIC SCOPE JAVASCRIPT      */
+  </script>
+</head>
+
+<body>
+</body>
+
+</html>
