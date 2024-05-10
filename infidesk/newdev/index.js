@@ -289,8 +289,8 @@ $.exec_dialog = commit_dialog(async v => {
   save.last_exec = v, exec_result.forEach(f => f())
   $.exec_count -= exec_result.length, $.exec_result = []
   if (exec_count >= 10) { return } $.exec_count += 1; let o; try {
-    v = await gt._read(v.node, v.path)
-    o = await sdbx.start({ rawread: gt._read, sandbox, _packcode_ })
+    v = await gt.rawread(v.node, v.path)
+    o = await sdbx.start({ rawread: gt.rawread, sandbox, _packcode_ })
     await o.exec(_packcode_(v))
   } finally { exec_result.push(o.clear) }
 })

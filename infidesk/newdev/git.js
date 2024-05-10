@@ -3,12 +3,12 @@ $.git = (db) => {
     let fstr = (n, f) => `git/files/${n}/` + (f ?? "")
 
     $.version_lock = true
-    $.read = (...a) => _read(...a).then(v => v.content)
-    $._read = async (node, path) => {
+    $.read = (...a) => rawread(...a).then(v => v.content)
+    $.rawread = async (node, path) => {
       let [a, b] = path.split("/"), f = await db.get(fstr(node, a))
       if (!f) { panic(`path "${node}:${a}" not exist`) }
       if (f.mode === "file") { return { node, path, ...f } }
-      if (f.mode === "ref" && b) { return _read(f.content, b) }
+      if (f.mode === "ref" && b) { return rawread(f.content, b) }
       else { return { node, path, ...f } }
     }
     $.dir = async (node) => {
@@ -21,15 +21,20 @@ $.git = (db) => {
       const a = await db.getpath(`git/node_to/${node}`)
       if (a.length > 0) { panic(`node:"${node}" is not a leaf node`) }
     }
+    // TODO: hash file
     $.write = async (node, name, content, mode = "file", force = false) => {
       await writecheck(node); const k = fstr(node, name) // 检查路径是否被占用
       if (!force && await db.get(k)) { panic(`path "${node}/${name}" has been occupied`) }
       await db.set(k, { mode, content })
+      // if mode is file, calculate a hash for that file
+      // if hash exist, add reference to it
+      // if not create a hash object for this file
+
     }
     $.remove = async (node, name) => (
       await writecheck(node), await db.del(fstr(node, name)))
     $.rename = async (node, oldname, newname) => {
-      const { content: v, mode: m } = await _read(node, oldname)
+      const { content: v, mode: m } = await rawread(node, oldname)
       await remove(node, oldname)
       await write(node, newname, v, m)
     }
@@ -70,6 +75,18 @@ $.git = (db) => {
         db.set(`git/node_from/${id}/${prev}`, true),
         ...a.map(([p, o]) => db.set(fstr(id, p), o))])
       return id
+    }
+
+    // TODO
+    $.merge = async (a, b) => {
+      // check version existence
+      // check version in same repo
+      // find most recent common ancestor
+      // diff a b with ancester
+      // diff the diff result in a and b, find conflict
+      // call the conflict solve procedure
+      // apply the solve, create a new version
+      // merge finish
     }
 
     $.getnoderepo = async node => {

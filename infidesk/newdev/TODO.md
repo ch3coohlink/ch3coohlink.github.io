@@ -1,0 +1,4 @@
+- [ ] hash file
+- [x] diff
+- [ ] merge
+- [ ] text editor tab
