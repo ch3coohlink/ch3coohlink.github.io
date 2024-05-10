@@ -7,7 +7,11 @@ $.git = (db) => {
     $.rawread = async (node, path) => {
       let [a, b] = path.split("/"), f = await db.get(fstr(node, a))
       if (!f) { panic(`path "${node}:${a}" not exist`) }
-      if (f.mode === "file") { return { node, path, ...f } }
+      if (f.mode === "file") {
+        const content = await db.get(`git/hashobj/${f.content}`)
+        if (!content) { panic(`hashobj ${f.content} not exist`) }
+        return { node, path, content }
+      }
       if (f.mode === "ref" && b) { return rawread(f.content, b) }
       else { return { node, path, ...f } }
     }
@@ -15,28 +19,37 @@ $.git = (db) => {
       let k = fstr(node), a = await db.getpath(k)
       return a.map(([path, o]) => ({ node, path, ...o }))
     }
-    $.writecheck = async node => {
+    $.versioncheck = async node => {
       if (!await db.get(`git/nodes/${node}`)) { panic(`node:"${node}" not exist`) }
       if (!version_lock) { return }
       const a = await db.getpath(`git/node_to/${node}`)
       if (a.length > 0) { panic(`node:"${node}" is not a leaf node`) }
     }
-    // TODO: hash file
-    $.write = async (node, name, content, mode = "file", force = false) => {
-      await writecheck(node); const k = fstr(node, name) // 检查路径是否被占用
-      if (!force && await db.get(k)) { panic(`path "${node}/${name}" has been occupied`) }
-      await db.set(k, { mode, content })
-      // if mode is file, calculate a hash for that file
-      // if hash exist, add reference to it
-      // if not create a hash object for this file
-
+    $.write = async (node, name, content, mode = "file") => {
+      await versioncheck(node); const k = fstr(node, name)
+      if (await db.get(k)) { panic(`path "${node}/${name}" has been occupied`) }
+      if (mode === 'file') {
+        const h = await sha256(content), hk = `git/hashobj/${h}`
+        let ho = await db.get(hk), a = []
+        if (!ho) { a.push(db.set(hk, content)) }
+        a.push(db.set(`git/hashref/${h}/${node}/${name}`, true))
+        a.push(db.set(k, { mode, content: h }))
+        await Promise.all(a)
+      } else { await db.set(k, { mode, content }) }
     }
-    $.remove = async (node, name) => (
-      await writecheck(node), await db.del(fstr(node, name)))
+    $.remove = async (node, name) => {
+      await versioncheck(node)
+      const k = fstr(node, name), r = await db.get(k)
+      if (!r) { panic(`path "${node}/${name}" not exist`) }
+      if (r.mode === 'file') {
+        await db.del(`git/hashref/${r.content}/${node}/${name}`)
+        const a = await db.getpath(`git/hashref/${r.content}`)
+        if (a.length <= 0) { await db.del(`git/hashobj/${r.content}`) }
+      } await db.del(k)
+    }
     $.rename = async (node, oldname, newname) => {
       const { content: v, mode: m } = await rawread(node, oldname)
-      await remove(node, oldname)
-      await write(node, newname, v, m)
+      await remove(node, oldname); await write(node, newname, v, m)
     }
 
     $.newgraph = name => (graphs[name] = {}, roots[name] = newnode(name))

@@ -123,6 +123,13 @@ $.hash = (s, seed = 0) => {
   return 4294967296 * (2097151 & h2) + (h1 >>> 0)
 }
 
+$.sha256 = async t => {
+  const msgBuffer = new TextEncoder().encode(t)
+  const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer)
+  const hashArray = Array.from(new Uint8Array(hashBuffer))
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
+}
+
 $.pnow = performance.now.bind(performance)
 $.frame = (f, c = Infinity, st = pnow(), l) => (
   l = t => c-- > 0 ? (requestAnimationFrame(l), f(t - st)) : 0,
