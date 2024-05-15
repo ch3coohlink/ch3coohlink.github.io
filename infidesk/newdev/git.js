@@ -9,7 +9,7 @@ $.git = (db) => {
       if (!f) { panic(`path "${node}:${a}" not exist`) }
       if (f.mode === "file") {
         const content = await db.get(`git/hashobj/${f.content}`)
-        if (!content) { panic(`hashobj ${f.content} not exist`) }
+        if (content === undefined) { panic(`hashobj ${f.content} not exist`) }
         return { node, path, content }
       }
       if (f.mode === "ref" && b) { return rawread(f.content, b) }
